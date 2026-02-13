@@ -1,6 +1,9 @@
 import threading
 import socket
 import queue
+
+import clientProtocol
+import clientlogic
 import settings
 import aesCipher
 import diffieHellman
@@ -132,7 +135,12 @@ class ClientComm:
 
 
     def send_file(self, file_path):
-        #currently, the logic has to send send_msg with the file info.
+        """
+            sends a file to the server
+        :param file_path: file path to the file to be sent
+        :return: file sent to server
+        """
+        #currently, the logic has to send send_msg with the file size and name.
         #if merry allows it, i will make it so this func uses clientProtocol to create the msg and send it herself
 
         with open(file_path, 'rb') as f:
@@ -145,11 +153,51 @@ class ClientComm:
         except Exception as e:
             print(f"Error sending message: {e}")
 
-    def recv_file(self):
-        pass
+    def recv_file(self, file_size, file_name):
+        """
+            recvs file send from the server and saves it at assets//``file_name``
+        :param file_size: size of the file that needs to be received
+        :param file_name: the name and extension of file to be received
+        :return: returns whether the recv was successful
+        """
+        #called by handle_save_file in logic
+        saved_file = True
+        file_content = bytearray()
+        while len(file_content)<file_size:
+            slice = min(1024, (file_size-len(file_content)))
+            try:
+                data = self.my_socket.recv(slice)
+            except Exception as e:
+                print("Error at receiving file -",e)
+                data = ''
+
+            if not data:
+                saved_file = False
+                break
+
+            file_content.extend(data)
+
+        if recv_amount == file_size:
+            with open(f"assets\\{file_name}", 'wb') as f:
+                f.write(self.cipher.decrypt_file(file_content))
+        else:
+            self._close_client()
+
+        return saved_file
+
 
 if __name__ == "__main__":
     recvQ = queue.Queue()
-    client = ClientComm("127.0.0.1", 1000, recvQ)
+    client = ClientComm(clientlogic.ClientLogic,
+    "127.0.0.1", 1000, recvQ)
     time.sleep(1)
     client.send("hello world")
+
+    with open("file.txt") as f:
+        f.write("msg to be sent to server")
+
+    with open("file.txt", 'rb'):
+        data_len = len(f.read())
+
+    client.send_msg(clientProtocol.build_command(0,["file.txt", data_len]))
+    client.send_file("file.txt")

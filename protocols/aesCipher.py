@@ -71,11 +71,59 @@ class AESCipher:
         """
         return s[:-ord(s[len(s) - 1:])]
 
-    def encrypt_file(self):
-        print("helo")
-    
-    def decrypt_file(self):
-        pass
+    def encrypt_file(self, raw_bytes):
+        """Encrypt file content bytes using AES-CBC.
+
+        Uses PKCS#7 padding so arbitrary file sizes can be encrypted.
+
+        :param raw_bytes: File content bytes to encrypt.
+        :return: Raw encrypted payload as bytes (IV + ciphertext).
+        :raises TypeError: If ``raw_bytes`` is not bytes-like.
+        """
+        if not isinstance(raw_bytes, (bytes, bytearray)):
+            raise TypeError("raw_bytes must be bytes-like")
+
+        file_data = bytes(raw_bytes)
+        padding_length = self.bs - (len(file_data) % self.bs)
+        padded_data = file_data + bytes([padding_length]) * padding_length
+
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return iv + cipher.encrypt(padded_data)
+
+    def decrypt_file(self, enc_bytes):
+        """Decrypt AES-CBC encrypted file content.
+
+        Expects a payload formatted as ``IV + ciphertext`` and removes PKCS#7
+        padding after decryption.
+
+        :param enc_bytes: Encrypted bytes (IV + ciphertext).
+        :return: Original decrypted file bytes.
+        :raises TypeError: If ``enc_bytes`` is not bytes-like.
+        :raises ValueError: If payload size or padding is invalid.
+        """
+        if not isinstance(enc_bytes, (bytes, bytearray)):
+            raise TypeError("enc_bytes must be bytes-like")
+
+        encrypted_data = bytes(enc_bytes)
+        if len(encrypted_data) < AES.block_size * 2:
+            raise ValueError("Encrypted data is too short")
+
+        ciphertext = encrypted_data[AES.block_size:]
+        if len(ciphertext) % self.bs != 0:
+            raise ValueError("Ciphertext length must be a multiple of block size")
+
+        iv = encrypted_data[:AES.block_size]
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        padded_data = cipher.decrypt(ciphertext)
+
+        padding_length = padded_data[-1]
+        if padding_length < 1 or padding_length > self.bs:
+            raise ValueError("Invalid padding length")
+        if padded_data[-padding_length:] != bytes([padding_length]) * padding_length:
+            raise ValueError("Invalid PKCS#7 padding")
+
+        return padded_data[:-padding_length]
     
 if __name__ == '__main__':
     cry = AESCipher("Barak")
