@@ -119,7 +119,7 @@ class ServerComm:
                 break
         return soc
 
-    def send(self, client_ip, msg):
+    def send_msg(self, client_ip, msg):
         """Send an encrypted message to a specific client.
 
         :param client_ip: ip of the client to send the message to.
@@ -147,4 +147,6 @@ class ServerComm:
         send_list = list(set(clients_ips) - set(except_clients))
         for ip in send_list:
             self.send(ip, msg)
+
+
 
