@@ -7,15 +7,22 @@ def build_command(command, params):
     :param params: List of parameters for the command.
     :return: Formatted command string.
     """
-    return str(command) + "@#".join(params)
+    params = [str(i) for i in params]
+    return str(command).zfill(2) + "@#".join(params)
 
 
-def build_sign_up_status(status):
-    return build_command(0, [status])
+def build_sign_up_status(status, port = None):
+    msg = build_command(0, [status])
+    if status:
+        msg = build_command(0, [status, port])
+    return msg
 
 
-def build_sign_in_status(status):
-    return build_command(1, [status])
+def build_sign_in_status(status, username = None, email = None, filter = None, followings_names = None):
+    msg = build_command(1, [status])
+    if status:
+        msg = build_command(1, [username, email, filter, followings_names])
+    return msg
 
 
 def build_set_topics_confirmation(status):
@@ -33,10 +40,12 @@ def build_creator_details(username, followers_amount, following_amount, videos_a
     )
 
 
-def build_video_details(video_id, creator_name, video_name, video_desc, likes_amount, comments_amount):
+def build_video_details(video_id, creator_name, video_name, video_desc, likes_amount,
+                        comments_amount, liked):
     return build_command(
         5,
-        [video_id, creator_name, video_name, video_desc, likes_amount, comments_amount]
+        [video_id, creator_name, video_name, video_desc, likes_amount,
+         comments_amount, liked]
     )
 
 
@@ -95,8 +104,8 @@ def unpack(data):
     :param data: Command string to unpack.
     :return: Tuple of (opcode, parameters list).
     """
-    opcode = data[0]
+    opcode = data[:2]
     params = ""
-    if len(data) > 1:
-        params = data[1:].split("@#")
+    if len(data) > 2:
+        params = data[2:].split("@#")
     return opcode, params

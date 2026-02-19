@@ -18,9 +18,11 @@ class ServerCommVideos (serverComm.ServerComm):
 
     :ivar server_socket: Socket for accepting client connections.
     :ivar port: Port number for the server.
-    :ivar recvQ: Queue to store received messages.
     :ivar open_clients: Dictionary mapping client sockets to [ip, cipher] pairs.
     """
+
+    def __init__(self, port):
+        super().__init__(port, None)
 
     def _mainLoop(self):
         """Continuously monitor for incoming connections and messages.
@@ -58,9 +60,7 @@ class ServerCommVideos (serverComm.ServerComm):
                     else:
                         ip, key = self.open_clients[current_socket]
                         decrypted_message = key.decrypt(data)
-
-                        file_size, file_name = serverProtocol.unpack(decrypted_message)
-                        self._recv_file(current_socket,file_size, file_name)
+                        self._recv_file(current_socket, decrypted_message)
 
     def send_msg(self, client_ip, msg):
         """Send an encrypted message to a specific client.
@@ -85,33 +85,39 @@ class ServerCommVideos (serverComm.ServerComm):
         :param file_path: file path to the file to be sent
         :return: file sent to server
         """
-        # currently, the logic has to send send_msg with the file size and name.
-        # if merry allows it, i will make it so this func uses clientProtocol to create the msg and send it herself
 
-        with open(file_path, 'rb') as f:
-            data = f.read()
+        if os.path.isfile(file_path):
+            with open(file_path, 'rb') as f:
+                data = f.read()
 
-        client_socket = self._find_socket_by_ip(client_ip)
+            client_socket = self._find_socket_by_ip(client_ip)
 
-        data = self.open_clients[client_socket][1].encrypt_file(data)
-        msg = serverProtocol.build_command(0, [os.path.basename(file_path), len(data)])
-        encrypted_message = self.open_clients[client_socket][1].encrypt(msg)
-        #  0100.png@#1000000000
-        # max size: max(usename, video_id) + video_size : 15+10 = 25 bytes
-        try:
-            client_socket.send(str(len(msg)).zfill(2).encode() + encrypted_message)
-            client_socket.send(data)
-        except Exception as e:
-            print(f"Error sending message: {e}")
+            data = self.open_clients[client_socket][1].encrypt_file(data)
+            msg = serverProtocol.build_command(0, [os.path.basename(file_path), len(data)])
+            encrypted_message = self.open_clients[client_socket][1].encrypt(msg)
+            #  0100.png@#1000000000
+            # max size: max(usename, video_id) + video_size : 15+10 = 25 bytes
+            try:
+                client_socket.send(str(len(msg)).zfill(2).encode() + encrypted_message)
+                client_socket.send(data)
+            except Exception as e:
+                print(f"Error sending message: {e}")
+                self._close_client(client_socket)
+
+        else:
+            print("file does not exist")
 
 
-    def _recv_file(self, client_socket, file_size, file_name):
+    def _recv_file(self, client_socket, decrypted_message):
         """
             recvs file send from the server and saves it at assets//``file_name``
         :param file_size: size of the file that needs to be received
         :param file_name: the name and extension of file to be received
         :return: returns whether the recv was successful
         """
+
+        file_size, file_name = serverProtocol.unpack(decrypted_message)
+
         saved_file = True
         file_content = bytearray()
         while len(file_content) < file_size:

@@ -68,6 +68,7 @@ class ServerComm:
                     else:
                         ip, key = self.open_clients[current_socket]
                         decrypted_message = key.decrypt(data)
+                        print("decrypted:", decrypted_message)
                         self.recvQ.put((ip, decrypted_message))  # Push received data into the queue
 
     def _change_key(self, client_soc, client_ip):

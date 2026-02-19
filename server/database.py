@@ -180,18 +180,26 @@ class DataBase:
         Retrieves all users.
         :return: List of all usernames from the users table
         """
-        self.cur.execute("SELECT * FROM users")
+        self.cur.execute("SELECT username FROM users")
         return [row[0] for row in self.cur.fetchall()]
 
 
-    def get_users_startswith(self, username_start):
+    def get_similar_usernames(self, username):
         """
         Retrieves users whose usernames start with a prefix.
-        :param username_start: Username prefix
+        :param username: Username prefix
         :return: List of matching usernames
         """
-        self.cur.execute("SELECT * FROM users WHERE username LIKE ?", (username_start + "%",))
-        return [row[0] for row in self.cur.fetchall()]
+        self.cur.execute("SELECT username FROM users WHERE username LIKE ? COLLATE NOCASE", ("%"+ username + "%",))
+        return self.cur.fetchall()
+
+    def log_in(self, username_or_email, password_hash):
+        self.cur.execute("SELECT 1 FROM users WHERE (username = ? OR email = ?) AND password = ?", (username_or_email, username_or_email, password_hash))
+        return self.cur.fetchone() is not None
+
+    def get_user_email(self, username):
+        self.cur.execute("SELECT email FROM users WHERE username = ?")
+        return self.cur.fetchone()
 
     # ===== videos =====
 
@@ -225,6 +233,23 @@ class DataBase:
         self.cur.execute("DELETE FROM videos WHERE video_id = ?", (video_id,))
         self.conn.commit()
 
+    def get_video_amount(self, username):
+        self.cur.execute("SELECT COUNT(*) FROM videos WHERE creator = ?", (username,))
+
+    def get_videos_with_similar_desc(self, desc):
+        self.cur.execute(
+            "SELECT * FROM videos WHERE desc LIKE ? COLLATE NOCASE",
+        ('%' + desc + '%',)
+        )
+        return self.cur.fetchall()
+
+    def get_videos_with_similar_name(self, name):
+        self.cur.execute(
+            "SELECT * FROM videos WHERE desc LIKE ? COLLATE NOCASE",
+            ('%' + name + '%',)
+        )
+        return self.cur.fetchall()
+
     # ===== comments =====
 
     def get_comments(self, video_id):
@@ -236,6 +261,9 @@ class DataBase:
         self.cur.execute("SELECT * FROM comments WHERE video_id = ?", (video_id,))
         return self.cur.fetchall()
 
+    def get_comments_amount(self, video_id):
+        self.cur.execute("SELECT COUNT(*) FROM comments WHERE video_id = ?", (video_id,))
+        return self.cur.fetchall()
 
     def delete_comment(self, comment_id):
         """
@@ -277,6 +305,105 @@ class DataBase:
         self.cur.execute("SELECT COUNT(*) FROM likes WHERE video_id = ?", (video_id,))
         return self.cur.fetchone()[0]
 
+    def is_liked_by_user(self, video_id, username):
+        self.cur.execute("SELECT 1 FROM likes WHERE video_id = ? AND username = ?",(video_id, username))
+        return self.cur.fetchone()[0]
+
+    # ===== following =====
+    def add_following(self, following, followed):
+        self.cur.execute("INSERT INTO following VALUES (?, ?)", (following, followed))
+        self.conn.commit()
+
+    def get_followings(self, username):
+        self.cur.execute("SELECT followed FROM followers WHERE following = ?", (username,))
+        followings = self.cur.fetchall()
+        return [f[0] for f in followings]  # Return a list of followed usernames
+
+    def get_followers(self, username):
+        self.cur.execute("SELECT following FROM followers WHERE followed = ?", (username,))
+        followers = self.cur.fetchall()
+        return followers
+
+    def remove_following(self, following, followed):
+        self.cur.execute("DELETE FROM following WHERE following = ? and followed = ?", (following, followed))
+        self.conn.commit()
+
+    def is_following(self, following, followed):
+        self.cur.execute("SELECT 1 FROM following WHERE following = ? and followed = ?", (following, followed))
+        return self.cur.fetchone() is not None
+
+    def get_followers_amount(self, username):
+        self.cur.execute("SELECT COUNT(*) FROM followers WHERE followed = ?", (username,))
+        return self.cur.fetchone()[0]
+
+    def get_following_amount(self, username):
+        self.cur.execute("SELECT COUNT(*) FROM followers WHERE following = ?", (username,))
+
+    # ===== video topics =====
+
+    def add_video_topics(self, video_id, topics):
+        self.cur.execute("INSERT INTO topics VALUES (?,?)", (video_id, topics))
+        self.conn.commit()
+
+    def get_video_topics(self, video_id):
+        self.cur.execute("SELECT * FROM topics WHERE video_id = ?", (video_id,))
+        return self.cur.fetchall()
+
+    def get_videos_ids_by_topics(self, topics):
+        video_ids = []
+        if topics:
+            placeholders = ",".join(["?"] * len(topics))
+            query = f"SELECT video_id FROM topics WHERE topic IN ({placeholders})"
+            self.cur.execute(query, topics)
+            video_ids = self.cur.fetchall()
+
+        return video_ids
+
+    # ===== user topics =====
+
+    def _add_user_topics(self, username, topics):
+        self.cur.execute("INSERT INTO topics VALUES (?,?)", (username, topics))
+        self.conn.commit()
+
+    def _remove_user_topics(self, username, topics):
+        self.cur.execute("DELETE FROM topics WHERE username = ? AND topic = ?", (username, topics))
+        self.conn.commit()
+
+    def get_user_topics(self, username):
+        self.cur.execute("SELECT topic FROM topics WHERE username = ?", (username,))
+        return self.cur.fetchall()
+
+    def set_topics(self, username, new_topics):
+        old_topics = self.get_user_topics(username)
+        to_add_topics = set(new_topics) - set(old_topics)
+        to_remove_topics = set(old_topics) - set(new_topics)
+
+        self._add_user_topics(username, to_add_topics)
+        self._remove_user_topics(username, to_remove_topics)
+
+    # ===== Watched videos =====
+
+    def add_watched_video(self, username, video_id):
+        self.cur.execute("INSERT INTO watched_videos VALUES (?,?)", (username, video_id))
+        self.conn.commit()
+
+    def get_watched_videos(self, username):
+        self.cur.execute("SELECT watched FROM watched_videos WHERE username = ?", (username,))
+        return self.cur.fetchall()
+
+    def get_amount_of_views(self, video_id):
+        self.cur.execute("SELECT COUNT(*) FROM watched_videos WHERE video_id = ?", (video_id,))
+        return self.cur.fetchone()[0]
+
+    def has_watched_video(self, username, video_id):
+        self.cur.execute("SELECT 1 FROM watched_videos WHERE username = ? AND video_id = ?", (username, video_id))
+        return self.cur.fetchone() is not None
+
+    def order_ids_by_views(self, video_ids):
+        self.cur.execute("SELECT video_id FROM watched_videos WHERE video_id = ?, ORDER BY views", (video_ids,))
+        return self.cur.fetchall()
+
+
     # ===== video hashes =====
 
     def add_video_hash(self, video_id, video_hash):
@@ -306,6 +433,8 @@ class DataBase:
         """
         self.cur.execute("SELECT 1 FROM video_hashes WHERE video_hash = ?", (video_hash,))
         return self.cur.fetchone() is not None
+
+
 
 
 if __name__ == "__main__":

@@ -7,7 +7,8 @@ def build_command(command, params):
     :param params: List of parameters for the command.
     :return: Formatted command string.
     """
-    return str(command) + "@#".join(params)
+    params = [str(i) for i in params]
+    return str(command).zfill(2) + "@#".join(params)
 
 
 def build_sign_up(username, password, email):
@@ -83,6 +84,8 @@ def build_follow_req(username):
 def build_file_details(file_name, file_size):
     return build_command(00, [file_name, file_size])
 
+def is_video(msg):
+    return msg[:2] == build_file_details("", "")[:2]
 
 def unpack(data):
     """Unpack a command string into opcode and parameters.
@@ -92,6 +95,9 @@ def unpack(data):
     :param data: Command string to unpack.
     :return: Tuple of (opcode, parameters list).
     """
-    opcode = data[0]
-    params = data[1:].split("@#")
+    opcode = data[:2]
+    params = ""
+    if len(data) > 2:
+        params = data[2:].split("@#")
     return opcode, params
+
