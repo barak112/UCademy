@@ -18,15 +18,15 @@ def build_sign_up_status(status, port = None):
     return msg
 
 
-def build_sign_in_status(status, username = None, email = None, filter = None, followings_names = None):
+def build_sign_in_status(status, username = None, email = None, topics = None,followings_names = None):
     msg = build_command(1, [status])
     if status:
-        msg = build_command(1, [username, email, filter, followings_names])
+        msg = build_command(1, [status, username, email, topics, followings_names])
     return msg
 
 
-def build_set_topics_confirmation(status):
-    return build_command(2, [status])
+def build_set_topics_confirmation(topics):
+    return build_command(2, [topics])
 
 
 def build_set_filter_confirmation(status):

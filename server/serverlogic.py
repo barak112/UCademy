@@ -27,8 +27,29 @@ class ServerLogic:
         self.recvQ = queue.Queue()
         comm = serverComm.ServerComm(settings.PORT, self.recvQ)
         self.comm = comm
-        self.commands = {'00':self.handle_registration
+        self.commands = {
+            '00': self.handle_registration,
+            '01': self.handle_sign_in,
+            '02': self.handle_set_user_topics,
+            '03': self.handle_filter_user_topics,
+            '04': self.handle_creators_search,
+            '05': self.handle_videos_search,
+            '06': self.handle_video_comment,
+            '07': self.handle_test_req,
+            '08': self.handle_report,
+            '09': self.handle_comments_req,
+            '10': self.handle_video_del,
+            '11': self.handle_del_comment,
+            '12': self.handle_creator_videos_req,
+            '13': self.handle_user_follow_list_req,
+            '14': self.handle_video_req,
+            '15': self.handle_video_upload,
+            '16': self.handle_follow_user,
+
+            '98': self.handle_comment_or_video_remove,
+            '99': self.handle_user_kick,
         }
+
         self.db = database.DataBase()
         self.current_video_port = settings.VIDEO_PORT
         self.clients = {} # [client_ip] = (username, video_comm, [topics_filter])
@@ -40,16 +61,13 @@ class ServerLogic:
         """
         while True:
             ip, msg = self.recvQ.get()
-            print("ip, msg",ip, msg)
             opcode, data = serverProtocol.unpack(msg)
 
             if opcode in self.commands.keys():
                 self.commands[opcode](ip, data)
 
-    def handle_registration(self, client_ip, data):
+    def handle_registration(self, client_ip, data): # command 0
         username, password, email = data
-        print("register user")
-
 
         msg = serverProtocol.build_sign_up_status(0)
         if self.db.add_user(username, email, self.hash_password(password)):
@@ -61,31 +79,33 @@ class ServerLogic:
 
         self.comm.send_msg(client_ip, msg)
 
-
-    def handle_sign_in(self, client_ip, data):
+    def handle_sign_in(self, client_ip, data): #command 1
         username_or_email, password = data
         msg = serverProtocol.build_sign_in_status(0)
 
+        username = self.db.get_username(username_or_email)
+        print(username)
         if self.db.log_in(username_or_email, self.hash_password(password)):
-            username = self.clients[client_ip][0]
             topics = self.db.get_user_topics(username)
             email = self.db.get_user_email(username)
             followings_names = self.db.get_followings(username)
-            topic_filter = self.clients[client_ip][2]
-            msg = serverProtocol.build_sign_in_status(topics, username, email, topic_filter, followings_names)
+            msg = serverProtocol.build_sign_in_status(1,  username, email, topics, followings_names)
 
+            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port), topics]
 
         self.comm.send_msg(client_ip, msg)
 
-    def handle_set_user_topics(self, client_ip, data):
-        topics = data
+    def handle_set_user_topics(self, client_ip, data): # command 2
+        topics = [int(t) for t in data]
         self.db.set_topics(self.clients[client_ip][0], topics)
-        msg = serverProtocol.build_set_topics_confirmation(1)
+        msg = serverProtocol.build_set_topics_confirmation(topics)
         self.comm.send_msg(client_ip, msg)
 
-    def handle_filter_user_topics(self, client_ip, data):
-        topics = data
-        self.clients[client_ip][2] = topics
+        self.db.print_tables()
+
+    def handle_filter_user_topics(self, client_ip, data): # command 3
+        topic_filter = [int(t) for t in data]
+        self.clients[client_ip][2] = topic_filter
         msg = serverProtocol.build_set_filter_confirmation(1)
         self.comm.send_msg(client_ip, msg)
 

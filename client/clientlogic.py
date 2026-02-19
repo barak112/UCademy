@@ -1,12 +1,13 @@
 import time
 
 import clientCommVideos
-import graphics
 import clientProtocol
 import clientComm
 import queue
 import settings
 import threading
+import ast
+import user
 
 
 class ClientLogic:
@@ -23,7 +24,7 @@ class ClientLogic:
         self.comm = clientComm.ClientComm(self, settings.SERVER_IP, settings.PORT, self.recvQ)
         self.comm.connect()
         self.video_comm = None
-
+        self.user = None
         self.commands = {
             "00": self.handle_reg_confirmation,
             "01": self.handle_sign_in_confirmation,
@@ -82,17 +83,23 @@ class ClientLogic:
             self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvVQ)
             self.video_comm.connect()
 
-        print("status:",status)
+        print("sign up status:",status)
 
     def handle_sign_in_confirmation(self, data):
-        status = data[0]
+        status = int(data[0])
 
+        print("sign in status:",status)
+        print(data)
         if status:
-            username, email, topics = data[1:]
+            username, email, topics, followings_names = data[1:]
+            topics = ast.literal_eval(topics)
+
+            self.user = user.User(username, email, topics, followings_names)
+
 
     def handle_topics_confirmation(self, data):
-        status = data[0]
-        pass
+        topics = data[0]
+        self.user.topics = topics
 
     def handle_filter_confirmation(self, data):
         status = data[0]
@@ -147,10 +154,20 @@ class ClientLogic:
 if __name__ == "__main__":
     """Main entry point to run the client."""
     client = ClientLogic()
-
-    msg_to_send = clientProtocol.build_sign_up("Barak", "passwword123", "barakbm9")
     time.sleep(0.1)
+
+    msg_to_send = clientProtocol.build_sign_up("Alon", "password123", "Alon@")
     client.comm.send_msg(msg_to_send)
+
+    msg_to_send = clientProtocol.build_sign_in("Alon", "password123")
+    client.comm.send_msg(msg_to_send)
+
+    msg_to_send = clientProtocol.build_set_topics([2, 3, 4])
+    client.comm.send_msg(msg_to_send)
+
+    time.sleep(0.5)
+    print(client.user)
+
     while True:
         pass
 

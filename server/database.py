@@ -1,3 +1,4 @@
+import os
 import sqlite3
 
 
@@ -37,8 +38,8 @@ class DataBase:
         self.cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
         username TEXT PRIMARY KEY,
-        password TEXT,
-        email TEXT
+        email TEXT,
+        password TEXT
         )
         """)
         self.conn.commit()
@@ -160,6 +161,10 @@ class DataBase:
         self.cur.execute("SELECT 1 FROM users WHERE username = ?", (username,))
         return self.cur.fetchone() is not None
 
+    def email_exists(self, email):
+        self.cur.execute("SELECT 1 FROM users WHERE email = ?", (email,))
+        return self.cur.fetchone() is not None
+
     def  add_user(self, username, email, password_hash):
         """
         Adds a new user to the database.
@@ -169,7 +174,7 @@ class DataBase:
         :return: Inserts a new row into the users table if the username is available
         """
         added = False
-        if not self.user_exists(username):
+        if not self.user_exists(username) and not self.email_exists(email):
             self.cur.execute("INSERT INTO users VALUES (?,?,?)", (username, email, password_hash))
             self.conn.commit()
             added = True
@@ -194,13 +199,24 @@ class DataBase:
         return self.cur.fetchall()
 
     def log_in(self, username_or_email, password_hash):
+        self.cur.execute("SELECT password FROM users WHERE username = ? OR email = ?", (username_or_email, username_or_email))
+        print("passwords:",self.cur.fetchone(), password_hash)
+
         self.cur.execute("SELECT 1 FROM users WHERE (username = ? OR email = ?) AND password = ?", (username_or_email, username_or_email, password_hash))
         return self.cur.fetchone() is not None
 
     def get_user_email(self, username):
-        self.cur.execute("SELECT email FROM users WHERE username = ?")
-        return self.cur.fetchone()
-
+        self.cur.execute("SELECT email FROM users WHERE username = ?", (username,))
+        return self.cur.fetchone()[0]
+    
+    def get_username(self, username_or_email):
+        """
+        :param username_or_email: The username or email address to search for in the users table.
+        :return: The first username found matching the given username or email address.
+        """
+        self.cur.execute("SELECT username FROM users WHERE username = ? OR email = ?", (username_or_email, username_or_email))
+        return self.cur.fetchone()[0]
+    
     # ===== videos =====
 
     def get_specific_video(self, video_id):
@@ -315,13 +331,13 @@ class DataBase:
         self.conn.commit()
 
     def get_followings(self, username):
-        self.cur.execute("SELECT followed FROM followers WHERE following = ?", (username,))
+        self.cur.execute("SELECT followed FROM following WHERE following = ?", (username,))
         followings = self.cur.fetchall()
         return [f[0] for f in followings]  # Return a list of followed usernames
 
     def get_followers(self, username):
-        self.cur.execute("SELECT following FROM followers WHERE followed = ?", (username,))
         followers = self.cur.fetchall()
+        self.cur.execute("SELECT following FROM following WHERE followed = ?", (username,))
         return followers
 
     def remove_following(self, following, followed):
@@ -362,21 +378,26 @@ class DataBase:
     # ===== user topics =====
 
     def _add_user_topics(self, username, topics):
-        self.cur.execute("INSERT INTO topics VALUES (?,?)", (username, topics))
+        for topic in topics:
+            self.cur.execute("INSERT INTO user_topics VALUES (?, ?)", (username, topic))
         self.conn.commit()
 
     def _remove_user_topics(self, username, topics):
-        self.cur.execute("DELETE FROM topics WHERE username = ? AND topic = ?", (username, topics))
+        for topic in topics:
+            self.cur.execute("DELETE FROM user_topics WHERE username = ? AND topic = ?", (username, topic))
         self.conn.commit()
 
     def get_user_topics(self, username):
-        self.cur.execute("SELECT topic FROM topics WHERE username = ?", (username,))
-        return self.cur.fetchall()
+        self.cur.execute("SELECT topic FROM user_topics WHERE username = ?", (username,))
+        topics = self.cur.fetchall()
+        return [t[0] for t in topics]
 
     def set_topics(self, username, new_topics):
         old_topics = self.get_user_topics(username)
         to_add_topics = set(new_topics) - set(old_topics)
         to_remove_topics = set(old_topics) - set(new_topics)
+
+        print("topic lists:",to_add_topics, to_remove_topics)
 
         self._add_user_topics(username, to_add_topics)
         self._remove_user_topics(username, to_remove_topics)
@@ -435,7 +456,22 @@ class DataBase:
         return self.cur.fetchone() is not None
 
 
+    def delete_database(self):
+        self.conn.close()
+        os.remove("ucademy.db")
 
+    def print_tables(self):
+        # Get all table names
+        self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = [t[0] for t in self.cur.fetchall()]
+
+        # Print first 5 rows of each table
+        for table in tables:
+            print(f"\nTable: {table}")
+            self.cur.execute(f"SELECT * FROM {table} LIMIT 5;")
+            rows = self.cur.fetchall()
+            for row in rows:
+                print(row)
 
 if __name__ == "__main__":
     db = DataBase()
