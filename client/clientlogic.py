@@ -25,6 +25,7 @@ class ClientLogic:
         self.comm.connect()
         self.video_comm = None
         self.user = None
+        self.filter = []
         self.commands = {
             "00": self.handle_reg_confirmation,
             "01": self.handle_sign_in_confirmation,
@@ -102,12 +103,14 @@ class ClientLogic:
         self.user.topics = topics
 
     def handle_filter_confirmation(self, data):
-        status = data[0]
-        pass
+        filter = ast.literal_eval(data[0])
+        self.filter = filter
+        print("setting filter:", filter)
 
     def handle_user_details(self, data):
         username, followers_amount, videos_amount = data
-        pass
+
+        print("receiving video details")
 
     def handle_video_details(self, data):
         video_id, creator, name, desc, likes_amount, comments_amount, liked = data
@@ -163,6 +166,9 @@ if __name__ == "__main__":
     client.comm.send_msg(msg_to_send)
 
     msg_to_send = clientProtocol.build_set_topics([2, 3, 4])
+    client.comm.send_msg(msg_to_send)
+
+    msg_to_send = clientProtocol.build_set_filter([5, 6, 7])
     client.comm.send_msg(msg_to_send)
 
     time.sleep(0.5)

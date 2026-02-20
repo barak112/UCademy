@@ -1,7 +1,7 @@
+import os
 import hashlib
-import os.path
+import hmac
 import queue
-import threading
 
 import database
 import serverComm
@@ -106,8 +106,10 @@ class ServerLogic:
     def handle_filter_user_topics(self, client_ip, data): # command 3
         topic_filter = [int(t) for t in data]
         self.clients[client_ip][2] = topic_filter
-        msg = serverProtocol.build_set_filter_confirmation(1)
+        msg = serverProtocol.build_set_filter_confirmation(1, topic_filter)
         self.comm.send_msg(client_ip, msg)
+
+        print("set filter:", topic_filter)
 
     def handle_creators_search(self, client_ip, data):
         username = data[0]
@@ -116,7 +118,7 @@ class ServerLogic:
         #send username details and pfps
         for username in usernames[:settings.AMOUNT_OF_USERS_TO_SEND]:
             self.send_user_details(client_ip, username)
-
+            print("sending video details")
 
     def send_user_details(self, client_ip, username): # command 4
         #/get_creator_details
@@ -209,7 +211,8 @@ class ServerLogic:
 
     def handle_video_upload(self, client_ip, data):
         video_name, video_desc, test_link = data
-        pass
+        self.db.add_video(self.clients[client_ip[0]], video_name, video_desc, test_link)
+
 
     def handle_follow_user(self, client_ip, data):
         username = data
@@ -224,8 +227,19 @@ class ServerLogic:
         username = data
         pass
 
-    def hash_password(self, password):
-        return hashlib.sha256(password.encode('utf-8')).hexdigest()
+    @staticmethod
+    def hash_video(path: str, chunk_size: int = 1024 * 1024) -> str:
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(chunk_size), b""):
+                h.update(chunk)
+        return h.hexdigest()
+
+    @staticmethod
+    def hash_password(self, password: str, *, iterations: int = 200_000) -> str:
+        salt = os.urandom(16)
+        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+        return f"pbkdf2_sha256${iterations}${salt.hex()}${dk.hex()}"
 
 if __name__ == "__main__":
     msgsQ = queue.Queue()

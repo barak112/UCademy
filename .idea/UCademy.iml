@@ -9,7 +9,7 @@
       <sourceFolder url="file://$MODULE_DIR$/classes" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.7 (Men Fight)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.10 (UCademy)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

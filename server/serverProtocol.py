@@ -29,8 +29,8 @@ def build_set_topics_confirmation(topics):
     return build_command(2, [topics])
 
 
-def build_set_filter_confirmation(status):
-    return build_command(3, [status])
+def build_set_filter_confirmation(status, filter):
+    return build_command(3, [status, filter])
 
 
 def build_creator_details(username, followers_amount, following_amount, videos_amount):

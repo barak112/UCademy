@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import os
 import sqlite3
 
@@ -36,12 +38,12 @@ class DataBase:
         :return: Creates the users table if it does not already exist
         """
         self.cur.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-        username TEXT PRIMARY KEY,
-        email TEXT,
-        password TEXT
-        )
-        """)
+                         CREATE TABLE IF NOT EXISTS users (
+                                                              username TEXT PRIMARY KEY,
+                                                              email TEXT,
+                                                              password TEXT
+                         )
+                         """)
         self.conn.commit()
 
     def _create_videos_table(self):
@@ -50,12 +52,13 @@ class DataBase:
         :return: Creates the videos table if it does not already exist
         """
         self.cur.execute("""CREATE TABLE IF NOT EXISTS videos (
-        video_id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        creator TEXT, 
-        name TEXT, 
-        description TEXT
-        )
-        """)
+                                                                  video_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                                                  creator TEXT,
+                                                                  name TEXT,
+                                                                  description TEXT,
+                                                                  test_link TEXT
+                            )
+                         """)
         self.conn.commit()
 
     def _create_comments_table(self):
@@ -64,12 +67,12 @@ class DataBase:
         :return: Creates the comments table if it does not already exist
         """
         self.cur.execute("""CREATE TABLE IF NOT EXISTS comments (
-        comment_id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        video_id INTEGER, 
-        commenter TEXT, 
-        comment TEXT
-        )
-        """)
+                                                                    comment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                                                    video_id INTEGER,
+                                                                    commenter TEXT,
+                                                                    comment TEXT
+                            )
+                         """)
         self.conn.commit()
 
     def _create_likes_table(self):
@@ -78,11 +81,11 @@ class DataBase:
         :return: Creates the likes table if it does not already exist
         """
         self.cur.execute("""CREATE TABLE IF NOT EXISTS likes (
-        video_id INTEGER, 
-        username TEXT, 
-        PRIMARY KEY (video_id, username)
-        )
-        """)
+                                                                 video_id INTEGER,
+                                                                 username TEXT,
+                                                                 PRIMARY KEY (video_id, username)
+            )
+                         """)
         self.conn.commit()
 
     def _create_following_table(self):
@@ -91,11 +94,11 @@ class DataBase:
         :return: Creates the following table if it does not already exist
         """
         self.cur.execute("""CREATE TABLE IF NOT EXISTS following (
-        following TEXT, 
-        followed TEXT, 
-        PRIMARY KEY (following, followed)
-        )
-        """)
+                                                                     following TEXT,
+                                                                     followed TEXT,
+                                                                     PRIMARY KEY (following, followed)
+            )
+                         """)
         self.conn.commit()
 
     def _create_video_topics_table(self):
@@ -104,11 +107,11 @@ class DataBase:
         :return: Creates the video_topics table if it does not already exist
         """
         self.cur.execute("""CREATE TABLE IF NOT EXISTS video_topics (
-        video_id INTEGER, 
-        topic INTEGER, 
-        PRIMARY KEY (video_id, topic)
-        )
-        """)
+                                                                        video_id INTEGER,
+                                                                        topic INTEGER,
+                                                                        PRIMARY KEY (video_id, topic)
+            )
+                         """)
         self.conn.commit()
 
     def _create_user_topics_table(self):
@@ -117,11 +120,11 @@ class DataBase:
         :return: Creates the user_topics table if it does not already exist
         """
         self.cur.execute("""CREATE TABLE IF NOT EXISTS user_topics (
-        username TEXT, 
-        topic INTEGER, 
-        PRIMARY KEY (username, topic)
-        )
-        """)
+                                                                       username TEXT,
+                                                                       topic INTEGER,
+                                                                       PRIMARY KEY (username, topic)
+            )
+                         """)
         self.conn.commit()
 
     def _create_watched_videos_table(self):
@@ -131,10 +134,10 @@ class DataBase:
         """
         self.cur.execute(
             """CREATE TABLE IF NOT EXISTS watched_videos (
-            username TEXT, 
-            video_id INTEGER, 
-            PRIMARY KEY (username, video_id)
-            )
+                                                             username TEXT,
+                                                             video_id INTEGER,
+                                                             PRIMARY KEY (username, video_id)
+                )
             """)
         self.conn.commit()
 
@@ -144,10 +147,10 @@ class DataBase:
         :return: Creates the video_hashes table if it does not already exist
         """
         self.cur.execute("""CREATE TABLE IF NOT EXISTS video_hashes (
-        video_id INTEGER PRIMARY KEY, 
-        video_hash TEXT UNIQUE
-        )
-        """)
+                                                                        video_id INTEGER PRIMARY KEY,
+                                                                        video_hash TEXT UNIQUE
+                            )
+                         """)
         self.conn.commit()
 
     # ===== users =====
@@ -200,15 +203,22 @@ class DataBase:
 
     def log_in(self, username_or_email, password_hash):
         self.cur.execute("SELECT password FROM users WHERE username = ? OR email = ?", (username_or_email, username_or_email))
-        print("passwords:",self.cur.fetchone(), password_hash)
+        stored_password_hash = self.cur.fetchone()[0]
+        return self.verify_password(password_hash, stored_password_hash)
 
-        self.cur.execute("SELECT 1 FROM users WHERE (username = ? OR email = ?) AND password = ?", (username_or_email, username_or_email, password_hash))
-        return self.cur.fetchone() is not None
+    @staticmethod
+    def verify_password(password: str, stored: str) -> bool:
+        algo, iters, salt_hex, dk_hex = stored.split("$")
+        iterations = int(iters)
+        salt = bytes.fromhex(salt_hex)
+        expected = bytes.fromhex(dk_hex)
+        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+        return hmac.compare_digest(dk, expected)
 
     def get_user_email(self, username):
         self.cur.execute("SELECT email FROM users WHERE username = ?", (username,))
         return self.cur.fetchone()[0]
-    
+
     def get_username(self, username_or_email):
         """
         :param username_or_email: The username or email address to search for in the users table.
@@ -216,7 +226,7 @@ class DataBase:
         """
         self.cur.execute("SELECT username FROM users WHERE username = ? OR email = ?", (username_or_email, username_or_email))
         return self.cur.fetchone()[0]
-    
+
     # ===== videos =====
 
     def get_specific_video(self, video_id):
@@ -229,7 +239,7 @@ class DataBase:
         return self.cur.fetchall()
 
 
-    def add_video(self, creator, name, description):
+    def add_video(self, creator, name, description, test_link):
         """
         Adds a new video.
         :param creator: Username of the uploader
@@ -237,7 +247,7 @@ class DataBase:
         :param description: Video description
         :return: Inserts a new row into the videos table
         """
-        self.cur.execute("INSERT INTO videos (creator, name, description) VALUES (?,?,?)", (creator, name, description))
+        self.cur.execute("INSERT INTO videos (creator, name, description, test_link) VALUES (?,?,?)", (creator, name, description))
         self.conn.commit()
 
     def delete_video(self, video_id):
@@ -252,10 +262,14 @@ class DataBase:
     def get_video_amount(self, username):
         self.cur.execute("SELECT COUNT(*) FROM videos WHERE creator = ?", (username,))
 
+    def get_video_text_link(self, video_id):
+        self.cur.execute("SELECT test_link FROM videos WHERE video_id = ?", (video_id,))
+        return self.cur.fetchone()[0]
+
     def get_videos_with_similar_desc(self, desc):
         self.cur.execute(
             "SELECT * FROM videos WHERE desc LIKE ? COLLATE NOCASE",
-        ('%' + desc + '%',)
+            ('%' + desc + '%',)
         )
         return self.cur.fetchall()
 
