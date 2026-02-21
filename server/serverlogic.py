@@ -211,8 +211,10 @@ class ServerLogic:
 
     def handle_video_upload(self, client_ip, data):
         video_name, video_desc, test_link = data
-        self.db.add_video(self.clients[client_ip[0]], video_name, video_desc, test_link)
 
+        id = self.db.add_video(self.clients[client_ip[0]], video_name, video_desc, test_link)
+        self.clients[client_ip[1]].idsQ.put(id)
+        #need to finish it, add to db.add_Video return
 
     def handle_follow_user(self, client_ip, data):
         username = data

@@ -25,7 +25,7 @@ class ServerCommVideos (serverComm.ServerComm):
 
     def __init__(self, port):
         super().__init__(port, None)
-        self.ids = queue.Queue() # pending ids to use to save the video file
+        self.idsQ = queue.Queue() # pending ids to use to save the video file
 
     def _mainLoop(self):
         """Continuously monitor for incoming connections and messages.
@@ -139,7 +139,7 @@ class ServerCommVideos (serverComm.ServerComm):
 
         file_name, extension = file_name.split(".")
         if extension != 'jpg':
-            file_name = self.ids.get()
+            file_name = self.idsQ.get()
 
         # Might change later. currently, pfp are jpg, thumbnails are png, videos are mp4
         # i need to make sure that if i send both thumbnail and video, i also put two ids
