@@ -61,10 +61,15 @@ class ServerLogic:
         """
         while True:
             ip, msg = self.recvQ.get()
-            opcode, data = serverProtocol.unpack(msg)
 
-            if opcode in self.commands.keys():
-                self.commands[opcode](ip, data)
+            if isinstance(msg, tuple) :
+                movie_name = msg[1]
+            else:
+
+                opcode, data = serverProtocol.unpack(msg)
+
+                if opcode in self.commands.keys():
+                    self.commands[opcode](ip, data)
 
     def handle_registration(self, client_ip, data): # command 0
         username, password, email = data
@@ -111,7 +116,7 @@ class ServerLogic:
 
         print("set filter:", topic_filter)
 
-    def handle_creators_search(self, client_ip, data):
+    def handle_creators_search(self, client_ip, data): # command 4
         username = data[0]
         usernames = self.db.get_similar_usernames(username)
 
@@ -120,7 +125,7 @@ class ServerLogic:
             self.send_user_details(client_ip, username)
             print("sending video details")
 
-    def send_user_details(self, client_ip, username): # command 4
+    def send_user_details(self, client_ip, username): # Not a Command!
         #/get_creator_details
         followers = self.db.get_followers(username)
         followings = self.db.get_followings(username)
@@ -136,7 +141,7 @@ class ServerLogic:
 
 
 
-    def handle_videos_search(self, client_ip, data):
+    def handle_videos_search(self, client_ip, data):  # command 5
         video_name_or_desc, topics = data
 
         video_ids_by_topics = set(self.db.get_videos_ids_by_topics(topics))
@@ -155,7 +160,7 @@ class ServerLogic:
 
 
 
-    def send_video_details(self, client_ip, video_id):
+    def send_video_details(self, client_ip, video_id): # Not a Command!
         video_id, creator_name, video_name, video_desc = self.db.get_specific_video(video_id)
         likes_amount = self.db.get_video_likes_amount(video_id)
         comments_amount = self.db.get_comments_amount(video_id)
@@ -170,59 +175,63 @@ class ServerLogic:
 
 
 
-    def handle_video_comment(self, client_ip, data):
+    def handle_video_comment(self, client_ip, data):  # command 6
         video_id, comment = data
         pass
 
-    def handle_test_req(self, client_ip, data):
+    def handle_test_req(self, client_ip, data):  # command 7
         video_id = data
         pass
 
-    def handle_report(self, client_ip, data):
+    def handle_report(self, client_ip, data):  # command 8
         id = data
         pass
 
-    def handle_comments_req(self, client_ip, data):
+    def handle_comments_req(self, client_ip, data):  # command 9
         video_id, comment_id = data
         pass
 
-    def handle_video_del(self, client_ip, data):
+    def handle_video_del(self, client_ip, data):  # command 10
         video_id = data
         pass
 
-    def handle_del_comment(self, client_ip, data):
+    def handle_del_comment(self, client_ip, data):  # command 11
         comment_id = data
         pass
 
-    def handle_creator_videos_req(self, client_ip, data):
+    def handle_creator_videos_req(self, client_ip, data):  # command 12
         username = data
         pass
 
-    def handle_user_follow_list_req(self, client_ip, data):
+    def handle_user_follow_list_req(self, client_ip, data):  # command 13
         username, follow_type = data
         pass
 
-    def handle_video_req(self, client_ip, data):
+    def handle_video_req(self, client_ip, data):  # command 14
         video_id = data[0]
 
         if video_id:
             self.clients[client_ip][1].send_file(client_ip, video_id)
 
 
-    def handle_video_upload(self, client_ip, data):
+    def handle_video_upload(self, client_ip, data):  # command 15
         video_name, video_desc, test_link = data
 
-        id = self.db.add_video(self.clients[client_ip[0]], video_name, video_desc, test_link)
-        self.clients[client_ip[1]].idsQ.put(id)
-        #need to finish it, add to db.add_Video return
+        video_id = self.db.add_video(self.clients[client_ip[0]], video_name, video_desc, test_link)
+        # puts the id twice, once for the video and once for the thumbnail
+        self.clients[client_ip[1]].idsQ.put(video_id)
+        self.clients[client_ip[1]].idsQ.put(video_id)
 
-    def handle_follow_user(self, client_ip, data):
+
+    def handle_follow_user(self, client_ip, data):  # command 16
         username = data
         pass
 
+
     # Called by System Manager
-    def handle_comment_or_video_remove(self, client_ip, data):
-        id = data
+
+    def handle_comment_or_video_remove(self, client_ip, data): # command 9
+        id, type = data # type - 0 - comment, 1 - video
         pass
 
     def handle_user_kick(self, client_ip, data):
@@ -238,7 +247,7 @@ class ServerLogic:
         return h.hexdigest()
 
     @staticmethod
-    def hash_password(self, password: str, *, iterations: int = 200_000) -> str:
+    def hash_password(password: str, *, iterations: int = 200_000) -> str:
         salt = os.urandom(16)
         dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
         return f"pbkdf2_sha256${iterations}${salt.hex()}${dk.hex()}"

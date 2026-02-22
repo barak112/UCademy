@@ -247,8 +247,12 @@ class DataBase:
         :param description: Video description
         :return: Inserts a new row into the videos table
         """
-        self.cur.execute("INSERT INTO videos (creator, name, description, test_link) VALUES (?,?,?)", (creator, name, description))
+        self.cur.execute("INSERT INTO videos (creator, name, description, test_link) VALUES (?,?,?,?)",
+                         (creator, name, description, test_link))
         self.conn.commit()
+        video_id = self.cur.lastrowid
+        return video_id
+
 
     def delete_video(self, video_id):
         """

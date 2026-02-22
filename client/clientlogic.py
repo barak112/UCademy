@@ -142,7 +142,7 @@ class ClientLogic:
 
     def handle_video_upload_confirmation(self, data):
         status = data[0]
-        pass
+        print(status)
 
     def handle_follow_status(self, data):
         status = data[0]
@@ -170,6 +170,9 @@ if __name__ == "__main__":
 
     msg_to_send = clientProtocol.build_set_filter([5, 6, 7])
     client.comm.send_msg(msg_to_send)
+
+    #command 15
+
 
     time.sleep(0.5)
     print(client.user)

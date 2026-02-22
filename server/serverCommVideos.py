@@ -138,16 +138,21 @@ class ServerCommVideos (serverComm.ServerComm):
             file_content.extend(data)
 
         file_name, extension = file_name.split(".")
-        if extension != 'jpg':
+
+        #this code assumes that pfp names are strings (the user's name) and video and thumbnail file names are a rnd int
+        if file_name.isnumeric():
             file_name = self.idsQ.get()
 
-        # Might change later. currently, pfp are jpg, thumbnails are png, videos are mp4
-        # i need to make sure that if i send both thumbnail and video, i also put two ids
 
         if len(file_content) == file_size:
+            file_content = self.open_clients[client_socket][1].decrypt_file(file_content)
             with open(f"assets\\{file_name}.{extension}", 'wb') as f:
-                f.write(self.open_clients[client_socket][1].decrypt_file(file_content))
+                f.write(file_content)
+            self.recvQ.put(self.open_clients[client_socket][0], ("FILE", f"assets\\{file_name}.{extension}"))
         else:
             self._close_client(client_socket)
+
+
+
 
         return saved_file

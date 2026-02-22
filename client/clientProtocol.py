@@ -87,6 +87,16 @@ def build_file_details(file_name, file_size):
 def is_video(msg):
     return msg[:2] == build_file_details("", "")[:2]
 
+
+# ----- System Manager protocol -----
+
+def build_remove_command_or_video(id, type):
+    return build_command(98, [id, type]) # type - 0 - comment, 1 - video
+
+def build_kick_user(username):
+    return build_command(99, [username])
+
+
 def unpack(data):
     """Unpack a command string into opcode and parameters.
 
