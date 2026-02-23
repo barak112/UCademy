@@ -172,6 +172,8 @@ if __name__ == "__main__":
     client.comm.send_msg(msg_to_send)
 
     #command 15
+    # client.video_comm.send_msg(video_details)
+    client.video_comm.send_file("file_test.txt", "video name", "video desc", "test link")
 
 
     time.sleep(0.5)

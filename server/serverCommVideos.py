@@ -52,7 +52,7 @@ class ServerCommVideos (serverComm.ServerComm):
 
                 else:
                     try:
-                        data_len = current_socket.recv(2).decode()
+                        data_len = current_socket.recv(3).decode()
                         data = current_socket.recv(int(data_len)).decode()
                     except Exception as e:
                         print("error in comm mainloop -", e)
@@ -74,15 +74,14 @@ class ServerCommVideos (serverComm.ServerComm):
         client_soc = self._find_socket_by_ip(client_ip)
         if client_soc:
             encrypted_message = self.open_clients[client_soc][1].encrypt(msg)
-            msg = str(len(encrypted_message)).zfill(2).encode() + encrypted_message
+            msg = str(len(encrypted_message)).zfill(3).encode() + encrypted_message
             try:
                 client_soc.send(msg)
             except Exception as e:
                 print(f"Error sending message: {e}")
                 self._close_client(client_soc)
 
-
-    def send_file(self, client_ip, file_path):
+    def send_file(self, client_ip, file_path, video_name=None, video_description=None, test_link=None):
         """
             sends a file to the server
         :param file_path: file path to the file to be sent
@@ -96,12 +95,14 @@ class ServerCommVideos (serverComm.ServerComm):
             client_socket = self._find_socket_by_ip(client_ip)
 
             data = self.open_clients[client_socket][1].encrypt_file(data)
-            msg = serverProtocol.build_command(0, [os.path.basename(file_path), len(data)])
+            file_name = os.path.basename(file_path)
+            file_size = len(data)
+            msg = serverProtocol.build_file_details(file_name, file_size, video_name, video_description, test_link)
             encrypted_message = self.open_clients[client_socket][1].encrypt(msg)
             #  0100.png@#1000000000
             # max size: max(usename, video_id) + video_size : 15+10 = 25 bytes
             try:
-                client_socket.send(str(len(msg)).zfill(2).encode() + encrypted_message)
+                client_socket.send(str(len(msg)).zfill(3).encode() + encrypted_message)
                 client_socket.send(data)
             except Exception as e:
                 print(f"Error sending message: {e}")
@@ -119,9 +120,31 @@ class ServerCommVideos (serverComm.ServerComm):
         :return: returns whether the recv was successful
         """
 
-        file_size, file_name = serverProtocol.unpack(decrypted_message)
+        file_size, file_name, *video_details = serverProtocol.unpack(decrypted_message)
 
-        saved_file = True
+        file_content = self._recv_file_content(client_socket, file_size)
+
+        file_name, extension = file_name.split(".") # filename received from server is filename.extension
+
+        if len(file_content) == file_size:
+            file_content = bytearray(self.open_clients[client_socket][1].decrypt_file(file_content)) #  decrypts file content
+
+            # this code assumes that pfp names are strings (the user's name) and video and thumbnail file names are a rnd int
+            if file_name.isnumeric():
+                if video_details[0]: # if video details is not empty, it means that it is a video
+                    self.recvQ.put(self.open_clients[client_socket][0], (file_content, extension, video_details))
+                else: # if file_name is a number but video_details is empty, it is a thumbnail
+                    file_name = self.idsQ.get()
+
+            if file_name: # id 0 indicates that the video already exists, so to not save the thumbnail
+                with open(f"assets\\{file_name}.{extension}", 'wb') as f:
+                    f.write(file_content)
+
+        else:
+            self._close_client(client_socket)
+
+    @staticmethod
+    def _recv_file_content(client_socket, file_size):
         file_content = bytearray()
         while len(file_content) < file_size:
             slice = min(1024, (file_size - len(file_content)))
@@ -132,27 +155,7 @@ class ServerCommVideos (serverComm.ServerComm):
                 data = ''
 
             if not data:
-                saved_file = False
                 break
 
             file_content.extend(data)
-
-        file_name, extension = file_name.split(".")
-
-        #this code assumes that pfp names are strings (the user's name) and video and thumbnail file names are a rnd int
-        if file_name.isnumeric():
-            file_name = self.idsQ.get()
-
-
-        if len(file_content) == file_size:
-            file_content = self.open_clients[client_socket][1].decrypt_file(file_content)
-            with open(f"assets\\{file_name}.{extension}", 'wb') as f:
-                f.write(file_content)
-            self.recvQ.put(self.open_clients[client_socket][0], ("FILE", f"assets\\{file_name}.{extension}"))
-        else:
-            self._close_client(client_socket)
-
-
-
-
-        return saved_file
+        return file_content

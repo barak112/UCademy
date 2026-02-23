@@ -63,7 +63,7 @@ class ServerLogic:
             ip, msg = self.recvQ.get()
 
             if isinstance(msg, tuple) :
-                movie_name = msg[1]
+                self.handle_video_upload(ip, msg)
             else:
 
                 opcode, data = serverProtocol.unpack(msg)
@@ -214,18 +214,34 @@ class ServerLogic:
             self.clients[client_ip][1].send_file(client_ip, video_id)
 
 
-    def handle_video_upload(self, client_ip, data):  # command 15
-        video_name, video_desc, test_link = data
-
-        video_id = self.db.add_video(self.clients[client_ip[0]], video_name, video_desc, test_link)
-        # puts the id twice, once for the video and once for the thumbnail
-        self.clients[client_ip[1]].idsQ.put(video_id)
-        self.clients[client_ip[1]].idsQ.put(video_id)
+    # def handle_video_upload(self, client_ip, data):  # command 15
+    #     video_name, video_desc, test_link = data
+    #
+    #     video_id = self.db.add_video(self.clients[client_ip[0]], video_name, video_desc, test_link)
+    #     # puts the id for the thumbnail
+    #     self.clients[client_ip[1]].idsQ.put(video_id)
 
 
     def handle_follow_user(self, client_ip, data):  # command 16
         username = data
         pass
+
+
+    #called by video comm
+
+    def handle_video_upload(self, client_ip, data):  # command 00
+        file_content, extension, video_details = data
+        video_name, video_desc, test_link = video_details
+
+        if not self.db.hash_exists(self.hash_video(file_content)):
+            video_id = self.db.add_video(self.clients[client_ip[0]], video_name, video_desc, test_link)
+            with open(f"assets\\{video_id}.{extension}", 'wb') as f:
+                f.write(file_content)
+            # puts the id for the thumbnail filename
+            self.clients[client_ip[1]].idsQ.put(video_id)
+        else:
+            # 0 indicates that the video already exists, so to not save the thumbnail
+            self.clients[client_ip[1]].idsQ.put(0)
 
 
     # Called by System Manager

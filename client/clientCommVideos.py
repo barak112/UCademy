@@ -16,7 +16,7 @@ class ClientCommVideos (clientComm.ClientComm):
             data = ""
             try:
 
-                data_len = int(self.my_socket.recv(2).decode())
+                data_len = int(self.my_socket.recv(3).decode())
                 data = self.my_socket.recv(data_len).decode()
 
             except Exception as e:
@@ -32,7 +32,7 @@ class ClientCommVideos (clientComm.ClientComm):
                 else:
                     self.recvQ.put(msg)  # Push received data into the queue
 
-    def send_file(self, file_path):
+    def send_file(self, file_path, video_name=None, video_description=None, test_link=None):
         """
             sends a file to the server
         :param file_path: file path to the file to be sent
@@ -44,13 +44,15 @@ class ClientCommVideos (clientComm.ClientComm):
                 data = f.read()
 
             data = self.cipher.encrypt_file(data)
-            msg = clientProtocol.build_command(0, [os.path.basename(file_path), len(data)])
+            file_name = os.path.basename(file_path)
+            file_size = len(data)
+            msg = clientProtocol.build_file_detail(file_name, file_size, video_name, video_description, test_link)
             encrypted_message = self.open_clients[client_socket][1].encrypt(msg)
 
-            #  0100.png@#1000000000
+            #  0100.png@#1000000000@#name@#desc@#link
             # max size: max(usename, video_id) + video_size : 15+10 = 25 bytes
             try:
-                self.my_socket.send(str(len(msg)).zfill(2).encode() + encrypted_message) # sends len and content of len and filename
+                self.my_socket.send(str(len(msg)).zfill(3).encode() + encrypted_message) # sends len and content of len and filename
                 self.my_socket.send(data)
             except Exception as e:
                 print(f"Error sending message: {e}")
@@ -66,9 +68,21 @@ class ClientCommVideos (clientComm.ClientComm):
         :return: returns whether the recv was successful
         """
         # called by handle_save_file in logic
-        file_size, file_name = clientProtocol.unpack(msg)
+        file_size, file_name, *video_details = clientProtocol.unpack(msg)
 
-        saved_file = True
+        file_content = self._recv_file_content(file_size)
+
+        if len(file_content) == file_size:
+            with open(f"assets\\{file_name}", 'wb') as f:
+                f.write(self.cipher.decrypt_file(file_content))
+
+            if video_details:
+                self.recvQ.put(video_details)
+
+        else:
+            self._close_client()
+
+    def _recv_file_content(self, file_size):
         file_content = bytearray()
         while len(file_content) < file_size:
             slice = min(1024, (file_size - len(file_content)))
@@ -79,15 +93,7 @@ class ClientCommVideos (clientComm.ClientComm):
                 data = ''
 
             if not data:
-                saved_file = False
                 break
 
             file_content.extend(data)
-
-        if len(file_content) == file_size:
-            with open(f"assets\\{file_name}", 'wb') as f:
-                f.write(self.cipher.decrypt_file(file_content))
-        else:
-            self._close_client()
-
-        return saved_file
+        return file_content

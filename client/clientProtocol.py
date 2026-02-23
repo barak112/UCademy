@@ -7,6 +7,8 @@ def build_command(command, params):
     :param params: List of parameters for the command.
     :return: Formatted command string.
     """
+    while params and params[-1] is None:  # remove None at the end of params
+        params.pop()
     params = [str(i) for i in params]
     return str(command).zfill(2) + "@#".join(params)
 
@@ -71,7 +73,7 @@ def build_req_video(video_id):
     return build_command(14, [video_id])
 
 
-def build_video_detail(video_name, video_desc, test_link):
+def build_video_details(video_name, video_desc, test_link):
     return build_command(15, [video_name, video_desc, test_link])
 
 
@@ -81,8 +83,9 @@ def build_follow_req(username):
 
 # ----- Video transfer protocol -----
 
-def build_file_details(file_name, file_size):
-    return build_command(00, [file_name, file_size])
+def build_file_details(file_name, file_size, video_name=None, video_description=None, test_link=None):
+    return build_command(0, [file_name, file_size, video_name, video_description, test_link])
+
 
 def is_video(msg):
     return msg[:2] == build_file_details("", "")[:2]

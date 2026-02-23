@@ -7,22 +7,18 @@ def build_command(command, params):
     :param params: List of parameters for the command.
     :return: Formatted command string.
     """
+    while params and params[-1] is None: # remove None at the end of params
+        params.pop()
     params = [str(i) for i in params]
     return str(command).zfill(2) + "@#".join(params)
 
 
 def build_sign_up_status(status, port = None):
-    msg = build_command(0, [status])
-    if status:
-        msg = build_command(0, [status, port])
-    return msg
+    return build_command(0, [status, port])
 
 
 def build_sign_in_status(status, username = None, email = None, topics = None,followings_names = None):
-    msg = build_command(1, [status])
-    if status:
-        msg = build_command(1, [status, username, email, topics, followings_names])
-    return msg
+    return build_command(1, [status, username, email, topics, followings_names])
 
 
 def build_set_topics_confirmation(topics):
@@ -88,8 +84,8 @@ def build_follow_user_status(status):
 # ----- Video transfer protocol -----
 
 
-def build_file_details(file_name, file_size):
-    return build_command(0, [file_name, file_size])
+def build_file_details(file_name, file_size, video_name=None, video_description=None, test_link=None):
+    return build_command(0, [file_name, file_size, video_name, video_description, test_link])
 
 
 def build_confirm_file(status):
