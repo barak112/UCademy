@@ -23,9 +23,9 @@ class ServerCommVideos (serverComm.ServerComm):
     :ivar open_clients: Dictionary mapping client sockets to [ip, cipher] pairs.
     """
 
-    def __init__(self, port):
-        super().__init__(port, None)
-        self.idsQ = queue.Queue() # pending ids to use to save the video file
+    def __init__(self, port, recvQ):
+        super().__init__(port, recvQ)
+        self.idsQ = queue.Queue()
 
     def _mainLoop(self):
         """Continuously monitor for incoming connections and messages.
@@ -62,7 +62,9 @@ class ServerCommVideos (serverComm.ServerComm):
                         self._close_client(current_socket)
                     else:
                         ip, key = self.open_clients[current_socket]
+                        print(f"key: {key}, data: {data} in serverCommVideo")
                         decrypted_message = key.decrypt(data)
+                        print("msg recved in serverCommVideo:", decrypted_message)
                         self._recv_file(current_socket, decrypted_message)
 
     def send_msg(self, client_ip, msg):
@@ -120,8 +122,13 @@ class ServerCommVideos (serverComm.ServerComm):
         :return: returns whether the recv was successful
         """
 
-        file_size, file_name, *video_details = serverProtocol.unpack(decrypted_message)
+        client_ip = self.open_clients[client_socket][0]
 
+        opcode, data = serverProtocol.unpack(decrypted_message)
+
+        file_name, file_size, *video_details = data
+        file_size = int(file_size)
+        print("file_size:", file_size, "file_name:", file_name, "video_details:", video_details)
         file_content = self._recv_file_content(client_socket, file_size)
 
         file_name, extension = file_name.split(".") # filename received from server is filename.extension
@@ -131,12 +138,13 @@ class ServerCommVideos (serverComm.ServerComm):
 
             # this code assumes that pfp names are strings (the user's name) and video and thumbnail file names are a rnd int
             if file_name.isnumeric():
-                if video_details[0]: # if video details is not empty, it means that it is a video
-                    self.recvQ.put(self.open_clients[client_socket][0], (file_content, extension, video_details))
+                if video_details: # if video details is not empty, it means that it is a video
+                    self.recvQ.put((client_ip, (file_content, extension, video_details)))
+
                 else: # if file_name is a number but video_details is empty, it is a thumbnail
                     file_name = self.idsQ.get()
 
-            if file_name: # id 0 indicates that the video already exists, so to not save the thumbnail
+            if file_name and not video_details: # id 0 indicates that the video already exists, so to not save the thumbnail
                 with open(f"assets\\{file_name}.{extension}", 'wb') as f:
                     f.write(file_content)
 

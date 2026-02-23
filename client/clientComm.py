@@ -50,7 +50,7 @@ class ClientComm:
             self.my_socket.connect((self.server_ip, self.port))
             print(f"Connected to server at {self.server_ip}:{self.port}")
         except Exception as e: 
-            print(f"Connection error: {e}")
+            print(f"Connection error: {e}", type(self))
             self._close_client_at_connection()
 
         self._change_key()
@@ -121,6 +121,7 @@ class ClientComm:
 
         shared_key = diffie_hellman.generate_shared_key(server_public_key)
         self.cipher = aesCipher.AESCipher(str(shared_key))
+        print("Key exchange successful.", type(self))
 
     def send_msg(self, msg):
         """Send an encrypted message to the server.

@@ -46,13 +46,13 @@ class ClientCommVideos (clientComm.ClientComm):
             data = self.cipher.encrypt_file(data)
             file_name = os.path.basename(file_path)
             file_size = len(data)
-            msg = clientProtocol.build_file_detail(file_name, file_size, video_name, video_description, test_link)
-            encrypted_message = self.open_clients[client_socket][1].encrypt(msg)
+            msg = clientProtocol.build_file_details(file_name, file_size, video_name, video_description, test_link)
+            encrypted_message = self.cipher.encrypt(msg)
 
             #  0100.png@#1000000000@#name@#desc@#link
             # max size: max(usename, video_id) + video_size : 15+10 = 25 bytes
             try:
-                self.my_socket.send(str(len(msg)).zfill(3).encode() + encrypted_message) # sends len and content of len and filename
+                self.my_socket.send(str(len(encrypted_message)).zfill(3).encode() + encrypted_message) # sends len and content of len and filename
                 self.my_socket.send(data)
             except Exception as e:
                 print(f"Error sending message: {e}")
@@ -68,7 +68,8 @@ class ClientCommVideos (clientComm.ClientComm):
         :return: returns whether the recv was successful
         """
         # called by handle_save_file in logic
-        file_size, file_name, *video_details = clientProtocol.unpack(msg)
+        opcode, data = clientProtocol.unpack(msg)
+        file_size, file_name, *video_details = data
 
         file_content = self._recv_file_content(file_size)
 

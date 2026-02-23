@@ -8,6 +8,7 @@ import settings
 import threading
 import ast
 import user
+import video
 
 
 class ClientLogic:
@@ -20,12 +21,16 @@ class ClientLogic:
 
         """
         self.recvQ = queue.Queue()
-        self.recvVQ = queue.Queue()
+        self.recvVQ = queue.Queue() # currently not in use
         self.comm = clientComm.ClientComm(self, settings.SERVER_IP, settings.PORT, self.recvQ)
         self.comm.connect()
         self.video_comm = None
         self.user = None
         self.filter = []
+        
+        self.videos = []
+        self.current_video = None
+        
         self.commands = {
             "00": self.handle_reg_confirmation,
             "01": self.handle_sign_in_confirmation,
@@ -62,6 +67,11 @@ class ClientLogic:
         """
         while True:
             msg = self.recvQ.get()
+
+            if isinstance(msg, list):
+                self.handle_video_details(msg)
+
+
             opcode, data = clientProtocol.unpack(msg)
             if opcode in self.commands:
                 self.commands[opcode](data)
@@ -80,9 +90,11 @@ class ClientLogic:
     def handle_reg_confirmation(self, data):
         status = int(data[0])
         if status:
+            username, email = data
             video_port = int(data[1])
-            self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvVQ)
+            self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
             self.video_comm.connect()
+            self.user = user.User(username, email)
 
         print("sign up status:",status)
 
@@ -92,8 +104,11 @@ class ClientLogic:
         print("sign in status:",status)
         print(data)
         if status:
-            username, email, topics, followings_names = data[1:]
+            video_port, username, email, topics, followings_names = data[1:]
             topics = ast.literal_eval(topics)
+
+            self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, int(video_port), self.recvQ)
+            self.video_comm.connect()
 
             self.user = user.User(username, email, topics, followings_names)
 
@@ -110,12 +125,14 @@ class ClientLogic:
     def handle_user_details(self, data):
         username, followers_amount, videos_amount = data
 
-        print("receiving video details")
+        print("receiving user details")
 
     def handle_video_details(self, data):
         video_id, creator, name, desc, likes_amount, comments_amount, liked = data
-        pass
-
+        self.videos.append(video.Video(video_id, creator, name, desc, likes_amount, comments_amount, liked))
+        self.current_video = video_id
+        print("received video details")
+        
     def handle_video_comment_confirmation(self, data):
         status = data[0]
         pass
@@ -151,7 +168,7 @@ class ClientLogic:
     # called by the video_comm
     def handle_confirm_file_upload(self, data):
         status = data[0]
-        pass
+        print(status)
 
 
 if __name__ == "__main__":
@@ -170,10 +187,11 @@ if __name__ == "__main__":
 
     msg_to_send = clientProtocol.build_set_filter([5, 6, 7])
     client.comm.send_msg(msg_to_send)
-
+    time.sleep(1)
     #command 15
-    # client.video_comm.send_msg(video_details)
-    client.video_comm.send_file("file_test.txt", "video name", "video desc", "test link")
+    client.video_comm.send_file("15.txt", "video name", "video desc", "test link")
+    client.video_comm.send_file("35.abc")
+    client.video_comm.send_file("barak.txt")
 
 
     time.sleep(0.5)

@@ -76,7 +76,7 @@ class ServerLogic:
 
         msg = serverProtocol.build_sign_up_status(0)
         if self.db.add_user(username, email, self.hash_password(password)):
-            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port), []]
+            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), []]
 
             msg = serverProtocol.build_sign_up_status(1, self.current_video_port)
 
@@ -87,18 +87,20 @@ class ServerLogic:
     def handle_sign_in(self, client_ip, data): #command 1
         username_or_email, password = data
         msg = serverProtocol.build_sign_in_status(0)
-
+        status = 0
         username = self.db.get_username(username_or_email)
-        print(username)
-        if self.db.log_in(username_or_email, self.hash_password(password)):
+        print(f"trying to sign in user: {username} ")
+        if self.db.log_in(username_or_email, password):
             topics = self.db.get_user_topics(username)
             email = self.db.get_user_email(username)
             followings_names = self.db.get_followings(username)
-            msg = serverProtocol.build_sign_in_status(1,  username, email, topics, followings_names)
-
-            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port), topics]
+            msg = serverProtocol.build_sign_in_status(1,self.current_video_port,  username, email, topics, followings_names)
+            status = 1
+            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), topics]
+            self.current_video_port+=1
 
         self.comm.send_msg(client_ip, msg)
+        print(f"sign in status for {username} is {status}")
 
     def handle_set_user_topics(self, client_ip, data): # command 2
         topics = [int(t) for t in data]
@@ -233,15 +235,20 @@ class ServerLogic:
         file_content, extension, video_details = data
         video_name, video_desc, test_link = video_details
 
-        if not self.db.hash_exists(self.hash_video(file_content)):
-            video_id = self.db.add_video(self.clients[client_ip[0]], video_name, video_desc, test_link)
+        video_hash = self.hash_video(file_content)
+        if not self.db.hash_exists(video_hash):
+            video_id = self.db.add_video(self.clients[client_ip][0], video_name, video_desc, test_link)
             with open(f"assets\\{video_id}.{extension}", 'wb') as f:
                 f.write(file_content)
+            self.db.add_video_hash(video_id, video_hash)
             # puts the id for the thumbnail filename
-            self.clients[client_ip[1]].idsQ.put(video_id)
+            self.clients[client_ip][1].idsQ.put(video_id)
+            print("video uploaded")
         else:
             # 0 indicates that the video already exists, so to not save the thumbnail
-            self.clients[client_ip[1]].idsQ.put(0)
+            self.clients[client_ip][1].idsQ.put(0)
+            print("video already exists")
+
 
 
     # Called by System Manager
@@ -255,11 +262,17 @@ class ServerLogic:
         pass
 
     @staticmethod
-    def hash_video(path: str, chunk_size: int = 1024 * 1024) -> str:
+    def hash_video(path_or_content, chunk_size: int = 1024 * 1024) -> str:
         h = hashlib.sha256()
-        with open(path, "rb") as f:
-            for chunk in iter(lambda: f.read(chunk_size), b""):
-                h.update(chunk)
+        # if os.path.isfile(path_or_content):
+        #     with open(path_or_content, "rb") as f:
+        #         for chunk in iter(lambda: f.read(chunk_size), b""):
+        #             h.update(chunk)
+        # else:
+        chunks_hashed = 0
+        for chunk in iter(lambda: path_or_content[chunks_hashed*chunk_size:chunk_size*(chunks_hashed+1)], b""):
+            h.update(chunk)
+            chunks_hashed +=1
         return h.hexdigest()
 
     @staticmethod

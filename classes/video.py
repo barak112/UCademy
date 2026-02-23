@@ -1,11 +1,8 @@
-
-
-
 class Video:
-
-    def __init__(self, video_id, comments, video_name, video_desc, amount_of_likes, amount_of_comments, liked):
+    def __init__(self, video_id, creator, video_name, video_desc, amount_of_likes, amount_of_comments, liked):
         self.video_id = video_id
-        self.comments = comments
+        self.creator = creator
+        self.comments = []
         self.video_name = video_name
         self.video_desc = video_desc
         self.amount_of_likes = amount_of_likes
@@ -15,3 +12,9 @@ class Video:
 
     def add_comment(self, comment):
         self.comments.append(comment)
+
+    def set_comments(self, comments):
+        self.comments = comments
+
+    def get_comments(self):
+        return self.comments

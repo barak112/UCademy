@@ -17,8 +17,8 @@ def build_sign_up_status(status, port = None):
     return build_command(0, [status, port])
 
 
-def build_sign_in_status(status, username = None, email = None, topics = None,followings_names = None):
-    return build_command(1, [status, username, email, topics, followings_names])
+def build_sign_in_status(status, port = None, username = None, email = None, topics = None,followings_names = None):
+    return build_command(1, [status, port, username, email, topics, followings_names])
 
 
 def build_set_topics_confirmation(topics):
@@ -80,12 +80,12 @@ def build_follow_user_status(status):
     return build_command(16, [status])
 
 
-
 # ----- Video transfer protocol -----
 
 
-def build_file_details(file_name, file_size, video_name=None, video_description=None, test_link=None):
-    return build_command(0, [file_name, file_size, video_name, video_description, test_link])
+def build_file_details(file_name, file_size, video_id = None, creator_name = None, video_name=None, video_desc=None, likes_amount=None,
+                       comments_amount=None, liked=None):
+    return build_command(0, [file_name, file_size, video_id, creator_name, video_name, video_desc, likes_amount, comments_amount, liked])
 
 
 def build_confirm_file(status):

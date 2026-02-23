@@ -168,7 +168,7 @@ class DataBase:
         self.cur.execute("SELECT 1 FROM users WHERE email = ?", (email,))
         return self.cur.fetchone() is not None
 
-    def  add_user(self, username, email, password_hash):
+    def add_user(self, username, email, password_hash):
         """
         Adds a new user to the database.
         :param username: Unique username of the user
@@ -201,10 +201,11 @@ class DataBase:
         self.cur.execute("SELECT username FROM users WHERE username LIKE ? COLLATE NOCASE", ("%"+ username + "%",))
         return self.cur.fetchall()
 
-    def log_in(self, username_or_email, password_hash):
+    def log_in(self, username_or_email, password):
         self.cur.execute("SELECT password FROM users WHERE username = ? OR email = ?", (username_or_email, username_or_email))
         stored_password_hash = self.cur.fetchone()[0]
-        return self.verify_password(password_hash, stored_password_hash)
+        verified = self.verify_password(password, stored_password_hash)
+        return verified
 
     @staticmethod
     def verify_password(password: str, stored: str) -> bool:
@@ -454,6 +455,8 @@ class DataBase:
         """
         self.cur.execute("INSERT INTO video_hashes VALUES (?,?)", (video_id, video_hash))
         self.conn.commit()
+
+        self.print_tables()
 
     def remove_video_hash(self, video_id):
         """
