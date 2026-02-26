@@ -26,6 +26,7 @@ class ClientCommVideos (clientComm.ClientComm):
             if not data:
                 self._close_client()
             else:
+                print(data_len, data)
                 msg = self.cipher.decrypt(data)
                 if clientProtocol.is_video(msg):
                     self._recv_file(msg)
@@ -69,8 +70,8 @@ class ClientCommVideos (clientComm.ClientComm):
         """
         # called by handle_save_file in logic
         opcode, data = clientProtocol.unpack(msg)
-        file_size, file_name, *video_details = data
-
+        file_name, file_size, *video_details = data
+        file_size = int(file_size)
         file_content = self._recv_file_content(file_size)
 
         if len(file_content) == file_size:

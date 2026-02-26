@@ -33,7 +33,9 @@ def build_search_creators(creator_name):
     return build_command(4, [creator_name])
 
 
-def build_search_videos(video_name_or_desc, topics):
+def build_search_videos(video_name_or_desc, topics = None):
+    if not topics:
+        topics = []
     return build_command(5, [video_name_or_desc, topics])
 
 

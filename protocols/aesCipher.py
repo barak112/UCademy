@@ -126,7 +126,8 @@ class AESCipher:
         return padded_data[:-padding_length]
     
 if __name__ == '__main__':
-    cry = AESCipher("Barak")
+    cry = AESCipher("BARAK")
     msg = cry.encrypt("My name is Barak")
     print(msg)
     print(cry.decrypt(msg))
+

@@ -8,8 +8,9 @@
       <sourceFolder url="file://$MODULE_DIR$/client/assets" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/classes" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
+      <excludeFolder url="file://$MODULE_DIR$/.venv2" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.7 (UCademy)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.10 (UCademy)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

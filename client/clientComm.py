@@ -121,11 +121,9 @@ class ClientComm:
 
         shared_key = diffie_hellman.generate_shared_key(server_public_key)
         self.cipher = aesCipher.AESCipher(str(shared_key))
-        print("Key exchange successful.", type(self))
 
     def send_msg(self, msg):
         """Send an encrypted message to the server.
-
         :param msg: Message to send.
         """
         msg = self.cipher.encrypt(msg)
