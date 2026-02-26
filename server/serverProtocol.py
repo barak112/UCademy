@@ -49,8 +49,10 @@ def build_comment_status(status):
     return build_command(6, [status])
 
 
-def build_send_test(link):
-    return build_command(7, [link])
+def build_send_test(video_id, link):
+    if not link:
+        link = ""
+    return build_command(7, [video_id, link])
 
 
 def build_report_status(status):

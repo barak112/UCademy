@@ -261,7 +261,7 @@ class DataBase:
         return ret_val
 
 
-    def add_video(self, creator, name, description, test_link):
+    def add_video(self, creator, name, description, test_link = None):
         """
         Adds a new video.
         :param creator: Username of the uploader
@@ -288,9 +288,12 @@ class DataBase:
     def get_video_amount(self, username):
         self.cur.execute("SELECT COUNT(*) FROM videos WHERE creator = ?", (username,))
 
-    def get_video_text_link(self, video_id):
+    def get_video_test_link(self, video_id):
         self.cur.execute("SELECT test_link FROM videos WHERE video_id = ?", (video_id,))
-        return self.cur.fetchone()[0]
+        result = self.cur.fetchone()
+        if result:
+            result = result[0]
+        return result
 
     def get_videos_with_similar_desc(self, desc):
         self.cur.execute(
@@ -313,14 +316,22 @@ class DataBase:
 
     # ===== comments =====
 
+    def add_comment(self, video_id, commenter_name, comment):
+        self.cur.execute("INSERT INTO comments (video_id, commenter, comment) VALUES (?,?,?)", (video_id, commenter_name, comment))
+        self.conn.commit()
+
     def get_comments(self, video_id):
         """
         Retrieves comments for a video.
         :param video_id: ID of the video
         :return: List of comment rows from the comments table
         """
-        self.cur.execute("SELECT * FROM comments WHERE video_id = ?", (video_id,))
-        return self.cur.fetchall()
+        self.cur.execute("SELECT * FROM comments WHERE video_id = ? ORDER BY comment_id DESC", (video_id,))
+        comments = self.cur.fetchall()
+        comment_ids = [i[0] for i in comments]
+
+        comments_list = list(comments)
+        return comment_ids, comments_list
 
     def get_comments_amount(self, video_id):
         self.cur.execute("SELECT COUNT(*) FROM comments WHERE video_id = ?", (video_id,))
@@ -562,8 +573,12 @@ if __name__ == "__main__":
     # print(db.get_specific_video(1))
 
     # print(db.videos_user_has_not_watched("Barak", [1,2,3]))
-    ids = [1,2,3]
-    print(db.order_ids_by_views(ids))
+    # ids = [1,2,3]
+    # print(db.order_ids_by_views(ids))
+
+    # print(db.get_video_test_link(1))
+
+    print(db.get_comments(1))
 
     # # --- users ---
     # if db.add_user("admin", "admin@example.com", "hashed_password"):

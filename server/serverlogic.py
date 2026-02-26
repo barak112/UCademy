@@ -125,7 +125,6 @@ class ServerLogic:
         #send username details and pfps
         for username in usernames[:settings.AMOUNT_OF_USERS_TO_SEND]:
             self.send_user_details(client_ip, username)
-            print("sending video details")
 
     def send_user_details(self, client_ip, username): # Not a Command!
         #/get_creator_details
@@ -147,50 +146,58 @@ class ServerLogic:
         video_name_or_desc, topics = data
         topics = ast.literal_eval(topics)
 
-        print(f"searching videos with video_name_or_desc:{video_name_or_desc}, topics: {topics}  ")
-
         video_ids_by_string = set(self.db.get_videos_with_similar_name(video_name_or_desc))
-
-        print("video_ids_by_string:",video_ids_by_string)
-
         both_lists_together = video_ids_by_string | set(self.db.get_videos_with_similar_desc(video_name_or_desc))
-
-        print("both_lists_together:",both_lists_together)
 
         if topics:
             video_ids_by_topics = set(self.db.get_videos_ids_by_topics(topics))
-            print("video_ids_by_topics:",video_ids_by_topics)
             both_lists_together = list(set(video_ids_by_topics) & set(both_lists_together))
-            print("both_lists_together after topics:", both_lists_together)
 
         ordered_by_views = self.db.order_ids_by_views(both_lists_together)
-
-        print(f"ordered ids by views: {ordered_by_views} AND {ordered_by_views[:settings.AMOUNT_OF_VIDEOS_TO_SEND]}")
 
         # send username details and pfps
         for video_id in ordered_by_views[:settings.AMOUNT_OF_VIDEOS_TO_SEND]:
             video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
             msg = serverProtocol.build_video_details(video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked)
             self.clients[client_ip][1].send_msg(client_ip, msg)
-            print("sending video details in videos search")
 
 
 
     def handle_video_comment(self, client_ip, data):  # command 6
         video_id, comment = data
-        pass
+        commenter_name = self.clients[client_ip][0]
+        self.db.add_comment(video_id, commenter_name, comment)
 
     def handle_test_req(self, client_ip, data):  # command 7
-        video_id = data
-        pass
+        video_id = data[0]
+        video_link = self.db.get_video_test_link(video_id)
+
+        msg = serverProtocol.build_send_test(video_id, video_link)
+        self.comm.send_msg(client_ip, msg)
 
     def handle_report(self, client_ip, data):  # command 8
         id = data
         pass
 
     def handle_comments_req(self, client_ip, data):  # command 9
-        video_id, comment_id = data
-        pass
+        """
+            :param data: video_id,, last_comment_id
+            last_comment_id -> used to determine which comments should be next to be sent to the client.
+            last_comment_id is the last comment's id the client has received.
+            if last_comment_id = 0. it means that its the first time the client has requested comments.
+        """
+        video_id, last_comment_id = data
+        comments_ids, comments = self.db.get_comments(video_id)
+
+        last_comment_id = int(last_comment_id)
+        start_index = comments_ids.index(last_comment_id)
+
+        comments_to_send = comments[start_index:start_index+settings.AMOUNT_OF_COMMENTS_TO_SEND]
+
+        #TODO send comments
+
+
+
 
     def handle_video_del(self, client_ip, data):  # command 10
         video_id = data
@@ -238,6 +245,7 @@ class ServerLogic:
     def handle_video_upload(self, client_ip, data):  # command 00
         file_content, extension, video_details = data
         video_name, video_desc, test_link = video_details
+        print("Test link in video upload:",test_link, type(test_link))
 
         video_hash = self.hash_video(file_content)
         if not self.db.hash_exists(video_hash):

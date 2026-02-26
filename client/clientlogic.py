@@ -28,7 +28,7 @@ class ClientLogic:
         self.user = None
         self.filter = []
         
-        self.videos = []
+        self.videos = {} # [video_id] = video_object
         self.current_video = None
         
         self.commands = {
@@ -53,7 +53,6 @@ class ClientLogic:
         }
 
         threading.Thread(target=self.handle_msgs, daemon=True).start()
-        threading.Thread(target=self.handle_video_msgs, daemon=True).start()
 
     def quit(self):
         """Quit the game.
@@ -70,24 +69,13 @@ class ClientLogic:
             msg = self.recvQ.get()
 
             if isinstance(msg, list):
-                self.handle_video_details(msg)
+                self.handle_video_details(msg, True)
             else:
                 opcode, data = clientProtocol.unpack(msg)
                 if opcode in self.commands:
                     self.commands[opcode](data)
 
-    def handle_video_msgs(self):
-        """Process incoming messages from the server.
-
-        Continuously retrieves messages from the receive queue and handles them based on opcode.
-        """
-        while True:
-            msg = self.recvVQ.get()
-            opcode, data = clientProtocol.unpack(msg)
-            if opcode in self.video_commands:
-                self.video_commands[opcode](data)
-
-    def handle_reg_confirmation(self, data):
+    def handle_reg_confirmation(self, data): # command 0
         status = int(data[0])
         if status:
             username, email = data
@@ -98,7 +86,7 @@ class ClientLogic:
 
         print("sign up status:",status)
 
-    def handle_sign_in_confirmation(self, data):
+    def handle_sign_in_confirmation(self, data):  # command 1
         status = int(data[0])
 
         print("sign in status:",status)
@@ -112,62 +100,68 @@ class ClientLogic:
             self.user = user.User(username, email, topics, followings_names)
 
 
-    def handle_topics_confirmation(self, data):
+    def handle_topics_confirmation(self, data):  # command 2
         topics = data[0]
         self.user.topics = topics
 
-    def handle_filter_confirmation(self, data):
+    def handle_filter_confirmation(self, data):  # command 3
         filter = ast.literal_eval(data[0])
         self.filter = filter
         print("setting filter:", filter)
 
-    def handle_user_details(self, data):
+    def handle_user_details(self, data):  # command 4
         username, followers_amount, videos_amount = data
 
         print("receiving user details")
 
-    def handle_video_details(self, data): # command 05
+    def handle_video_details(self, data, arrived_with_video = False): # command 5
         video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked = data
         liked = bool(liked)
-        self.videos.append(video.Video(video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked))
-        self.current_video = video_id
+        self.videos[video_id] = video.Video(video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked)
         print(
             f"added video: video_id={video_id}, creator={creator}, video_name={video_name}, video_desc={video_desc}, likes_amount={likes_amount}, comments_amount={comments_amount}, liked={liked}")
+        if arrived_with_video:
+            self.current_video = video_id
 
-    def handle_video_comment_confirmation(self, data):
+    def handle_video_comment_confirmation(self, data): # command 6
         status = data[0]
         pass
 
-    def handle_test(self, data):
-        test_link = data[0]
-        pass
+    def handle_test(self, data):  # command 7
+        video_id, test_link = data
 
-    def handle_report_status(self, data):
+        if test_link:
+            print(f"video {video_id} has test: {test_link}")
+
+        if video_id in self.videos:
+            self.videos[video_id].test_link = test_link
+
+    def handle_report_status(self, data):  # command 8
         id, type, status = data
         pass
 
-    def handle_comments(self, data):
+    def handle_comments(self, data):  # command 9
         comment_id, comment, creator = data
         pass
 
-    def handle_vid_del_confirmation(self, data):
+    def handle_vid_del_confirmation(self, data):  # command 10
         status = data[0]
         pass
 
-    def handle_comment_del_confirmation(self, data):
+    def handle_comment_del_confirmation(self, data):  # command 11
         status = data[0]
         pass
 
-    def handle_video_upload_confirmation(self, data):
+    def handle_video_upload_confirmation(self, data):  # command 12
         status = data[0]
         print(status)
 
-    def handle_follow_status(self, data):
+    def handle_follow_status(self, data):  # command 13
         status = data[0]
         pass
 
     # called by the video_comm
-    def handle_confirm_file_upload(self, data):
+    def handle_confirm_file_upload(self, data):  # command 01
         status = data[0]
         print(status)
 
@@ -177,29 +171,50 @@ if __name__ == "__main__":
     client = ClientLogic()
     time.sleep(0.1)
 
+    # test command 0
     msg_to_send = clientProtocol.build_sign_up("Alon", "password123", "Alon@")
     client.comm.send_msg(msg_to_send)
 
+    # test command 1
     msg_to_send = clientProtocol.build_sign_in("Alon", "password123")
     client.comm.send_msg(msg_to_send)
 
+    # test command 2
     # msg_to_send = clientProtocol.build_set_topics([2, 3, 4])
     # client.comm.send_msg(msg_to_send)
-    #
+
+    # test command 3
     # msg_to_send = clientProtocol.build_set_filter([5, 6, 7])
     # client.comm.send_msg(msg_to_send)
-    # time.sleep(1)
-    #command 15
+
+    #test command 5
+    # msg_to_send = clientProtocol.build_search_videos("desc")
+    # client.comm.send_msg(msg_to_send)
+
+
+    #test command 6
+    # msg_to_send = clientProtocol.build_comment(1, "hello man")
+    # client.comm.send_msg(msg_to_send)
+
+    #test command 6
+
+    msg_to_send = clientProtocol.build_req_test(1)
+    client.comm.send_msg(msg_to_send)
+
+
+
+    # test command 14
+    # msg_to_send = clientProtocol.build_req_video(1)
+    # client.comm.send_msg(msg_to_send)
+
+    #video comm
+    #test command 0
     # client.video_comm.send_file("15.txt", "video name", "video desc", "test link")
     # client.video_comm.send_file("35.abc")
     # client.video_comm.send_file("barak.txt")
 
-    # msg_to_send = clientProtocol.build_req_video(1)
-    # client.comm.send_msg(msg_to_send)
 
-    msg = clientProtocol.build_search_videos("desc")
 
-    client.comm.send_msg(msg)
 
     time.sleep(0.5)
     # print(client.user)

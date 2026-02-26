@@ -1,0 +1,10 @@
+learn how the hashing works
+get the hashing out of the db
+
+implement users searching (command 4)
+implement handle report (command 8) for this i need to ask merry about keeping
+the info about report in the db
+
+add confirmation to file uploading
+
+add comments date and time using CURRENT_TIMESTAMP in the sql

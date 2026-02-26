@@ -43,7 +43,7 @@ def build_comment(video_id, comment):
     return build_command(6, [video_id, comment])
 
 
-def build_ask_test(video_id):
+def build_req_test(video_id):
     return build_command(7, [video_id])
 
 
@@ -51,8 +51,8 @@ def build_report(video_or_comment_id):
     return build_command(8, [video_or_comment_id])
 
 
-def build_req_comments(video_id, comment_id):
-    return build_command(9, [video_id, comment_id])
+def build_req_comments(video_id, last_comment_id):
+    return build_command(9, [video_id, last_comment_id])
 
 
 def build_del_video(video_id):
@@ -111,7 +111,7 @@ def unpack(data):
     :return: Tuple of (opcode, parameters list).
     """
     opcode = data[:2]
-    params = ""
+    params = [None]
     if len(data) > 2:
         params = data[2:].split("@#")
     return opcode, params
