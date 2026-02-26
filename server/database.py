@@ -230,14 +230,35 @@ class DataBase:
 
     # ===== videos =====
 
+    def video_exists(self, video_id):
+        print("video id in video exists:",video_id)
+        self.cur.execute("SELECT 1 FROM videos WHERE video_id = ?", (video_id,))
+        return self.cur.fetchone() is not None
+
     def get_specific_video(self, video_id):
         """
         Retrieves a video by ID.
         :param video_id: ID of the video
-        :return: Video row from the videos table or None if not found
+        :return: video details: creator, name, desc, likes_amount, comments_amount
         """
-        self.cur.execute("SELECT * FROM videos WHERE video_id = ?", (video_id,))
-        return self.cur.fetchall()
+        ret_val = None
+        if self.video_exists(video_id):
+            self.cur.execute("""
+                             SELECT videos.name,
+                                    videos.description,
+                                    videos.creator,
+                                    COUNT(DISTINCT likes.username) as likes_count,
+                                    COUNT(DISTINCT comments.commenter) as comments_count
+                             FROM videos
+                                      LEFT JOIN likes ON videos.video_id = likes.video_id
+                                      LEFT JOIN comments ON videos.video_id = comments.video_id
+
+                             WHERE videos.video_id = ?
+                             GROUP BY videos.video_id
+                             """, (video_id,))
+            ret_val = self.cur.fetchall()[0]
+
+        return ret_val
 
 
     def add_video(self, creator, name, description, test_link):
@@ -273,17 +294,22 @@ class DataBase:
 
     def get_videos_with_similar_desc(self, desc):
         self.cur.execute(
-            "SELECT * FROM videos WHERE desc LIKE ? COLLATE NOCASE",
+            "SELECT video_id FROM videos WHERE description LIKE ? COLLATE NOCASE",
             ('%' + desc + '%',)
         )
-        return self.cur.fetchall()
+
+        results = self.cur.fetchall()
+        results = [i[0] for i in results]
+        return results
 
     def get_videos_with_similar_name(self, name):
         self.cur.execute(
-            "SELECT * FROM videos WHERE desc LIKE ? COLLATE NOCASE",
+            "SELECT video_id FROM videos WHERE description LIKE ? COLLATE NOCASE",
             ('%' + name + '%',)
         )
-        return self.cur.fetchall()
+        results = self.cur.fetchall()
+        results = [i[0] for i in results]
+        return results
 
     # ===== comments =====
 
@@ -342,7 +368,7 @@ class DataBase:
 
     def is_liked_by_user(self, video_id, username):
         self.cur.execute("SELECT 1 FROM likes WHERE video_id = ? AND username = ?",(video_id, username))
-        return self.cur.fetchone()[0]
+        return self.cur.fetchone() is None
 
     # ===== following =====
     def add_following(self, following, followed):
@@ -377,20 +403,23 @@ class DataBase:
     # ===== video topics =====
 
     def add_video_topics(self, video_id, topics):
-        self.cur.execute("INSERT INTO topics VALUES (?,?)", (video_id, topics))
+        for topic in topics:
+            self.cur.execute("INSERT INTO video_topics VALUES (?,?)", (video_id, topic))
         self.conn.commit()
 
     def get_video_topics(self, video_id):
-        self.cur.execute("SELECT * FROM topics WHERE video_id = ?", (video_id,))
+        self.cur.execute("SELECT * FROM video_topics WHERE video_id = ?", (video_id,))
         return self.cur.fetchall()
 
     def get_videos_ids_by_topics(self, topics):
         video_ids = []
         if topics:
+            print("topics:",topics)
             placeholders = ",".join(["?"] * len(topics))
-            query = f"SELECT video_id FROM topics WHERE topic IN ({placeholders})"
-            self.cur.execute(query, topics)
+            self.cur.execute(f"SELECT video_id FROM video_topics WHERE topic IN ({placeholders})", (*topics,))
             video_ids = self.cur.fetchall()
+            print("video_ids in get_videos_ids_by_topics",video_ids)
+            video_ids = [i[0] for i in video_ids]
 
         return video_ids
 
@@ -416,8 +445,6 @@ class DataBase:
         to_add_topics = set(new_topics) - set(old_topics)
         to_remove_topics = set(old_topics) - set(new_topics)
 
-        print("topic lists:",to_add_topics, to_remove_topics)
-
         self._add_user_topics(username, to_add_topics)
         self._remove_user_topics(username, to_remove_topics)
 
@@ -440,11 +467,40 @@ class DataBase:
         return self.cur.fetchone() is not None
 
     def order_ids_by_views(self, video_ids):
-        self.cur.execute("SELECT video_id FROM watched_videos WHERE video_id = ?, ORDER BY views", (video_ids,))
-        return self.cur.fetchall()
+        video_ids = list(video_ids)
+
+        ids_query_insert_placeholder = ",".join("?" * len(video_ids))
+        self.cur.execute(f"""
+        
+        SELECT videos.video_id, COUNT(watched_videos.username) as views
+        FROM videos LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id
+        WHERE videos.video_id IN ({ids_query_insert_placeholder})
+        GROUP BY videos.video_id
+        ORDER BY views DESC
+        
+        """, (*video_ids,))
 
 
-    # ===== video hashes =====
+        results = self.cur.fetchall()
+        print("video_ids:", video_ids, "results:", results )
+        results = [i[0] for i in results]
+
+
+        return results
+
+    def videos_user_has_not_watched(self, username, video_ids):
+        potential_videos_ids_placeholder = ",".join("?"*len(video_ids))
+
+        self.cur.execute(f"""SELECT videos.video_id FROM videos
+         LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id AND watched_videos.username = ?
+          WHERE videos.video_id IN ({potential_videos_ids_placeholder}) AND watched_videos.video_id IS NULL""",
+                         (username, *video_ids))
+
+        result_ids = self.cur.fetchall()
+
+        result_ids = [x[0] for x in result_ids]
+
+        return result_ids
 
     def add_video_hash(self, video_id, video_hash):
         """
@@ -455,8 +511,6 @@ class DataBase:
         """
         self.cur.execute("INSERT INTO video_hashes VALUES (?,?)", (video_id, video_hash))
         self.conn.commit()
-
-        self.print_tables()
 
     def remove_video_hash(self, video_id):
         """
@@ -497,27 +551,41 @@ class DataBase:
 if __name__ == "__main__":
     db = DataBase()
 
-    # --- users ---
-    if db.add_user("admin", "admin@example.com", "hashed_password"):
-        print("User added")
-    else:
-        print("User already exists")
+    # db.add_video_like(1, "Barak")
 
-    print("All users:", db.get_all_usernames())
+    # db.add_watched_video("Alon", 3)
+    # db.add_watched_video("Barak", 3)
+    # db.add_watched_video("Ella", 3)
 
-    # --- videos ---
-    db.add_video("admin", "First Video", "This is a test video")
-    video = db.get_specific_video(1)
-    print("Video 1:", video)
+    db.print_tables()
+    print("\n\n")
+    # print(db.get_specific_video(1))
 
-    # --- likes ---
-    db.add_video_like(1, "admin")
-    print("Likes on video 1:", db.get_video_likes_amount(1))
+    # print(db.videos_user_has_not_watched("Barak", [1,2,3]))
+    ids = [1,2,3]
+    print(db.order_ids_by_views(ids))
 
-    # --- hashes ---
-    if not db.hash_exists("abc123"):
-        db.add_video_hash(1, "abc123")
-
-    print("Hash exists:", db.hash_exists("abc123"))
+    # # --- users ---
+    # if db.add_user("admin", "admin@example.com", "hashed_password"):
+    #     print("User added")
+    # else:
+    #     print("User already exists")
+    #
+    # print("All users:", db.get_all_usernames())
+    #
+    # # --- videos ---
+    # db.add_video("admin", "First Video", "This is a test video")
+    # video = db.get_specific_video(1)
+    # print("Video 1:", video)
+    #
+    # # --- likes ---
+    # db.add_video_like(1, "admin")
+    # print("Likes on video 1:", db.get_video_likes_amount(1))
+    #
+    # # --- hashes ---
+    # if not db.hash_exists("abc123"):
+    #     db.add_video_hash(1, "abc123")
+    #
+    # print("Hash exists:", db.hash_exists("abc123"))
 
     db.close()

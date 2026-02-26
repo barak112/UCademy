@@ -1,3 +1,4 @@
+import ast
 import os
 import hashlib
 import hmac
@@ -65,7 +66,6 @@ class ServerLogic:
             if isinstance(msg, tuple) :
                 self.handle_video_upload(ip, msg)
             else:
-
                 opcode, data = serverProtocol.unpack(msg)
 
                 if opcode in self.commands.keys():
@@ -145,35 +145,34 @@ class ServerLogic:
 
     def handle_videos_search(self, client_ip, data):  # command 5
         video_name_or_desc, topics = data
+        topics = ast.literal_eval(topics)
 
-        video_ids_by_topics = set(self.db.get_videos_ids_by_topics(topics))
+        print(f"searching videos with video_name_or_desc:{video_name_or_desc}, topics: {topics}  ")
 
         video_ids_by_string = set(self.db.get_videos_with_similar_name(video_name_or_desc))
 
-        video_ids_by_string += set(self.db.get_videos_with_similar_desc(video_name_or_desc))
+        print("video_ids_by_string:",video_ids_by_string)
 
-        both_lists_together = list(set(video_ids_by_topics) & set(video_ids_by_string))
+        both_lists_together = video_ids_by_string | set(self.db.get_videos_with_similar_desc(video_name_or_desc))
+
+        print("both_lists_together:",both_lists_together)
+
+        if topics:
+            video_ids_by_topics = set(self.db.get_videos_ids_by_topics(topics))
+            print("video_ids_by_topics:",video_ids_by_topics)
+            both_lists_together = list(set(video_ids_by_topics) & set(both_lists_together))
+            print("both_lists_together after topics:", both_lists_together)
 
         ordered_by_views = self.db.order_ids_by_views(both_lists_together)
 
+        print(f"ordered ids by views: {ordered_by_views} AND {ordered_by_views[:settings.AMOUNT_OF_VIDEOS_TO_SEND]}")
+
         # send username details and pfps
         for video_id in ordered_by_views[:settings.AMOUNT_OF_VIDEOS_TO_SEND]:
-            self.send_video_details(client_ip, video_id)
-
-
-
-    def send_video_details(self, client_ip, video_id): # Not a Command!
-        video_id, creator_name, video_name, video_desc = self.db.get_specific_video(video_id)
-        likes_amount = self.db.get_video_likes_amount(video_id)
-        comments_amount = self.db.get_comments_amount(video_id)
-        liked = self.db.is_liked_by_user(video_id, self.clients[client_ip][0])
-
-        msg = serverProtocol.build_video_details(video_id, creator_name, video_name, video_desc, likes_amount,
-                                                 comments_amount, liked)
-
-        self.comm.send_msg(client_ip, msg)
-
-
+            video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
+            msg = serverProtocol.build_video_details(video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked)
+            self.clients[client_ip][1].send_msg(client_ip, msg)
+            print("sending video details in videos search")
 
 
 
@@ -213,16 +212,21 @@ class ServerLogic:
         video_id = data[0]
 
         if video_id:
-            self.clients[client_ip][1].send_file(client_ip, video_id)
+            video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
+            file_path = f"assets\\{video_id}.{settings.VIDEO_EXTENSION}"
+            self.clients[client_ip][1].send_file(client_ip, file_path, video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked)
+            print(
+                f"sending video {video_id} to {client_ip} with creator {creator}, name {video_name}, desc {video_desc}, likes {likes_amount}, comments {comments_amount}, liked {liked}"
+            )
+        else:
+            # algorithm to choose video
+            pass
 
-
-    # def handle_video_upload(self, client_ip, data):  # command 15
-    #     video_name, video_desc, test_link = data
-    #
-    #     video_id = self.db.add_video(self.clients[client_ip[0]], video_name, video_desc, test_link)
-    #     # puts the id for the thumbnail
-    #     self.clients[client_ip[1]].idsQ.put(video_id)
-
+    def get_video_details(self,client_ip, video_id):
+        video_name, video_desc, creator, likes_amount, comments_amount = self.db.get_specific_video(video_id)
+        liked = self.db.is_liked_by_user(video_id, self.clients[client_ip][0])
+        liked = int(liked)
+        return video_id, video_name, video_desc, creator, likes_amount, comments_amount, liked
 
     def handle_follow_user(self, client_ip, data):  # command 16
         username = data

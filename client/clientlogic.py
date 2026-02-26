@@ -48,6 +48,7 @@ class ClientLogic:
             "16": self.handle_follow_status
         }
         self.video_commands = {
+            "00": self.handle_video_details,
             "01": self.handle_confirm_file_upload
         }
 
@@ -70,11 +71,10 @@ class ClientLogic:
 
             if isinstance(msg, list):
                 self.handle_video_details(msg)
-
-
-            opcode, data = clientProtocol.unpack(msg)
-            if opcode in self.commands:
-                self.commands[opcode](data)
+            else:
+                opcode, data = clientProtocol.unpack(msg)
+                if opcode in self.commands:
+                    self.commands[opcode](data)
 
     def handle_video_msgs(self):
         """Process incoming messages from the server.
@@ -102,7 +102,6 @@ class ClientLogic:
         status = int(data[0])
 
         print("sign in status:",status)
-        print(data)
         if status:
             video_port, username, email, topics, followings_names = data[1:]
             topics = ast.literal_eval(topics)
@@ -127,12 +126,14 @@ class ClientLogic:
 
         print("receiving user details")
 
-    def handle_video_details(self, data):
-        video_id, creator, name, desc, likes_amount, comments_amount, liked = data
-        self.videos.append(video.Video(video_id, creator, name, desc, likes_amount, comments_amount, liked))
+    def handle_video_details(self, data): # command 05
+        video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked = data
+        liked = bool(liked)
+        self.videos.append(video.Video(video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked))
         self.current_video = video_id
-        print("received video details")
-        
+        print(
+            f"added video: video_id={video_id}, creator={creator}, video_name={video_name}, video_desc={video_desc}, likes_amount={likes_amount}, comments_amount={comments_amount}, liked={liked}")
+
     def handle_video_comment_confirmation(self, data):
         status = data[0]
         pass
@@ -182,20 +183,26 @@ if __name__ == "__main__":
     msg_to_send = clientProtocol.build_sign_in("Alon", "password123")
     client.comm.send_msg(msg_to_send)
 
-    msg_to_send = clientProtocol.build_set_topics([2, 3, 4])
-    client.comm.send_msg(msg_to_send)
-
-    msg_to_send = clientProtocol.build_set_filter([5, 6, 7])
-    client.comm.send_msg(msg_to_send)
-    time.sleep(1)
+    # msg_to_send = clientProtocol.build_set_topics([2, 3, 4])
+    # client.comm.send_msg(msg_to_send)
+    #
+    # msg_to_send = clientProtocol.build_set_filter([5, 6, 7])
+    # client.comm.send_msg(msg_to_send)
+    # time.sleep(1)
     #command 15
-    client.video_comm.send_file("15.txt", "video name", "video desc", "test link")
-    client.video_comm.send_file("35.abc")
-    client.video_comm.send_file("barak.txt")
+    # client.video_comm.send_file("15.txt", "video name", "video desc", "test link")
+    # client.video_comm.send_file("35.abc")
+    # client.video_comm.send_file("barak.txt")
 
+    # msg_to_send = clientProtocol.build_req_video(1)
+    # client.comm.send_msg(msg_to_send)
+
+    msg = clientProtocol.build_search_videos("desc")
+
+    client.comm.send_msg(msg)
 
     time.sleep(0.5)
-    print(client.user)
+    # print(client.user)
 
     while True:
         pass
