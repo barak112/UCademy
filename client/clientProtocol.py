@@ -51,7 +51,7 @@ def build_report(video_or_comment_id):
     return build_command(8, [video_or_comment_id])
 
 
-def build_req_comments(video_id, last_comment_id):
+def build_req_comments(video_id, last_comment_id = 0):
     return build_command(9, [video_id, last_comment_id])
 
 

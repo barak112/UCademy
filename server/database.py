@@ -320,7 +320,7 @@ class DataBase:
         self.cur.execute("INSERT INTO comments (video_id, commenter, comment) VALUES (?,?,?)", (video_id, commenter_name, comment))
         self.conn.commit()
 
-    def get_comments(self, video_id):
+    def get_comments(self, video_id, username):
         """
         Retrieves comments for a video.
         :param video_id: ID of the video
@@ -345,6 +345,10 @@ class DataBase:
         """
         self.cur.execute("DELETE FROM comments WHERE comment_id = ?", (comment_id,))
         self.conn.commit()
+
+    # def get_user_video_comments(self, video_id, username):
+    #     self.cur.execute("SELECT * FROM comments WHERE video_id = ? AND commenter = ?", (video_id, username))
+    #     return self.cur.fetchall()
 
     # ===== likes =====
 
@@ -578,7 +582,8 @@ if __name__ == "__main__":
 
     # print(db.get_video_test_link(1))
 
-    print(db.get_comments(1))
+    print(db.get_specific_video(1))
+    # print(db.get_comments(1))
 
     # # --- users ---
     # if db.add_user("admin", "admin@example.com", "hashed_password"):

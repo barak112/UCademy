@@ -59,7 +59,7 @@ def build_report_status(status):
     return build_command(8, [status])
 
 
-def Build_send_comments(comments):
+def build_send_comments(comments):
     # comments = [[comment_id, commenter_name, comment], ...]
     return build_command(9, comments)
 

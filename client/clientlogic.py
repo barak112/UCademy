@@ -9,6 +9,7 @@ import threading
 import ast
 import user
 import video
+import comment
 
 
 class ClientLogic:
@@ -69,7 +70,7 @@ class ClientLogic:
             msg = self.recvQ.get()
 
             if isinstance(msg, list):
-                self.handle_video_details(msg, True)
+                self.handle_video_details(msg)
             else:
                 opcode, data = clientProtocol.unpack(msg)
                 if opcode in self.commands:
@@ -114,9 +115,10 @@ class ClientLogic:
 
         print("receiving user details")
 
-    def handle_video_details(self, data, arrived_with_video = False): # command 5
-        video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked = data
+    def handle_video_details(self, data): # command 5
+        video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked, arrived_with_video = data
         liked = bool(liked)
+        video_id = int(video_id)
         self.videos[video_id] = video.Video(video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked)
         print(
             f"added video: video_id={video_id}, creator={creator}, video_name={video_name}, video_desc={video_desc}, likes_amount={likes_amount}, comments_amount={comments_amount}, liked={liked}")
@@ -124,8 +126,8 @@ class ClientLogic:
             self.current_video = video_id
 
     def handle_video_comment_confirmation(self, data): # command 6
-        status = data[0]
-        pass
+        comment_id, video_id, added_comment = data
+        self.videos[video_id].comments.append(comment.Comment(comment_id, added_comment, self.user.username))
 
     def handle_test(self, data):  # command 7
         video_id, test_link = data
@@ -140,9 +142,19 @@ class ClientLogic:
         id, type, status = data
         pass
 
+
     def handle_comments(self, data):  # command 9
-        comment_id, comment, creator = data
-        pass
+        # data = ['[comment_info]', '[comment_info]']
+        print("messages arrived at handle message:", data)
+        for comment_info in data:
+            print("raw comment info:",comment_info, type(comment_info))
+            comment_info = ast.literal_eval(comment_info)
+            print("comment info after eval:",comment_info, type(comment_info))
+            comment_id, video_id, commenter, comment_content = comment_info
+            video_id = int(video_id)
+            comment_id = int(comment_id)
+            self.videos[video_id].comments.append(comment.Comment(comment_id, comment_content, commenter))
+            print(f"comment added: {comment_id} {comment_content} by {commenter}")
 
     def handle_vid_del_confirmation(self, data):  # command 10
         status = data[0]
@@ -179,6 +191,8 @@ if __name__ == "__main__":
     msg_to_send = clientProtocol.build_sign_in("Alon", "password123")
     client.comm.send_msg(msg_to_send)
 
+    time.sleep(0.1)
+
     # test command 2
     # msg_to_send = clientProtocol.build_set_topics([2, 3, 4])
     # client.comm.send_msg(msg_to_send)
@@ -198,14 +212,19 @@ if __name__ == "__main__":
 
     #test command 6
 
-    msg_to_send = clientProtocol.build_req_test(1)
+    # msg_to_send = clientProtocol.build_req_test(1)
+    # client.comm.send_msg(msg_to_send)
+
+    #test command 14
+    msg_to_send = clientProtocol.build_req_video(1)
     client.comm.send_msg(msg_to_send)
 
 
+    #text command 9
+    msg_to_send = clientProtocol.build_req_comments(1)
+    client.comm.send_msg(msg_to_send)
 
-    # test command 14
-    # msg_to_send = clientProtocol.build_req_video(1)
-    # client.comm.send_msg(msg_to_send)
+
 
     #video comm
     #test command 0

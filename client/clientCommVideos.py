@@ -26,8 +26,8 @@ class ClientCommVideos (clientComm.ClientComm):
             if not data:
                 self._close_client()
             else:
-                print(data_len, data)
                 msg = self.cipher.decrypt(data)
+                print(data_len, msg)
                 if clientProtocol.is_video(msg):
                     self._recv_file(msg)
                 else:
@@ -63,7 +63,7 @@ class ClientCommVideos (clientComm.ClientComm):
 
     def _recv_file(self, msg):
         """
-            recvs file send from the server and saves it at assets//``file_name``
+            recvs file send from the server and saves it at media//``file_name``
         :param file_size: size of the file that needs to be received
         :param file_name: the name and extension of file to be received
         :return: returns whether the recv was successful
@@ -75,10 +75,16 @@ class ClientCommVideos (clientComm.ClientComm):
         file_content = self._recv_file_content(file_size)
 
         if len(file_content) == file_size:
-            with open(f"assets\\{file_name}", 'wb') as f:
+            with open(f"media\\{file_name}", 'wb') as f:
                 f.write(self.cipher.decrypt_file(file_content))
 
             if video_details:
+                arrived_with_video = False
+                file_extension = file_name.split('.')[1]
+                if file_extension != 'png': # then it is a video
+                    arrived_with_video = True
+                video_details.append(arrived_with_video)
+                print("arrived with a video:",arrived_with_video)
                 self.recvQ.put(video_details)
 
         else:

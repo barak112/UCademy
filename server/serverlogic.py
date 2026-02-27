@@ -158,9 +158,8 @@ class ServerLogic:
         # send username details and pfps
         for video_id in ordered_by_views[:settings.AMOUNT_OF_VIDEOS_TO_SEND]:
             video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
-            msg = serverProtocol.build_video_details(video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked)
-            self.clients[client_ip][1].send_msg(client_ip, msg)
-
+            self.clients[client_ip][1].send_file(client_ip, f"media\\videos\\{video_id}.png", video_id, creator,
+                                                 video_name, video_desc, likes_amount, comments_amount, liked)
 
 
     def handle_video_comment(self, client_ip, data):  # command 6
@@ -186,16 +185,35 @@ class ServerLogic:
             last_comment_id is the last comment's id the client has received.
             if last_comment_id = 0. it means that its the first time the client has requested comments.
         """
+        print("comments req arriveed at handle")
         video_id, last_comment_id = data
         comments_ids, comments = self.db.get_comments(video_id)
 
         last_comment_id = int(last_comment_id)
-        start_index = comments_ids.index(last_comment_id)
+        start_index = 0
+        if last_comment_id:
+            start_index = comments_ids.index(last_comment_id)
+
 
         comments_to_send = comments[start_index:start_index+settings.AMOUNT_OF_COMMENTS_TO_SEND]
 
-        #TODO send comments
+        # user_comments = self.db.get_user_video_comments(video_id, self.clients[client_ip][0])
 
+        #TODO send user's comments first
+
+
+        print("comments_to_send:",comments_to_send)
+
+        msg = serverProtocol.build_send_comments(comments_to_send)
+        print("msg of comments:",msg)
+        self.clients[client_ip][1].send_msg(client_ip, msg)
+
+        commenters = {i[2] for i in comments_to_send}
+        # send pfps
+        for commenter_name in commenters:
+            pfp_path = f"media\\pfps\\{commenter_name}.png"
+            self.clients[client_ip][1].send_file(client_ip,pfp_path)
+            print("sending pfp of user:",commenter_name)
 
 
 
@@ -217,10 +235,9 @@ class ServerLogic:
 
     def handle_video_req(self, client_ip, data):  # command 14
         video_id = data[0]
-
         if video_id:
             video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
-            file_path = f"assets\\{video_id}.{settings.VIDEO_EXTENSION}"
+            file_path = f"media\\videos\\{video_id}.{settings.VIDEO_EXTENSION}"
             self.clients[client_ip][1].send_file(client_ip, file_path, video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked)
             print(
                 f"sending video {video_id} to {client_ip} with creator {creator}, name {video_name}, desc {video_desc}, likes {likes_amount}, comments {comments_amount}, liked {liked}"
@@ -233,7 +250,7 @@ class ServerLogic:
         video_name, video_desc, creator, likes_amount, comments_amount = self.db.get_specific_video(video_id)
         liked = self.db.is_liked_by_user(video_id, self.clients[client_ip][0])
         liked = int(liked)
-        return video_id, video_name, video_desc, creator, likes_amount, comments_amount, liked
+        return video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked
 
     def handle_follow_user(self, client_ip, data):  # command 16
         username = data
@@ -250,7 +267,7 @@ class ServerLogic:
         video_hash = self.hash_video(file_content)
         if not self.db.hash_exists(video_hash):
             video_id = self.db.add_video(self.clients[client_ip][0], video_name, video_desc, test_link)
-            with open(f"assets\\{video_id}.{extension}", 'wb') as f:
+            with open(f"media\\videos\\{video_id}.{extension}", 'wb') as f:
                 f.write(file_content)
             self.db.add_video_hash(video_id, video_hash)
             # puts the id for the thumbnail filename
