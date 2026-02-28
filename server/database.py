@@ -203,8 +203,11 @@ class DataBase:
 
     def log_in(self, username_or_email, password):
         self.cur.execute("SELECT password FROM users WHERE username = ? OR email = ?", (username_or_email, username_or_email))
-        stored_password_hash = self.cur.fetchone()[0]
-        verified = self.verify_password(password, stored_password_hash)
+        stored_password_hash = self.cur.fetchone()
+        verified = False
+        if stored_password_hash:
+            stored_password_hash = stored_password_hash[0]
+            verified = self.verify_password(password, stored_password_hash)
         return verified
 
     @staticmethod
@@ -226,9 +229,16 @@ class DataBase:
         :return: The first username found matching the given username or email address.
         """
         self.cur.execute("SELECT username FROM users WHERE username = ? OR email = ?", (username_or_email, username_or_email))
-        return self.cur.fetchone()[0]
+        username = self.cur.fetchone()
+        if username:
+            username = username[0]
+        return username
 
     # ===== videos =====
+
+    def is_the_video_creator(self, video_id, username):
+        self.cur.execute("SELECT 1 FROM videos WHERE video_id = ? AND creator = ?", (video_id, username))
+        return self.cur.fetchone() is not None
 
     def video_exists(self, video_id):
         print("video id in video exists:",video_id)
@@ -319,15 +329,23 @@ class DataBase:
     def add_comment(self, video_id, commenter_name, comment):
         self.cur.execute("INSERT INTO comments (video_id, commenter, comment) VALUES (?,?,?)", (video_id, commenter_name, comment))
         self.conn.commit()
+        return self.cur.lastrowid
+
+    def get_comment(self, comment_id):
+        self.cur.execute("SELECT * FROM comments WHERE comment_id = ?", (comment_id,))
+        return self.cur.fetchone()
 
     def get_comments(self, video_id, username):
         """
         Retrieves comments for a video.
         :param video_id: ID of the video
-        :return: List of comment rows from the comments table
+        :param username: username of the user requesting the comments
+        :return: List of comment rows from the comments table, when the comments of username are first
         """
-        self.cur.execute("SELECT * FROM comments WHERE video_id = ? ORDER BY comment_id DESC", (video_id,))
+        self.cur.execute("""SELECT * FROM comments WHERE video_id = ?
+         ORDER BY CASE WHEN commenter = ? THEN 0 ELSE 1 END, comment_id DESC;""", (video_id, username))
         comments = self.cur.fetchall()
+        print("raw comments:", comments)
         comment_ids = [i[0] for i in comments]
 
         comments_list = list(comments)
@@ -345,10 +363,6 @@ class DataBase:
         """
         self.cur.execute("DELETE FROM comments WHERE comment_id = ?", (comment_id,))
         self.conn.commit()
-
-    # def get_user_video_comments(self, video_id, username):
-    #     self.cur.execute("SELECT * FROM comments WHERE video_id = ? AND commenter = ?", (video_id, username))
-    #     return self.cur.fetchall()
 
     # ===== likes =====
 
@@ -563,6 +577,9 @@ class DataBase:
             for row in rows:
                 print(row)
 
+
+
+
 if __name__ == "__main__":
     db = DataBase()
 
@@ -572,8 +589,26 @@ if __name__ == "__main__":
     # db.add_watched_video("Barak", 3)
     # db.add_watched_video("Ella", 3)
 
+
+    # db.cur.execute("DROP TABLE IF EXISTS videos")
+    # db._create_videos_table()
+    # db.add_video("Alon", "Alon's video", "Video about Alon", "test link1")
+    # db.add_video("Barak", "Barak's video", "Video about Barak", "test link2")
+    # db.add_video("Ella", "Ella's video", "Video about Ella", "test link3")
+
+
     db.print_tables()
     print("\n\n")
+
+    # comments = db.get_comments(1, "Barak")
+    # print(comments[0])
+    # print(comments[1])
+
+    # db.add_comment(1, "Barak", "Barak comments on 1")
+    # db.add_comment(1, "Alon", "Alon comments on 1")
+    # db.add_comment(2, "Alon", "Alon comments on 2")
+
+
     # print(db.get_specific_video(1))
 
     # print(db.videos_user_has_not_watched("Barak", [1,2,3]))
@@ -582,7 +617,7 @@ if __name__ == "__main__":
 
     # print(db.get_video_test_link(1))
 
-    print(db.get_specific_video(1))
+    # print(db.get_specific_video(1))
     # print(db.get_comments(1))
 
     # # --- users ---

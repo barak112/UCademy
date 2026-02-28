@@ -165,7 +165,9 @@ class ServerLogic:
     def handle_video_comment(self, client_ip, data):  # command 6
         video_id, comment = data
         commenter_name = self.clients[client_ip][0]
-        self.db.add_comment(video_id, commenter_name, comment)
+        comment_id = self.db.add_comment(video_id, commenter_name, comment)
+        msg = serverProtocol.build_comment_status(comment_id,video_id, comment)
+        self.comm.send_msg(client_ip, msg)
 
     def handle_test_req(self, client_ip, data):  # command 7
         video_id = data[0]
@@ -187,7 +189,7 @@ class ServerLogic:
         """
         print("comments req arriveed at handle")
         video_id, last_comment_id = data
-        comments_ids, comments = self.db.get_comments(video_id)
+        comments_ids, comments = self.db.get_comments(video_id, self.clients[client_ip][0])
 
         last_comment_id = int(last_comment_id)
         start_index = 0
@@ -196,11 +198,6 @@ class ServerLogic:
 
 
         comments_to_send = comments[start_index:start_index+settings.AMOUNT_OF_COMMENTS_TO_SEND]
-
-        # user_comments = self.db.get_user_video_comments(video_id, self.clients[client_ip][0])
-
-        #TODO send user's comments first
-
 
         print("comments_to_send:",comments_to_send)
 
@@ -218,15 +215,31 @@ class ServerLogic:
 
 
     def handle_video_del(self, client_ip, data):  # command 10
-        video_id = data
-        pass
+        video_id = data[0]
+        print("trying to deleting video:",video_id)
+
+        msg = serverProtocol.build_del_video_confirmation(0)
+        if client_ip in self.clients and self.db.is_the_video_creator(video_id, self.clients[client_ip][0]):
+            self.db.delete_video(video_id)
+            msg = serverProtocol.build_del_video_confirmation(video_id)
+
+        self.comm.send_msg(client_ip, msg)
 
     def handle_del_comment(self, client_ip, data):  # command 11
-        comment_id = data
-        pass
+        comment_id = data[0]
+        msg = serverProtocol.build_del_comment_confirmation(0)
+        comment = self.db.get_comment(comment_id)
+        if comment:
+            self.db.delete_comment(comment_id)
+            video_id = comment[1]
+            msg = serverProtocol.build_del_comment_confirmation(video_id, comment_id)
+            print("deleting comment")
+        self.comm.send_msg(client_ip, msg)
+
 
     def handle_creator_videos_req(self, client_ip, data):  # command 12
         username = data
+        #todo: implement
         pass
 
     def handle_user_follow_list_req(self, client_ip, data):  # command 13

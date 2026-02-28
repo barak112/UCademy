@@ -45,8 +45,8 @@ def build_video_details(video_id, creator_name, video_name, video_desc, likes_am
     )
 
 
-def build_comment_status(status):
-    return build_command(6, [status])
+def build_comment_status(comment_id, video_id, comment):
+    return build_command(6, [comment_id, video_id, comment])
 
 
 def build_send_test(video_id, link):
@@ -60,16 +60,16 @@ def build_report_status(status):
 
 
 def build_send_comments(comments):
-    # comments = [[comment_id, commenter_name, comment], ...]
+    # comments = [[comment_id, video_id, commenter_name, comment], ...]
     return build_command(9, comments)
 
 
-def build_del_video_confirmation(status):
-    return build_command(10, [status])
+def build_del_video_confirmation(video_id):
+    return build_command(10, [video_id])
 
 
-def build_del_comment_confirmation(status):
-    return build_command(11, [status])
+def build_del_comment_confirmation(video_id = 0, comment_id = 0):
+    return build_command(11, [video_id, comment_id])
 
 
 #12-14 are client requests that are handles using other commands

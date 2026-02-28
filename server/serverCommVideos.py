@@ -5,7 +5,6 @@ import select
 import socket
 import threading
 import aesCipher
-import clientlogic
 import diffieHellman
 import serverComm
 import serverProtocol

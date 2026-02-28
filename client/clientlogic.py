@@ -151,22 +151,33 @@ class ClientLogic:
             comment_info = ast.literal_eval(comment_info)
             print("comment info after eval:",comment_info, type(comment_info))
             comment_id, video_id, commenter, comment_content = comment_info
-            video_id = int(video_id)
-            comment_id = int(comment_id)
-            self.videos[video_id].comments.append(comment.Comment(comment_id, comment_content, commenter))
+            self.videos[video_id].add_comment(comment.Comment(comment_id, comment_content, commenter))
             print(f"comment added: {comment_id} {comment_content} by {commenter}")
 
     def handle_vid_del_confirmation(self, data):  # command 10
-        status = data[0]
-        pass
+        video_id = int(data[0])
+        if video_id:
+            print(f"video {video_id} is deleted")
+            self.videos.pop(video_id, None)
+        else:
+            print("video deletion failed")
 
     def handle_comment_del_confirmation(self, data):  # command 11
-        status = data[0]
-        pass
+        video_id, comment_id = data
+        video_id = int(video_id)
+        comment_id = int(comment_id)
+        if video_id:
+            print(f"comment {comment_id} deleted from video {video_id}")
+            video = self.videos.get(video_id)
+            if video:
+                video.comments.pop(comment_id, None)
+        else:
+            print("comment deletion failed")
+
 
     def handle_video_upload_confirmation(self, data):  # command 12
         status = data[0]
-        print(status)
+        print("video upload status:",status)
 
     def handle_follow_status(self, data):  # command 13
         status = data[0]
@@ -184,11 +195,11 @@ if __name__ == "__main__":
     time.sleep(0.1)
 
     # test command 0
-    msg_to_send = clientProtocol.build_sign_up("Alon", "password123", "Alon@")
+    msg_to_send = clientProtocol.build_sign_up("Barak", "password123", "Barak@")
     client.comm.send_msg(msg_to_send)
 
     # test command 1
-    msg_to_send = clientProtocol.build_sign_in("Alon", "password123")
+    msg_to_send = clientProtocol.build_sign_in("Barak", "password123")
     client.comm.send_msg(msg_to_send)
 
     time.sleep(0.1)
@@ -216,14 +227,26 @@ if __name__ == "__main__":
     # client.comm.send_msg(msg_to_send)
 
     #test command 14
-    msg_to_send = clientProtocol.build_req_video(1)
+    # msg_to_send = clientProtocol.build_req_video(1)
+    # client.comm.send_msg(msg_to_send)
+
+
+    #test command 9
+    # msg_to_send = clientProtocol.build_req_comments(1)
+    # client.comm.send_msg(msg_to_send)
+
+
+    #test command 10
+    # msg_to_send = clientProtocol.build_del_video(1)
+    # client.comm.send_msg(msg_to_send)
+
+    #test command 11
+    msg_to_send = clientProtocol.build_del_comment(5)
     client.comm.send_msg(msg_to_send)
 
-
-    #text command 9
-    msg_to_send = clientProtocol.build_req_comments(1)
+    #test command 12
+    msg_to_send = clientProtocol.build_req_creator_videos("Alon")
     client.comm.send_msg(msg_to_send)
-
 
 
     #video comm
