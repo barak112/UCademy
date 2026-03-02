@@ -237,7 +237,7 @@ class DataBase:
     # ===== videos =====
 
     def get_videos_by_creator(self, username):
-        self.cur.execute("SELECT video_id FROM videos WHERE creator = ?", (username,))
+        self.cur.execute("SELECT videos.video_id, COUNT(watched_videos.username) as views FROM videos LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id WHERE videos.creator = ? GROUP BY videos.video_id ORDER BY views DESC", (username,))
         results = self.cur.fetchall()
         results = [i[0] for i in results]
         return results
@@ -602,10 +602,12 @@ if __name__ == "__main__":
     # db.add_video("Barak", "Barak's video", "Video about Barak", "test link2")
     # db.add_video("Ella", "Ella's video", "Video about Ella", "test link3")
 
-    # db.add_watched_video("Ella", 2)
+    # db.add_watched_video("Ella", 5)
 
     db.print_tables()
     print("\n\n")
+
+    # print(db.get_videos_by_creator("Alon"))
 
     # comments = db.get_comments(1, "Barak")
     # print(comments[0])

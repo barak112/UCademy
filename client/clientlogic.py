@@ -213,7 +213,7 @@ if __name__ == "__main__":
     # client.comm.send_msg(msg_to_send)
 
     #test command 5
-    msg_to_send = clientProtocol.build_search_videos("video", None, 3)
+    msg_to_send = clientProtocol.build_search_videos("video", None, 0)
     client.comm.send_msg(msg_to_send)
 
 
@@ -247,6 +247,9 @@ if __name__ == "__main__":
     #test command 12
     # msg_to_send = clientProtocol.build_req_creator_videos("Alon")
     # client.comm.send_msg(msg_to_send)
+
+    #test command 13
+    msg_to_send = clientProtocol.build_req_creator_follow_list("Alon", 0)
 
 
     #video comm

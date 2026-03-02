@@ -267,7 +267,10 @@ class ServerLogic:
 
     def handle_user_follow_list_req(self, client_ip, data):  # command 13
         username, follow_type = data
-        pass
+        if follow_type:
+            pass
+
+        # todo implement this, also thing about sending next.
 
     def handle_video_req(self, client_ip, data):  # command 14
         video_id = data[0]
