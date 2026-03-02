@@ -33,10 +33,10 @@ def build_search_creators(creator_name):
     return build_command(4, [creator_name])
 
 
-def build_search_videos(video_name_or_desc, topics = None):
+def build_search_videos(video_name_or_desc, topics = None, last_id=0):
     if not topics:
         topics = []
-    return build_command(5, [video_name_or_desc, topics])
+    return build_command(5, [video_name_or_desc, topics, last_id])
 
 
 def build_comment(video_id, comment):
@@ -63,8 +63,8 @@ def build_del_comment(comment_id):
     return build_command(11, [comment_id])
 
 
-def build_req_creator_videos(username):
-    return build_command(12, [username])
+def build_req_creator_videos(username, last_id = 0):
+    return build_command(12, [username, last_id])
 
 
 def build_req_creator_follow(username, follow_type):

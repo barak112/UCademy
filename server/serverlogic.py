@@ -141,9 +141,8 @@ class ServerLogic:
             self.clients[client_ip][1].send_file(user_pfp_image_path)
 
 
-
     def handle_videos_search(self, client_ip, data):  # command 5
-        video_name_or_desc, topics = data
+        video_name_or_desc, topics, last_id = data
         topics = ast.literal_eval(topics)
 
         video_ids_by_string = set(self.db.get_videos_with_similar_name(video_name_or_desc))
@@ -155,11 +154,25 @@ class ServerLogic:
 
         ordered_by_views = self.db.order_ids_by_views(both_lists_together)
 
+        last_id = int(last_id)
+        starting_index = 0
+        if last_id and last_id in ordered_by_views:
+            starting_index = ordered_by_views.index(last_id) + 1
+
+        videos_to_send = ordered_by_views[starting_index:starting_index + settings.AMOUNT_OF_VIDEOS_TO_SEND]
+        print("videos_to_send in videos_search after last_id", videos_to_send)
+
         # send username details and pfps
-        for video_id in ordered_by_views[:settings.AMOUNT_OF_VIDEOS_TO_SEND]:
+        self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
+
+
+    def send_videos_details_and_thumbnail(self, client_ip, video_ids): # Helper function
+        for video_id in video_ids:
             video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
             self.clients[client_ip][1].send_file(client_ip, f"media\\videos\\{video_id}.png", video_id, creator,
-                                                 video_name, video_desc, likes_amount, comments_amount, liked)
+                                               video_name, video_desc, likes_amount, comments_amount, liked)
+
+
 
 
     def handle_video_comment(self, client_ip, data):  # command 6
@@ -194,7 +207,7 @@ class ServerLogic:
         last_comment_id = int(last_comment_id)
         start_index = 0
         if last_comment_id:
-            start_index = comments_ids.index(last_comment_id)
+            start_index = comments_ids.index(last_comment_id)+1
 
 
         comments_to_send = comments[start_index:start_index+settings.AMOUNT_OF_COMMENTS_TO_SEND]
@@ -238,9 +251,19 @@ class ServerLogic:
 
 
     def handle_creator_videos_req(self, client_ip, data):  # command 12
-        username = data
-        #todo: implement
-        pass
+        username, last_id = data
+        videos_ids = self.db.get_videos_by_creator(username)
+
+        starting_index = 0
+        last_id = int(last_id)
+        if last_id and last_id in videos_ids:
+            starting_index = videos_ids.index(last_id)+1
+
+        videos_to_send = videos_ids[starting_index:starting_index+settings.AMOUNT_OF_VIDEOS_TO_SEND]
+
+        print(f"videos_to_send in creator video req: {videos_to_send}")
+
+        self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
 
     def handle_user_follow_list_req(self, client_ip, data):  # command 13
         username, follow_type = data

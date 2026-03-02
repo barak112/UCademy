@@ -202,7 +202,7 @@ if __name__ == "__main__":
     msg_to_send = clientProtocol.build_sign_in("Barak", "password123")
     client.comm.send_msg(msg_to_send)
 
-    time.sleep(0.1)
+    time.sleep(1)
 
     # test command 2
     # msg_to_send = clientProtocol.build_set_topics([2, 3, 4])
@@ -213,8 +213,8 @@ if __name__ == "__main__":
     # client.comm.send_msg(msg_to_send)
 
     #test command 5
-    # msg_to_send = clientProtocol.build_search_videos("desc")
-    # client.comm.send_msg(msg_to_send)
+    msg_to_send = clientProtocol.build_search_videos("video", None, 3)
+    client.comm.send_msg(msg_to_send)
 
 
     #test command 6
@@ -241,12 +241,12 @@ if __name__ == "__main__":
     # client.comm.send_msg(msg_to_send)
 
     #test command 11
-    msg_to_send = clientProtocol.build_del_comment(5)
-    client.comm.send_msg(msg_to_send)
+    # msg_to_send = clientProtocol.build_del_comment(5)
+    # client.comm.send_msg(msg_to_send)
 
     #test command 12
-    msg_to_send = clientProtocol.build_req_creator_videos("Alon")
-    client.comm.send_msg(msg_to_send)
+    # msg_to_send = clientProtocol.build_req_creator_videos("Alon")
+    # client.comm.send_msg(msg_to_send)
 
 
     #video comm

@@ -236,6 +236,12 @@ class DataBase:
 
     # ===== videos =====
 
+    def get_videos_by_creator(self, username):
+        self.cur.execute("SELECT video_id FROM videos WHERE creator = ?", (username,))
+        results = self.cur.fetchall()
+        results = [i[0] for i in results]
+        return results
+
     def is_the_video_creator(self, video_id, username):
         self.cur.execute("SELECT 1 FROM videos WHERE video_id = ? AND creator = ?", (video_id, username))
         return self.cur.fetchone() is not None
@@ -569,10 +575,10 @@ class DataBase:
         self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = [t[0] for t in self.cur.fetchall()]
 
-        # Print first 5 rows of each table
+        # Print first 15 rows of each table
         for table in tables:
             print(f"\nTable: {table}")
-            self.cur.execute(f"SELECT * FROM {table} LIMIT 5;")
+            self.cur.execute(f"SELECT * FROM {table} LIMIT 15;")
             rows = self.cur.fetchall()
             for row in rows:
                 print(row)
@@ -592,10 +598,11 @@ if __name__ == "__main__":
 
     # db.cur.execute("DROP TABLE IF EXISTS videos")
     # db._create_videos_table()
-    # db.add_video("Alon", "Alon's video", "Video about Alon", "test link1")
+    # db.add_video("Alon", "Alon's video 3", "Video about Alon 3", "test link5")
     # db.add_video("Barak", "Barak's video", "Video about Barak", "test link2")
     # db.add_video("Ella", "Ella's video", "Video about Ella", "test link3")
 
+    # db.add_watched_video("Ella", 2)
 
     db.print_tables()
     print("\n\n")

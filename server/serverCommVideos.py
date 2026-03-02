@@ -94,14 +94,12 @@ class ServerCommVideos (serverComm.ServerComm):
                 data = f.read()
 
             client_socket = self._find_socket_by_ip(client_ip)
-
             data = self.open_clients[client_socket][1].encrypt_file(data)
             file_name = os.path.basename(file_path)
             file_size = len(data)
             msg = serverProtocol.build_file_details(file_name, file_size, video_id,creator, video_name, video_description,
                                                     likes_amount, comments_amount, liked)
             encrypted_message = self.open_clients[client_socket][1].encrypt(msg)
-            print(f"encrypted_message: {encrypted_message}")
             try:
                 client_socket.send(str(len(encrypted_message)).zfill(3).encode() + encrypted_message)
                 client_socket.send(data)

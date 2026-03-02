@@ -112,12 +112,12 @@ class ServerComm:
         :param client_ip: ip of the client to find.
         :return: Client socket if found, None otherwise.
         """
-        soc = None
+        socket = None
         for sock in self.open_clients.keys():
             if self.open_clients[sock][0] == client_ip:
-                soc = sock
+                socket = sock
                 break
-        return soc
+        return socket
 
     def send_msg(self, client_ip, msg):
         """Send an encrypted message to a specific client.
