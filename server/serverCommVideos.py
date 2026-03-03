@@ -66,22 +66,6 @@ class ServerCommVideos (serverComm.ServerComm):
                         print("msg recved in serverCommVideo:", decrypted_message)
                         self._recv_file(current_socket, decrypted_message)
 
-    def send_msg(self, client_ip, msg):
-        """Send an encrypted message to a specific client.
-
-        :param client_ip: ip of the client to send the message to.
-        :param msg: Message to send.
-        """
-        client_soc = self._find_socket_by_ip(client_ip)
-        if client_soc:
-            encrypted_message = self.open_clients[client_soc][1].encrypt(msg)
-            msg = str(len(encrypted_message)).zfill(3).encode() + encrypted_message
-            try:
-                client_soc.send(msg)
-            except Exception as e:
-                print(f"Error sending message: {e}")
-                self._close_client(client_soc)
-
     def send_file(self, client_ip, file_path, video_id = None, creator = None, video_name=None, video_description=None, likes_amount = None, comments_amount = None, liked = None):
         """
             sends a file to the server

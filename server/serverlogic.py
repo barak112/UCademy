@@ -55,6 +55,9 @@ class ServerLogic:
         self.current_video_port = settings.VIDEO_PORT
         self.clients = {} # [client_ip] = (username, video_comm, [topics_filter])
 
+        self.videos_to_send = {} # [client_ip] = [videos_ids]
+        self.users_to_send = {} # [client_ip] = [users_names]
+
         self.handle_msgs()
 
     def handle_msgs(self):
@@ -124,60 +127,82 @@ class ServerLogic:
         print("set filter:", topic_filter)
 
     def handle_creators_search(self, client_ip, data): # command 4
-        username = data[0]
-        usernames = self.db.get_similar_usernames(username)
+        username, last_username = data[0]
+
+        if last_username and last_username in self.users_to_send[client_ip]:
+            usernames = self.users_to_send[client_ip]
+            start_index = usernames.index(last_username) + 1
+        else:
+            usernames = self.db.get_similar_usernames(username)
+            self.users_to_send = usernames
+            start_index = 0
 
         #send username details and pfps
-        users = usernames[:settings.AMOUNT_OF_USERS_TO_SEND]
-        #todo add send next
-        self.send_users_details(client_ip, users)
+        users = usernames[start_index:start_index+settings.AMOUNT_OF_USERS_TO_SEND]
+
+        if users:
+            self.send_users_details(client_ip, users)
+        else: # no more users to send
+            msg_to_send = serverProtocol.build_user_details("",0,0,0)
+            self.comm.send_msg(client_ip,msg_to_send)
+
 
     def send_users_details(self, client_ip, usernames): # Not a Command!
-        #/get_creator_details
         for username in usernames:
-            print("username in send_users_details:", username)
-            followers_amount = self.db.get_followers_amount(username)
-            followings_amount = self.db.get_following_amount(username)
-            videos_amount = self.db.get_videos_amount(username)
-            msg = serverProtocol.build_user_details(username, followers_amount, followings_amount, videos_amount)
-            self.comm.send_msg(client_ip, msg)
+            if self.db.user_exists(username):
+                print("username in send_users_details:", username)
+                followers_amount = self.db.get_followers_amount(username)
+                followings_amount = self.db.get_following_amount(username)
+                videos_amount = self.db.get_videos_amount(username)
+                msg = serverProtocol.build_user_details(username, followers_amount, followings_amount, videos_amount)
+                self.comm.send_msg(client_ip, msg)
 
-            #sends the user's pfp
-            user_pfp_image_path = f"{username}.png"
-            if os.path.isfile(user_pfp_image_path):
-                self.clients[client_ip][1].send_file(user_pfp_image_path)
+                #sends the user's pfp
+                user_pfp_image_path = f"{username}.png"
+                if os.path.isfile(user_pfp_image_path):
+                    self.clients[client_ip][1].send_file(user_pfp_image_path)
 
 
     def handle_videos_search(self, client_ip, data):  # command 5
         video_name_or_desc, topics, last_id = data
-        topics = ast.literal_eval(topics)
-
-        video_ids_by_string = set(self.db.get_videos_with_similar_name(video_name_or_desc))
-        both_lists_together = video_ids_by_string | set(self.db.get_videos_with_similar_desc(video_name_or_desc))
-
-        if topics:
-            video_ids_by_topics = set(self.db.get_videos_ids_by_topics(topics))
-            both_lists_together = list(set(video_ids_by_topics) & set(both_lists_together))
-
-        ordered_by_views = self.db.order_ids_by_views(both_lists_together)
 
         last_id = int(last_id)
-        starting_index = 0
-        if last_id and last_id in ordered_by_views:
-            starting_index = ordered_by_views.index(last_id) + 1
+        if last_id and last_id in self.videos_to_send[client_ip]:
+            videos_ids = self.videos_to_send[client_ip]
+            starting_index = videos_ids.index(last_id) + 1
 
-        videos_to_send = ordered_by_views[starting_index:starting_index + settings.AMOUNT_OF_VIDEOS_TO_SEND]
+        else:
+            topics = ast.literal_eval(topics)
+
+            video_ids_by_name = set(self.db.get_videos_with_similar_name(video_name_or_desc))
+            video_ids_by_desc = set(self.db.get_videos_with_similar_desc(video_name_or_desc))
+            videos_ids = video_ids_by_name | video_ids_by_desc
+
+            if topics:
+                video_ids_by_topics = set(self.db.get_videos_ids_by_topics(topics))
+                videos_ids = list(set(video_ids_by_topics) & set(videos_ids))
+
+            videos_ids = self.db.order_ids_by_views(videos_ids)
+            self.videos_to_send[client_ip] = videos_ids
+            starting_index = 0
+
+        videos_to_send = videos_ids[starting_index:starting_index + settings.AMOUNT_OF_VIDEOS_TO_SEND]
         print("videos_to_send in videos_search after last_id", videos_to_send)
 
-        # send username details and pfps
-        self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
-
+        if videos_ids:
+            # send username details and pfps
+            self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
+        else:
+            msg_to_send = serverProtocol.build_video_details(0, "", "", "", 0, 0, 0)
+            self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
+            #todo check that the empty video works
 
     def send_videos_details_and_thumbnail(self, client_ip, video_ids): # Helper function
         for video_id in video_ids:
-            video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
-            self.clients[client_ip][1].send_file(client_ip, f"media\\videos\\{video_id}.png", video_id, creator,
-                                               video_name, video_desc, likes_amount, comments_amount, liked)
+            if self.db.video_exists(video_id):
+                video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
+                self.clients[client_ip][1].send_file(client_ip, f"media\\videos\\{video_id}.png", video_id, creator,
+                                                   video_name, video_desc, likes_amount, comments_amount, liked)
 
 
 
@@ -259,34 +284,48 @@ class ServerLogic:
 
     def handle_creator_videos_req(self, client_ip, data):  # command 12
         username, last_id = data
-        videos_ids = self.db.get_videos_by_creator(username)
 
-        starting_index = 0
         last_id = int(last_id)
-        if last_id and last_id in videos_ids:
+        if last_id and last_id in self.videos_to_send[client_ip]:
+            videos_ids = self.videos_to_send[client_ip]
             starting_index = videos_ids.index(last_id)+1
-
+        else:
+            videos_ids = self.db.get_videos_by_creator(username)
+            starting_index = 0
+        
         videos_to_send = videos_ids[starting_index:starting_index+settings.AMOUNT_OF_VIDEOS_TO_SEND]
 
         print(f"videos_to_send in creator video req: {videos_to_send}")
-
-        self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
-
+        
+        if videos_to_send:
+            self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
+        else: # indicates there are no more videos to send
+            msg_to_send = serverProtocol.build_video_details(0, "", "", "", 0, 0, 0)
+            self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
+            
     def handle_user_follow_list_req(self, client_ip, data):  # command 13
-        username, follow_type = data
-        follow_type = int(follow_type)
-        if follow_type:  # follow_type: 0 - followings, 1 - followers
-            users_to_send = self.db.get_followers(username)
+        username, follow_type, last_follow_name = data
+
+        if last_follow_name and last_follow_name in self.users_to_send[client_ip]:
+            starting_index = self.users_to_send[client_ip].index(last_follow_name) + 1
+            users_to_send = self.users_to_send[client_ip]
         else:
-            users_to_send = self.db.get_followings(username)
+            follow_type = int(follow_type)
+            starting_index = 0
+            if follow_type:  # follow_type: 0 - followings, 1 - followers
+                users_to_send = self.db.get_followers(username)
+            else:
+                users_to_send = self.db.get_followings(username)
+            self.users_to_send[client_ip] = users_to_send
 
         print("users to send in follow list req", users_to_send)
 
         if users_to_send:
-            users_to_send = users_to_send[:settings.AMOUNT_OF_USERS_TO_SEND]
+            users_to_send = users_to_send[starting_index:starting_index+settings.AMOUNT_OF_USERS_TO_SEND]
             self.send_users_details(client_ip, users_to_send)
-
-        # todo sending next.
+        else:
+            msg_to_send = serverProtocol.build_user_details("", 0, 0, 0)
+            self.comm.send_msg(client_ip, msg_to_send)
 
     def handle_video_req(self, client_ip, data):  # command 14
         video_id = data[0]
@@ -298,10 +337,10 @@ class ServerLogic:
                 f"sending video {video_id} to {client_ip} with creator {creator}, name {video_name}, desc {video_desc}, likes {likes_amount}, comments {comments_amount}, liked {liked}"
             )
         else:
-            # algorithm to choose video
+            #todo: algorithm to choose video
             pass
 
-    def get_video_details(self,client_ip, video_id):
+    def get_video_details(self,client_ip, video_id): # helper function
         video_name, video_desc, creator, likes_amount, comments_amount = self.db.get_specific_video(video_id)
         liked = self.db.is_liked_by_user(video_id, self.clients[client_ip][0])
         liked = int(liked)

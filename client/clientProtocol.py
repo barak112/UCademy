@@ -29,8 +29,8 @@ def build_set_filter(topics):
     return build_command(3, topics)
 
 
-def build_search_creators(creator_name):
-    return build_command(4, [creator_name])
+def build_search_creators(creator_name, last_username = ""):
+    return build_command(4, [creator_name, last_username])
 
 
 def build_search_videos(video_name_or_desc, topics = None, last_id=0):
@@ -67,8 +67,8 @@ def build_req_creator_videos(username, last_id = 0):
     return build_command(12, [username, last_id])
 
 
-def build_req_user_follow_list(username, follow_type): # follow_type: 0 - followings, 1 - followers
-    return build_command(13, [username, follow_type])
+def build_req_user_follow_list(username, follow_type, last_follow_username = ""): # follow_type: 0 - followings, 1 - followers
+    return build_command(13, [username, follow_type, last_follow_username])
 
 
 def build_req_video(video_id):

@@ -99,6 +99,10 @@ class ClientLogic:
             self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, int(video_port), self.recvQ)
             self.video_comm.connect()
 
+            followers_amount = int(followings_amount)
+            followings_amount = int(followings_amount)
+            videos_amount = int(videos_amount)
+
             self.user = user.User(username, followers_amount, followings_amount, videos_amount,email, topics, followings_names)
 
 
@@ -113,19 +117,30 @@ class ClientLogic:
 
     def handle_user_details(self, data):  # command 4
         username, followers_amount, followings_amount, videos_amount = data
-        self.users[username] = user.User(username, followers_amount, followings_amount, videos_amount)
 
-        print(f"added user: username: {username}, followers_amount: {followers_amount}, followings_amount: {followings_amount}, videos_amount: {videos_amount}")
+        if username:
+            followers_amount = int(followers_amount)
+            followings_amount = int(followings_amount)
+            videos_amount = int(videos_amount)
+            self.users[username] = user.User(username, followers_amount, followings_amount, videos_amount)
+            print(f"added user: username: {username}, followers_amount: {followers_amount}, followings_amount: {followings_amount}, videos_amount: {videos_amount}")
+        else:
+            print("NO MORE USERS TO SEND")
+
 
     def handle_video_details(self, data): # command 5
         video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked, arrived_with_video = data
-        liked = bool(liked)
+
         video_id = int(video_id)
-        self.videos[video_id] = video.Video(video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked)
-        print(
-            f"added video: video_id={video_id}, creator={creator}, video_name={video_name}, video_desc={video_desc}, likes_amount={likes_amount}, comments_amount={comments_amount}, liked={liked}")
-        if arrived_with_video:
-            self.current_video = video_id
+        if video_id: # video_id = 0 means that there are no more videos to send
+            liked = bool(int(liked))
+            self.videos[video_id] = video.Video(video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked)
+            print(
+                f"added video: video_id={video_id}, creator={creator}, video_name={video_name}, video_desc={video_desc}, likes_amount={likes_amount}, comments_amount={comments_amount}, liked={liked}")
+            if arrived_with_video:
+                self.current_video = video_id
+        else:
+            print("NO MORE VIDEOS TO SEND")
 
     def handle_video_comment_confirmation(self, data): # command 6
         comment_id, video_id, added_comment = data
