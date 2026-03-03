@@ -17,8 +17,9 @@ def build_sign_up_status(status, port = None):
     return build_command(0, [status, port])
 
 
-def build_sign_in_status(status, port = None, username = None, email = None, topics = None,followings_names = None):
-    return build_command(1, [status, port, username, email, topics, followings_names])
+def build_sign_in_status(status, port = None, username = None, followers_amount = None,
+                         followings_amount = None, videos_amount = None, email = None, topics = None, followings_names = None):
+    return build_command(1, [status, port, username, followers_amount, followings_amount, videos_amount, email, topics, followings_names])
 
 
 def build_set_topics_confirmation(topics):
@@ -29,10 +30,10 @@ def build_set_filter_confirmation(status, filter):
     return build_command(3, [status, filter])
 
 
-def build_creator_details(username, followers_amount, following_amount, videos_amount):
+def build_user_details(username, followers_amount, followings_amount, videos_amount):
     return build_command(
         4,
-        [username, followers_amount, following_amount, videos_amount]
+        [username, followers_amount, followings_amount, videos_amount]
     )
 
 

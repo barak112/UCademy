@@ -30,6 +30,7 @@ class ClientLogic:
         self.filter = []
         
         self.videos = {} # [video_id] = video_object
+        self.users = {} # [username] - user_object
         self.current_video = None
         
         self.commands = {
@@ -92,13 +93,13 @@ class ClientLogic:
 
         print("sign in status:",status)
         if status:
-            video_port, username, email, topics, followings_names = data[1:]
+            video_port, username, followers_amount, followings_amount, videos_amount, email, topics, followings_names = data[1:]
             topics = ast.literal_eval(topics)
 
             self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, int(video_port), self.recvQ)
             self.video_comm.connect()
 
-            self.user = user.User(username, email, topics, followings_names)
+            self.user = user.User(username, followers_amount, followings_amount, videos_amount,email, topics, followings_names)
 
 
     def handle_topics_confirmation(self, data):  # command 2
@@ -111,9 +112,10 @@ class ClientLogic:
         print("setting filter:", filter)
 
     def handle_user_details(self, data):  # command 4
-        username, followers_amount, videos_amount = data
+        username, followers_amount, followings_amount, videos_amount = data
+        self.users[username] = user.User(username, followers_amount, followings_amount, videos_amount)
 
-        print("receiving user details")
+        print(f"added user: username: {username}, followers_amount: {followers_amount}, followings_amount: {followings_amount}, videos_amount: {videos_amount}")
 
     def handle_video_details(self, data): # command 5
         video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked, arrived_with_video = data
@@ -213,8 +215,8 @@ if __name__ == "__main__":
     # client.comm.send_msg(msg_to_send)
 
     #test command 5
-    msg_to_send = clientProtocol.build_search_videos("video", None, 0)
-    client.comm.send_msg(msg_to_send)
+    # msg_to_send = clientProtocol.build_search_videos("video", None, 0)
+    # client.comm.send_msg(msg_to_send)
 
 
     #test command 6
@@ -249,8 +251,8 @@ if __name__ == "__main__":
     # client.comm.send_msg(msg_to_send)
 
     #test command 13
-    msg_to_send = clientProtocol.build_req_creator_follow_list("Alon", 0)
-
+    msg_to_send = clientProtocol.build_req_user_follow_list("Barak", 0)
+    client.comm.send_msg(msg_to_send)
 
     #video comm
     #test command 0

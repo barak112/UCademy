@@ -91,10 +91,15 @@ class ServerLogic:
         username = self.db.get_username(username_or_email)
         print(f"trying to sign in user: {username} ")
         if self.db.log_in(username_or_email, password):
+            followers_amount = self.db.get_followers_amount(username)
+            followings_amount = self.db.get_following_amount(username)
+            videos_amount = self.db.get_videos_amount(username)
+
             topics = self.db.get_user_topics(username)
             email = self.db.get_user_email(username)
             followings_names = self.db.get_followings(username)
-            msg = serverProtocol.build_sign_in_status(1,self.current_video_port,  username, email, topics, followings_names)
+            msg = serverProtocol.build_sign_in_status(1,self.current_video_port,username, followers_amount,
+                                                      followings_amount, videos_amount, email, topics, followings_names)
             status = 1
             self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), topics]
             self.current_video_port+=1
@@ -123,22 +128,24 @@ class ServerLogic:
         usernames = self.db.get_similar_usernames(username)
 
         #send username details and pfps
-        for username in usernames[:settings.AMOUNT_OF_USERS_TO_SEND]:
-            self.send_user_details(client_ip, username)
+        users = usernames[:settings.AMOUNT_OF_USERS_TO_SEND]
+        #todo add send next
+        self.send_users_details(client_ip, users)
 
-    def send_user_details(self, client_ip, username): # Not a Command!
+    def send_users_details(self, client_ip, usernames): # Not a Command!
         #/get_creator_details
-        followers = self.db.get_followers(username)
-        followings = self.db.get_followings(username)
-        video_count = self.db.get_video_amount(username)
+        for username in usernames:
+            print("username in send_users_details:", username)
+            followers_amount = self.db.get_followers_amount(username)
+            followings_amount = self.db.get_following_amount(username)
+            videos_amount = self.db.get_videos_amount(username)
+            msg = serverProtocol.build_user_details(username, followers_amount, followings_amount, videos_amount)
+            self.comm.send_msg(client_ip, msg)
 
-        msg = serverProtocol.build_creator_details(username, followers,followings, video_count)
-        self.comm.send_msg(client_ip, msg)
-
-        #sends the user's pfp
-        user_pfp_image_path = f"{username}.png"
-        if os.path.isfile(user_pfp_image_path):
-            self.clients[client_ip][1].send_file(user_pfp_image_path)
+            #sends the user's pfp
+            user_pfp_image_path = f"{username}.png"
+            if os.path.isfile(user_pfp_image_path):
+                self.clients[client_ip][1].send_file(user_pfp_image_path)
 
 
     def handle_videos_search(self, client_ip, data):  # command 5
@@ -267,10 +274,19 @@ class ServerLogic:
 
     def handle_user_follow_list_req(self, client_ip, data):  # command 13
         username, follow_type = data
-        if follow_type:
-            pass
+        follow_type = int(follow_type)
+        if follow_type:  # follow_type: 0 - followings, 1 - followers
+            users_to_send = self.db.get_followers(username)
+        else:
+            users_to_send = self.db.get_followings(username)
 
-        # todo implement this, also thing about sending next.
+        print("users to send in follow list req", users_to_send)
+
+        if users_to_send:
+            users_to_send = users_to_send[:settings.AMOUNT_OF_USERS_TO_SEND]
+            self.send_users_details(client_ip, users_to_send)
+
+        # todo sending next.
 
     def handle_video_req(self, client_ip, data):  # command 14
         video_id = data[0]

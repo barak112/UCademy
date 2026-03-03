@@ -301,8 +301,9 @@ class DataBase:
         self.cur.execute("DELETE FROM videos WHERE video_id = ?", (video_id,))
         self.conn.commit()
 
-    def get_video_amount(self, username):
+    def get_videos_amount(self, username):
         self.cur.execute("SELECT COUNT(*) FROM videos WHERE creator = ?", (username,))
+        return self.cur.fetchone()[0]
 
     def get_video_test_link(self, video_id):
         self.cur.execute("SELECT test_link FROM videos WHERE video_id = ?", (video_id,))
@@ -413,11 +414,15 @@ class DataBase:
     def get_followings(self, username):
         self.cur.execute("SELECT followed FROM following WHERE following = ?", (username,))
         followings = self.cur.fetchall()
-        return [f[0] for f in followings]  # Return a list of followed usernames
+        if followings:
+            followings = [i[0] for i in followings]
+        return followings  # Return a list of followed usernames
 
     def get_followers(self, username):
-        followers = self.cur.fetchall()
         self.cur.execute("SELECT following FROM following WHERE followed = ?", (username,))
+        followers = self.cur.fetchall()
+        if followers:
+            followers = [i[0] for i in followers]
         return followers
 
     def remove_following(self, following, followed):
@@ -429,11 +434,12 @@ class DataBase:
         return self.cur.fetchone() is not None
 
     def get_followers_amount(self, username):
-        self.cur.execute("SELECT COUNT(*) FROM followers WHERE followed = ?", (username,))
+        self.cur.execute("SELECT COUNT(*) FROM following WHERE followed = ?", (username,))
         return self.cur.fetchone()[0]
 
     def get_following_amount(self, username):
-        self.cur.execute("SELECT COUNT(*) FROM followers WHERE following = ?", (username,))
+        self.cur.execute("SELECT COUNT(*) FROM following WHERE following = ?", (username,))
+        return self.cur.fetchone()[0]
 
     # ===== video topics =====
 
@@ -606,6 +612,13 @@ if __name__ == "__main__":
 
     db.print_tables()
     print("\n\n")
+
+    print(db.get_videos_amount("Alon"))
+
+    # db.add_following("Barak", "Alon")
+
+    # print(db.get_followers_amount("Alon"))
+
 
     # print(db.get_videos_by_creator("Alon"))
 
