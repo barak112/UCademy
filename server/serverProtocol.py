@@ -7,8 +7,14 @@ def build_command(command, params):
     :param params: List of parameters for the command.
     :return: Formatted command string.
     """
-    while params and params[-1] is None: # remove None at the end of params
+    while params and params[-1] is None:  # remove None at the end of params
         params.pop()
+
+    for index, value in enumerate(params):
+        if isinstance(value, list):
+            value = [str(i) for i in value]
+            params[index] = "#@".join(value)
+
     params = [str(i) for i in params]
     return str(command).zfill(2) + "@#".join(params)
 
@@ -56,8 +62,8 @@ def build_send_test(video_id, link):
     return build_command(7, [video_id, link])
 
 
-def build_report_status(status):
-    return build_command(8, [status])
+def build_report_status(id, type = "", content = "", content_publisher = "", status = "", date = None, time = None):
+    return build_command(8, [id, type, content, content_publisher, status, date, time])
 
 
 def build_send_comments(comments):
@@ -107,4 +113,9 @@ def unpack(data):
     params = ""
     if len(data) > 2:
         params = data[2:].split("@#")
+
+    for i, v in enumerate(params):
+        if "#@" in v:
+            params[i] = v.split("#@")
+
     return opcode, params

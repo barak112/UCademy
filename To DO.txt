@@ -1,15 +1,11 @@
 learn how the hashing works
 get the hashing out of the db
 
-implement users searching (command 4)
-implement handle report (command 8) for this i need to ask merry about keeping
-the info about report in the db
-
 add confirmation to file uploading
 
 add comments date and time using CURRENT_TIMESTAMP in the sql
+add video date to sql
 
-ask merry if i should keep the videos i need to send to the client or is it okay to create a new list i take from each time.
-i could have a dic like this: [client_ip] = ([user_names_to_send],[videos_ids_to_send])
-no need for comments, cause their time isnt changing
-the reason i need for videos is because their amount of views can change
+when client connects, checks if he has any handled reports.
+if he has, sends them the report status and deletes from reports table in db
+

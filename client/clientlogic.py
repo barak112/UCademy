@@ -94,7 +94,6 @@ class ClientLogic:
         print("sign in status:",status)
         if status:
             video_port, username, followers_amount, followings_amount, videos_amount, email, topics, followings_names = data[1:]
-            topics = ast.literal_eval(topics)
 
             self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, int(video_port), self.recvQ)
             self.video_comm.connect()
@@ -111,7 +110,7 @@ class ClientLogic:
         self.user.topics = topics
 
     def handle_filter_confirmation(self, data):  # command 3
-        filter = ast.literal_eval(data[0])
+        filter = data[0]
         self.filter = filter
         print("setting filter:", filter)
 
@@ -153,19 +152,51 @@ class ClientLogic:
             print(f"video {video_id} has test: {test_link}")
 
         if video_id in self.videos:
-            self.videos[video_id].test_link = test_link
+            self.videos[video_id].test_link = test_link # if no test link, test_link = ""
 
     def handle_report_status(self, data):  # command 8
-        id, type, status = data
-        pass
+        id, type, content, content_publisher, status = data[:5]
+        type = int(type)
+        id = int(id)
 
+        msg2 = f"has been examined and it has been decided that the"
+
+        msg1 = f"report of video {content} by {content_publisher}"
+        type_str = "video"
+
+        if type == settings.COMMENT_DIGIT_REPR:
+            type_str = "comment"
+
+            if content and content_publisher:
+                comment, video_name = content
+                commenter, video_creator = content_publisher
+                msg1 = f"report of comment {comment} by {commenter} on video {video_name} by {video_creator}"
+
+        if id:
+            if status:
+                date, time = data[5:]
+
+                status = int(status)
+                if status:
+                    result = "will be removed"
+                else:
+                    result = "will not be removed"
+                print(f"{msg1} you issued on {date} at {time} {msg2} {type_str} {result}")
+            else:
+                msg2 = "has been received at the server and will be examined"
+                print(f"{msg1} {msg2}")
+
+        else:
+            if content and content_publisher:
+                print(f"{msg1} has already been issued!")
+            else:
+                print(f"{type_str} reported does not exist!")
 
     def handle_comments(self, data):  # command 9
-        # data = ['[comment_info]', '[comment_info]']
+        # data = [[comment_info], [comment_info]]
         print("messages arrived at handle message:", data)
         for comment_info in data:
             print("raw comment info:",comment_info, type(comment_info))
-            comment_info = ast.literal_eval(comment_info)
             print("comment info after eval:",comment_info, type(comment_info))
             comment_id, video_id, commenter, comment_content = comment_info
             self.videos[video_id].add_comment(comment.Comment(comment_id, comment_content, commenter))
@@ -238,9 +269,14 @@ if __name__ == "__main__":
     # msg_to_send = clientProtocol.build_comment(1, "hello man")
     # client.comm.send_msg(msg_to_send)
 
-    #test command 6
+    #test command 7
 
     # msg_to_send = clientProtocol.build_req_test(1)
+    # client.comm.send_msg(msg_to_send)
+
+    # test command 8
+
+    # msg_to_send = clientProtocol.build_report(1, 0)
     # client.comm.send_msg(msg_to_send)
 
     #test command 14
@@ -266,15 +302,15 @@ if __name__ == "__main__":
     # client.comm.send_msg(msg_to_send)
 
     #test command 13
-    msg_to_send = clientProtocol.build_req_user_follow_list("Barak", 0)
-    client.comm.send_msg(msg_to_send)
+    # msg_to_send = clientProtocol.build_req_user_follow_list("Barak", 0)
+    # client.comm.send_msg(msg_to_send)
+
 
     #video comm
     #test command 0
     # client.video_comm.send_file("15.txt", "video name", "video desc", "test link")
     # client.video_comm.send_file("35.abc")
     # client.video_comm.send_file("barak.txt")
-
 
 
 

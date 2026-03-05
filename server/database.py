@@ -3,8 +3,8 @@ import hmac
 import os
 import sqlite3
 
-
 class DataBase:
+
     def __init__(self):
         """
         Opens a connection to the SQLite database and initializes all tables.
@@ -22,6 +22,7 @@ class DataBase:
         self._create_user_topics_table()
         self._create_watched_videos_table()
         self._create_video_hashes_table()
+        self._create_reports_table()
 
     def close(self):
         """
@@ -153,6 +154,22 @@ class DataBase:
                          """)
         self.conn.commit()
 
+    def _create_reports_table(self):
+        """
+        Creates the reports table.
+        :return: Creates the reports table if it does not already exist
+        """
+        self.cur.execute("""CREATE TABLE IF NOT EXISTS reports (
+                                                                   reporter_name TEXT,
+                                                                   target_id INTEGER,
+                                                                   target_type INTEGER,
+                                                                   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                                                   status INTEGER,
+                                                                   PRIMARY KEY (reporter_name, target_id, target_type)
+                            )
+                         """)
+        self.conn.commit()
+
     # ===== users =====
 
     def user_exists(self, username):
@@ -260,9 +277,9 @@ class DataBase:
         ret_val = None
         if self.video_exists(video_id):
             self.cur.execute("""
-                             SELECT videos.name,
+                             SELECT videos.creator,
+                                    videos.name,
                                     videos.description,
-                                    videos.creator,
                                     COUNT(DISTINCT likes.username) as likes_count,
                                     COUNT(DISTINCT comments.commenter) as comments_count
                              FROM videos
@@ -338,7 +355,7 @@ class DataBase:
         self.conn.commit()
         return self.cur.lastrowid
 
-    def get_comment(self, comment_id):
+    def get_specific_comment(self, comment_id):
         self.cur.execute("SELECT * FROM comments WHERE comment_id = ?", (comment_id,))
         return self.cur.fetchone()
 
@@ -370,6 +387,10 @@ class DataBase:
         """
         self.cur.execute("DELETE FROM comments WHERE comment_id = ?", (comment_id,))
         self.conn.commit()
+
+    def comment_exists(self, comment_id):
+        self.cur.execute("SELECT 1 FROM comments WHERE comment_id = ?", (comment_id,))
+        return self.cur.fetchone() is not None
 
     # ===== likes =====
 
@@ -571,6 +592,57 @@ class DataBase:
         self.cur.execute("SELECT 1 FROM video_hashes WHERE video_hash = ?", (video_hash,))
         return self.cur.fetchone() is not None
 
+    # ===== reports =====
+
+    def has_user_reported(self, username, id, type):
+            self.cur.execute("SELECT 1 FROM reports WHERE reporter_name = ? AND target_id = ? AND target_type = ?", (username, id, type))
+            return self.cur.fetchone() is not None
+
+    def add_report(self, reporter_name, target_id, target_type):
+        """
+        Adds a report to the database.
+        :param reporter_name: Name of the user reporting
+        :param target_id: ID of the video or comment being reported
+        :param target_type: Type of the target (VIDEO_REPORT or COMMENT_REPORT)
+        :return: Inserts a new row into the reports table
+        """
+
+        self.cur.execute("INSERT INTO reports (reporter_name, target_id, target_type) VALUES (?,?,?)", (reporter_name, target_id, target_type))
+        self.conn.commit()
+        print("inserted reports", reporter_name, target_id, target_type)
+
+    def get_reports(self):
+        """
+        Retrieves all reports from the database.
+        :return: Returns all reports from the reports table
+        """
+        self.cur.execute("""SELECT target_id, target_type, COUNT(*) as reports_amount
+                         FROM reports
+                         GROUP BY target_id, target_type
+                         ORDER BY reports_amount DESC""")
+
+        # self.cur.execute("SELECT * FROM reports")
+        return self.cur.fetchall()
+
+    def get_report_users_names_and_times(self, target_id, target_type):
+        self.cur.execute("SELECT reporter_name, strftime('%H:%M', created_at) FROM reports WHERE (target_id, target_type) = (?,?)", (target_id, target_type))
+        return self.cur.fetchall()
+
+    def set_report_status(self, target_id, target_type, status):
+        self.cur.execute("UPDATE reports SET status = ? WHERE (target_id, target_type) = (?,?)", (status, target_id, target_type))
+        self.conn.commit()
+
+
+    def delete_report(self, report_id):
+        """
+        Deletes a report from the database.
+        :param report_id: ID of the report to delete
+        :return: Deletes a report from the reports table
+        """
+        self.cur.execute("DELETE FROM reports WHERE report_id = ?", (report_id,))
+        self.conn.commit()
+
+    # ===== reports =====
 
     def delete_database(self):
         self.conn.close()
@@ -591,7 +663,6 @@ class DataBase:
 
 
 
-
 if __name__ == "__main__":
     db = DataBase()
 
@@ -602,18 +673,36 @@ if __name__ == "__main__":
     # db.add_watched_video("Ella", 3)
 
 
+
     # db.cur.execute("DROP TABLE IF EXISTS videos")
     # db._create_videos_table()
     # db.add_video("Alon", "Alon's video 3", "Video about Alon 3", "test link5")
     # db.add_video("Barak", "Barak's video", "Video about Barak", "test link2")
     # db.add_video("Ella", "Ella's video", "Video about Ella", "test link3")
-
     # db.add_watched_video("Ella", 5)
+
+    # db.set_report_status(1,0,1)
 
     db.print_tables()
     print("\n\n")
 
-    print(db.get_videos_amount("Alon"))
+    print(db.get_specific_video(1))
+
+    # print(db.get_videos_amount("Alon"))
+
+    # db.cur.execute("DROP TABLE IF EXISTS reports")
+    # db._create_reports_table()
+    # db.add_report("Barak",1,0)
+    # db.add_report("Alon",1,0)
+    # db.add_report("Ella",1,0)
+    # db.add_report("Barak",1,1)
+    # db.add_report("Alon",2,1)
+    # db.add_report("Ella",1,1)
+    print("get reports:")
+    print(db.get_reports())
+
+
+    # print(db.get_report_users_names_and_times(1,1))
 
     # db.add_following("Barak", "Alon")
 
