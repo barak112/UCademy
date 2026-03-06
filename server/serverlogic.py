@@ -18,6 +18,14 @@ class ServerLogic:
     from clients via a queue and communicates updates using the server communication module.
     """
 
+    EMAIL_USER_KICK_MSG = """
+    Your user % has been kicked from the Ucademy platform for uploading inappropriate content multiple times.
+    If you believe this is a mistake, please contact us at ucademy@gmail.com.
+    
+    Sincerely,
+    The Ucademy System Managers Team
+    """
+
     def __init__(self):
         """Initialize the server object.
 
@@ -82,7 +90,7 @@ class ServerLogic:
         msg = serverProtocol.build_sign_up_status(0)
         if self.db.add_user(username, email, self.hash_password(password)):
             self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), []]
-
+            self.pfps_sent[client_ip] = []
             msg = serverProtocol.build_sign_up_status(1, self.current_video_port)
 
         self.current_video_port+=1
@@ -107,6 +115,7 @@ class ServerLogic:
                                                       followings_amount, videos_amount, email, topics, followings_names)
             status = 1
             self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), topics]
+            self.pfps_sent[client_ip] = []
             self.current_video_port+=1
 
         self.comm.send_msg(client_ip, msg)
@@ -114,7 +123,7 @@ class ServerLogic:
 
     def handle_set_user_topics(self, client_ip, data): # command 2
         topics = [int(t) for t in data]
-        self.db.set_topics(self.clients[client_ip][0], topics)
+        self.db.set_user_topics(self.clients[client_ip][0], topics)
         msg = serverProtocol.build_set_topics_confirmation(topics)
         self.comm.send_msg(client_ip, msg)
 
@@ -197,16 +206,16 @@ class ServerLogic:
             # send username details and pfps
             self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
         else:
-            msg_to_send = serverProtocol.build_video_details(0, "", "", "", 0, 0, 0)
+            msg_to_send = serverProtocol.build_video_details(0, "", "", "", "",0, 0, 0)
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
             #todo check that the empty video works
 
     def send_videos_details_and_thumbnail(self, client_ip, video_ids): # Helper function
         for video_id in video_ids:
             if self.db.video_exists(video_id):
-                video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
+                video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
                 self.clients[client_ip][1].send_file(client_ip, f"media\\videos\\{video_id}.png", video_id, creator,
-                                                   video_name, video_desc, likes_amount, comments_amount, liked)
+                                                   video_name, video_desc, created_at, likes_amount, comments_amount, liked)
 
 
 
@@ -274,8 +283,9 @@ class ServerLogic:
 
         is_next_send = int(is_next_send)
 
-        if is_next_send:
+        if is_next_send and client_ip in self.comments_to_send:
             comments = self.comments_to_send[client_ip]
+            #clears non existent comments (incase they were deleted)
             comments = [i for i in comments if self.db.comment_exists(i[0])]
         else:
             comments = self.db.get_comments(video_id, self.clients[client_ip][0])
@@ -344,7 +354,7 @@ class ServerLogic:
         if videos_to_send:
             self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
         else: # indicates there are no more videos to send
-            msg_to_send = serverProtocol.build_video_details(0, "", "", "", 0, 0, 0)
+            msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
             
     def handle_user_follow_list_req(self, client_ip, data):  # command 13
@@ -374,9 +384,10 @@ class ServerLogic:
     def handle_video_req(self, client_ip, data):  # command 14
         video_id = data[0]
         if video_id:
-            video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
+            video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
             file_path = f"media\\videos\\{video_id}.{settings.VIDEO_EXTENSION}"
-            self.clients[client_ip][1].send_file(client_ip, file_path, video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked)
+            self.clients[client_ip][1].send_file(client_ip, file_path, video_id, creator, video_name, video_desc,
+                                                 created_at, likes_amount, comments_amount, liked)
             print(
                 f"sending video {video_id} to {client_ip} with creator {creator}, name {video_name}, desc {video_desc}, likes {likes_amount}, comments {comments_amount}, liked {liked}"
             )
@@ -385,10 +396,10 @@ class ServerLogic:
             pass
 
     def get_video_details(self,client_ip, video_id): # helper function
-        creator, video_name, video_desc, likes_amount, comments_amount = self.db.get_specific_video(video_id)
+        creator, video_name, video_desc, created_at, likes_amount, comments_amount = self.db.get_specific_video(video_id)
         liked = self.db.is_liked_by_user(video_id, self.clients[client_ip][0])
         liked = int(liked)
-        return video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked
+        return video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked
 
     def handle_follow_user(self, client_ip, data):  # command 16
         username = data
@@ -421,12 +432,27 @@ class ServerLogic:
     # Called by System Manager
 
     def handle_comment_or_video_remove(self, client_ip, data): # command 9
-        id, type = data # type - 0 - comment, 1 - video
-        pass
+        id, type = data # type = 0 - comment, 1 - video
+        if self.db.is_system_manager(self.clients[client_ip][0]):
+            if type == settings.COMMENT_DIGIT_REPR:
+                self.db.delete_comment(id)
+            elif type == settings.VIDEO_DIGIT_REPR:
+                self.db.delete_video(id)
+            else:
+                print("Invalid type value")
+        else:
+            print("not a system manager")
 
     def handle_user_kick(self, client_ip, data):
-        username = data
+        username = data[0]
+        if self.db.is_system_manager(self.clients[client_ip][0]):
+            self.db.remove_user(username)
+            self.send_email(username, self.EMAIL_USER_KICK_MSG)
+
+    def send_email(self, username, email_msg):
         pass
+        #todo implement this
+
 
     @staticmethod
     def hash_video(path_or_content, chunk_size: int = 1024 * 1024) -> str:

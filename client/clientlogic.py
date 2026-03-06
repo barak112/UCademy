@@ -128,14 +128,14 @@ class ClientLogic:
 
 
     def handle_video_details(self, data): # command 5
-        video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked, arrived_with_video = data
+        video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked, arrived_with_video = data
 
         video_id = int(video_id)
         if video_id: # video_id = 0 means that there are no more videos to send
             liked = bool(int(liked))
-            self.videos[video_id] = video.Video(video_id, creator, video_name, video_desc, likes_amount, comments_amount, liked)
+            self.videos[video_id] = video.Video(video_id, creator, video_name, video_desc, created_at,likes_amount, comments_amount, liked)
             print(
-                f"added video: video_id={video_id}, creator={creator}, video_name={video_name}, video_desc={video_desc}, likes_amount={likes_amount}, comments_amount={comments_amount}, liked={liked}")
+                f"added video: video_id={video_id}, creator={creator}, video_name={video_name}, video_desc={video_desc}, created_at = {created_at}, likes_amount={likes_amount}, comments_amount={comments_amount}, liked={liked}")
             if arrived_with_video:
                 self.current_video = video_id
         else:
@@ -194,13 +194,15 @@ class ClientLogic:
 
     def handle_comments(self, data):  # command 9
         # data = [[comment_info], [comment_info]]
-        print("messages arrived at handle message:", data)
-        for comment_info in data:
-            print("raw comment info:",comment_info, type(comment_info))
-            print("comment info after eval:",comment_info, type(comment_info))
-            comment_id, video_id, commenter, comment_content = comment_info
-            self.videos[video_id].add_comment(comment.Comment(comment_id, comment_content, commenter))
-            print(f"comment added: {comment_id} {comment_content} by {commenter}")
+        if data:
+            for comment_info in data:
+                comment_id, video_id, commenter, comment_content, created_at = comment_info
+                video_id = int(video_id)
+                comment_id = int(comment_id)
+                self.videos[video_id].add_comment(comment.Comment(comment_id, comment_content, commenter, created_at))
+                print(f"comment added: comment_id: {comment_id} content: {comment_content} by {commenter} created at {created_at}")
+        else:
+            print("no more comments")
 
     def handle_vid_del_confirmation(self, data):  # command 10
         video_id = int(data[0])
@@ -282,6 +284,7 @@ if __name__ == "__main__":
     #test command 14
     # msg_to_send = clientProtocol.build_req_video(1)
     # client.comm.send_msg(msg_to_send)
+
 
 
     #test command 9

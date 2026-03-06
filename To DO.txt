@@ -3,9 +3,7 @@ get the hashing out of the db
 
 add confirmation to file uploading
 
-add comments date and time using CURRENT_TIMESTAMP in the sql
-add video date to sql
-
 when client connects, checks if he has any handled reports.
 if he has, sends them the report status and deletes from reports table in db
+
 

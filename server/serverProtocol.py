@@ -11,7 +11,7 @@ def build_command(command, params):
         params.pop()
 
     for index, value in enumerate(params):
-        if isinstance(value, list):
+        if isinstance(value, (list, tuple)):
             value = [str(i) for i in value]
             params[index] = "#@".join(value)
 
@@ -43,11 +43,11 @@ def build_user_details(username, followers_amount, followings_amount, videos_amo
     )
 
 
-def build_video_details(video_id, creator_name, video_name, video_desc, likes_amount,
+def build_video_details(video_id, creator_name, video_name, video_desc, created_at, likes_amount,
                         comments_amount, liked):
     return build_command(
         5,
-        [video_id, creator_name, video_name, video_desc, likes_amount,
+        [video_id, creator_name, video_name, video_desc, created_at, likes_amount,
          comments_amount, liked]
     )
 
@@ -92,9 +92,11 @@ def build_follow_user_status(status):
 # ----- Video transfer protocol -----
 
 
-def build_file_details(file_name, file_size, video_id = None, creator_name = None, video_name=None, video_desc=None, likes_amount=None,
+def build_file_details(file_name, file_size, video_id = None, creator_name = None, video_name=None, video_desc=None,
+                       created_at = None, likes_amount=None,
                        comments_amount=None, liked=None):
-    return build_command(0, [file_name, file_size, video_id, creator_name, video_name, video_desc, likes_amount, comments_amount, liked])
+    return build_command(0, [file_name, file_size, video_id, creator_name, video_name, video_desc,
+                             created_at, likes_amount, comments_amount, liked])
 
 
 def build_confirm_file(status):

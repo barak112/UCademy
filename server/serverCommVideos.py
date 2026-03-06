@@ -66,7 +66,8 @@ class ServerCommVideos (serverComm.ServerComm):
                         print("msg recved in serverCommVideo:", decrypted_message)
                         self._recv_file(current_socket, decrypted_message)
 
-    def send_file(self, client_ip, file_path, video_id = None, creator = None, video_name=None, video_description=None, likes_amount = None, comments_amount = None, liked = None):
+    def send_file(self, client_ip, file_path, video_id = None, creator = None, video_name=None, video_description=None,
+                  created_at = None, likes_amount = None, comments_amount = None, liked = None):
         """
             sends a file to the server
         :param file_path: file path to the file to be sent
@@ -82,7 +83,7 @@ class ServerCommVideos (serverComm.ServerComm):
             file_name = os.path.basename(file_path)
             file_size = len(data)
             msg = serverProtocol.build_file_details(file_name, file_size, video_id,creator, video_name, video_description,
-                                                    likes_amount, comments_amount, liked)
+                                                    created_at, likes_amount, comments_amount, liked)
             encrypted_message = self.open_clients[client_socket][1].encrypt(msg)
             try:
                 client_socket.send(str(len(encrypted_message)).zfill(3).encode() + encrypted_message)

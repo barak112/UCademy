@@ -4,12 +4,13 @@ import comment
 
 
 class Video:
-    def __init__(self, video_id, creator, video_name, video_desc, amount_of_likes, amount_of_comments, liked, video_link = None):
+    def __init__(self, video_id, creator, video_name, video_desc, created_at, amount_of_likes, amount_of_comments, liked, video_link = None):
         self.video_id = video_id
         self.creator = creator
         self.comments = {}
         self.video_name = video_name
         self.video_desc = video_desc
+        self.created_at = created_at
         self.amount_of_likes = amount_of_likes
         self.amount_of_comments = amount_of_comments
         self.liked = liked

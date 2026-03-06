@@ -3,6 +3,9 @@ import hmac
 import os
 import sqlite3
 
+import serverProtocol
+
+
 class DataBase:
 
     def __init__(self):
@@ -23,6 +26,7 @@ class DataBase:
         self._create_watched_videos_table()
         self._create_video_hashes_table()
         self._create_reports_table()
+        self._create_system_managers_table()
 
     def close(self):
         """
@@ -57,7 +61,8 @@ class DataBase:
                                                                   creator TEXT,
                                                                   name TEXT,
                                                                   description TEXT,
-                                                                  test_link TEXT
+                                                                  test_link TEXT,
+                                                                  created_at DATETIME DEFAULT CURRENT_TIMESTAMP 
                             )
                          """)
         self.conn.commit()
@@ -71,7 +76,8 @@ class DataBase:
                                                                     comment_id INTEGER PRIMARY KEY AUTOINCREMENT,
                                                                     video_id INTEGER,
                                                                     commenter TEXT,
-                                                                    comment TEXT
+                                                                    comment TEXT,
+                                                                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP 
                             )
                          """)
         self.conn.commit()
@@ -170,7 +176,19 @@ class DataBase:
                          """)
         self.conn.commit()
 
+
+    def _create_system_managers_table(self):
+        self.cur.execute("""CREATE TABLE IF NOT EXISTS system_managers (
+                        username TEXT               
+        )
+        """)
+
+
     # ===== users =====
+
+    def remove_user(self, username):
+        self.cur.execute("DELETE FROM users WHERE username = ?", (username,))
+        self.conn.commit()
 
     def user_exists(self, username):
         """
@@ -272,7 +290,7 @@ class DataBase:
         """
         Retrieves a video by ID.
         :param video_id: ID of the video
-        :return: video details: creator, name, desc, likes_amount, comments_amount
+        :return: video details: creator, name, desc, created_at, likes_amount, comments_amount
         """
         ret_val = None
         if self.video_exists(video_id):
@@ -280,6 +298,7 @@ class DataBase:
                              SELECT videos.creator,
                                     videos.name,
                                     videos.description,
+                                    strftime('%d/%m/%Y %H:%M',videos.created_at),
                                     COUNT(DISTINCT likes.username) as likes_count,
                                     COUNT(DISTINCT comments.commenter) as comments_count
                              FROM videos
@@ -366,14 +385,10 @@ class DataBase:
         :param username: username of the user requesting the comments
         :return: List of comment rows from the comments table, when the comments of username are first
         """
-        self.cur.execute("""SELECT * FROM comments WHERE video_id = ?
+        self.cur.execute("""SELECT comment_id, video_id, commenter, comment, strftime('%d/%m/%Y %H:%M', created_at) FROM comments WHERE video_id = ?
          ORDER BY CASE WHEN commenter = ? THEN 0 ELSE 1 END, comment_id DESC;""", (video_id, username))
         comments = self.cur.fetchall()
-        print("raw comments:", comments)
-        comment_ids = [i[0] for i in comments]
-
-        comments_list = list(comments)
-        return comment_ids, comments_list
+        return comments
 
     def get_comments_amount(self, video_id):
         self.cur.execute("SELECT COUNT(*) FROM comments WHERE video_id = ?", (video_id,))
@@ -502,7 +517,7 @@ class DataBase:
         topics = self.cur.fetchall()
         return [t[0] for t in topics]
 
-    def set_topics(self, username, new_topics):
+    def set_user_topics(self, username, new_topics):
         old_topics = self.get_user_topics(username)
         to_add_topics = set(new_topics) - set(old_topics)
         to_remove_topics = set(old_topics) - set(new_topics)
@@ -625,7 +640,7 @@ class DataBase:
         return self.cur.fetchall()
 
     def get_report_users_names_and_times(self, target_id, target_type):
-        self.cur.execute("SELECT reporter_name, strftime('%H:%M', created_at) FROM reports WHERE (target_id, target_type) = (?,?)", (target_id, target_type))
+        self.cur.execute("SELECT reporter_name, strftime('%d/%m/%Y %H:%M', created_at) FROM reports WHERE (target_id, target_type) = (?,?)", (target_id, target_type))
         return self.cur.fetchall()
 
     def set_report_status(self, target_id, target_type, status):
@@ -661,35 +676,92 @@ class DataBase:
             for row in rows:
                 print(row)
 
+    # ===== system_managers =====
+    def add_system_manager(self, username):
+        self.cur.execute("INSERT INTO system_managers (username) VALUES (?)", (username,))
+        self.conn.commit()
 
+    def is_system_manager(self, username):
+        self.cur.execute("SELECT 1 FROM system_managers WHERE username=?", (username,))
+        return self.cur.fetchone() is not None
+
+    def get_system_managers(self):
+        self.cur.execute("SELECT username FROM system_managers")
+        return [row[0] for row in self.cur.fetchall()]
 
 if __name__ == "__main__":
     db = DataBase()
 
-    # db.add_video_like(1, "Barak")
+    db.print_tables()
+    print("\n\n")
 
-    # db.add_watched_video("Alon", 3)
-    # db.add_watched_video("Barak", 3)
-    # db.add_watched_video("Ella", 3)
-
+    # --- testing ---
 
 
+
+    # # --- users ---
+    # db.cur.execute("DROP TABLE IF EXISTS users")
+    # db._create_videos_table()
+    # db.add_user("Barak", "barak@gmail.com", "pbkdf2_sha256$200000$4dfd67d4e911a5026f2a0bd71dcd0466$7cdf9d449927c49c942d065c0ab89aff4b928e5f9514e4fbcfeabf91cc4e87e9")
+    # db.add_user("Alon", "alon@gmail.com",   "pbkdf2_sha256$200000$4dfd67d4e911a5026f2a0bd71dcd0466$7cdf9d449927c49c942d065c0ab89aff4b928e5f9514e4fbcfeabf91cc4e87e9")
+    # db.add_user("Ella", "ella@gmail.com", "pbkdf2_sha256$200000$4dfd67d4e911a5026f2a0bd71dcd0466$7cdf9d449927c49c942d065c0ab89aff4b928e5f9514e4fbcfeabf91cc4e87e9")
+
+    # # --- videos ---
     # db.cur.execute("DROP TABLE IF EXISTS videos")
     # db._create_videos_table()
     # db.add_video("Alon", "Alon's video 3", "Video about Alon 3", "test link5")
     # db.add_video("Barak", "Barak's video", "Video about Barak", "test link2")
     # db.add_video("Ella", "Ella's video", "Video about Ella", "test link3")
+
+    # # --- comments ---
+    # db.cur.execute("DROP TABLE IF EXISTS comments")
+    # db._create_comments_table()
+    # db.add_comment(1, "Barak", "Barak comments on 1")
+    # db.add_comment(1, "Alon", "Alon comments on 1")
+    # db.add_comment(2, "Alon", "Alon comments on 2")
+
+    # print(db.get_comments(1))
+
+    # # --- likes ---
+    # db.cur.execute("DROP TABLE IF EXISTS likes")
+    # db._create_likes_table()
+    # db.add_video_like(1, "Barak")
+    # db.add_video_like(1, "Alon")
+    # db.add_video_like(2, "Alon")
+
+    # # --- following ---
+    # db.cur.execute("DROP TABLE IF EXISTS following")
+    # db._create_following_table()
+    # db.add_following("Barak", "Alon")
+    # db.add_following("Alon", "Barak")
+
+    # # --- video_topics ---
+    # db.cur.execute("DROP TABLE IF EXISTS video_topics")
+    # db._create_video_topics_table()
+    # db.add_video_topics(1, [15,23,3])
+    # db.add_video_topics(2, [2,5,4])
+    # db.add_video_topics(3,[2,3])
+
+    # # --- user_topics ---
+    # db.cur.execute("DROP TABLE IF EXISTS user_topics")
+    # db._create_user_topics_table()
+    # db.set_user_topics("Barak", [1,2,3])
+    # db.set_user_topics("Alon", [4,5,6])
+
+    # # --- watched_videos ---
+    # db.cur.execute("DROP TABLE IF EXISTS watched_videos")
+    # db._create_watched_videos_table()
     # db.add_watched_video("Ella", 5)
 
-    # db.set_report_status(1,0,1)
+    # # --- video_hashes ---
+    # db.cur.execute("DROP TABLE IF EXISTS video_hashes")
+    # db._create_video_hashes_table()
+    # if not db.hash_exists("abc123"):
+    #     db.add_video_hash(1, "abc123")
+    #
+    # print("Hash exists:", db.hash_exists("abc123"))
 
-    db.print_tables()
-    print("\n\n")
-
-    print(db.get_specific_video(1))
-
-    # print(db.get_videos_amount("Alon"))
-
+    # # --- reports ---
     # db.cur.execute("DROP TABLE IF EXISTS reports")
     # db._create_reports_table()
     # db.add_report("Barak",1,0)
@@ -698,60 +770,15 @@ if __name__ == "__main__":
     # db.add_report("Barak",1,1)
     # db.add_report("Alon",2,1)
     # db.add_report("Ella",1,1)
-    print("get reports:")
-    print(db.get_reports())
 
+    # print("get reports:")
+    # print(db.get_reports())
 
-    # print(db.get_report_users_names_and_times(1,1))
+    # # --- system_managers ---
+    # db.cur.execute("DROP TABLE IF EXISTS system_managers")
+    # db._create_system_managers_table()
+    # db.add_system_manager("Barak")
 
-    # db.add_following("Barak", "Alon")
-
-    # print(db.get_followers_amount("Alon"))
-
-
-    # print(db.get_videos_by_creator("Alon"))
-
-    # comments = db.get_comments(1, "Barak")
-    # print(comments[0])
-    # print(comments[1])
-
-    # db.add_comment(1, "Barak", "Barak comments on 1")
-    # db.add_comment(1, "Alon", "Alon comments on 1")
-    # db.add_comment(2, "Alon", "Alon comments on 2")
-
-
-    # print(db.get_specific_video(1))
-
-    # print(db.videos_user_has_not_watched("Barak", [1,2,3]))
-    # ids = [1,2,3]
-    # print(db.order_ids_by_views(ids))
-
-    # print(db.get_video_test_link(1))
-
-    # print(db.get_specific_video(1))
-    # print(db.get_comments(1))
-
-    # # --- users ---
-    # if db.add_user("admin", "admin@example.com", "hashed_password"):
-    #     print("User added")
-    # else:
-    #     print("User already exists")
-    #
-    # print("All users:", db.get_all_usernames())
-    #
-    # # --- videos ---
-    # db.add_video("admin", "First Video", "This is a test video")
-    # video = db.get_specific_video(1)
-    # print("Video 1:", video)
-    #
-    # # --- likes ---
-    # db.add_video_like(1, "admin")
-    # print("Likes on video 1:", db.get_video_likes_amount(1))
-    #
-    # # --- hashes ---
-    # if not db.hash_exists("abc123"):
-    #     db.add_video_hash(1, "abc123")
-    #
-    # print("Hash exists:", db.hash_exists("abc123"))
+    print(db.get_system_managers())
 
     db.close()

@@ -11,7 +11,7 @@ def build_command(command, params):
         params.pop()
 
     for index, value in enumerate(params):
-        if isinstance(value, list):
+        if isinstance(value, (list, tuple)):
             value = [str(i) for i in value]
             params[index] = "#@".join(value)
 
@@ -57,8 +57,8 @@ def build_report(id, type):
     return build_command(8, [id, type])
 
 
-def build_req_comments(video_id, last_comment_id = 0):
-    return build_command(9, [video_id, last_comment_id])
+def build_req_comments(video_id, send_next:bool = False):
+    return build_command(9, [video_id, int(send_next)])
 
 
 def build_del_video(video_id):
@@ -69,12 +69,12 @@ def build_del_comment(comment_id):
     return build_command(11, [comment_id])
 
 
-def build_req_creator_videos(username, last_id = 0):
-    return build_command(12, [username, last_id])
+def build_req_creator_videos(username, send_next:bool = False):
+    return build_command(12, [username, int(send_next)])
 
 
-def build_req_user_follow_list(username, follow_type, last_follow_username = ""): # follow_type: 0 - followings, 1 - followers
-    return build_command(13, [username, follow_type, last_follow_username])
+def build_req_user_follow_list(username, follow_type, send_next: bool = False): # follow_type: 0 - followings, 1 - followers
+    return build_command(13, [username, follow_type, int(send_next)])
 
 
 def build_req_video(video_id):
