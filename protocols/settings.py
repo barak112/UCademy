@@ -46,8 +46,18 @@ PASSWORD_TOO_SHORT = 1
 PASSWORD_TOO_LONG = 2
 PASSWORD_NO_LETTERS = 3
 
+PASSWORD_ERRORS = {
+    PASSWORD_TOO_SHORT: "Password is too short",
+    PASSWORD_TOO_LONG: "Password is too long",
+    PASSWORD_NO_LETTERS: "Password must contain at least one letter"
+}
+
 #email:
 EMAIL_NOT_VALID = 1
+
+EMAIL_ERRORS = {
+    EMAIL_NOT_VALID: "Email is not valid"
+}
 
 #currently 10 topics
 TOPICS = ["Computer Science", "Math", "Physics", "Cooking", "Baking", "Music", "Wild", "Views", "Art", "History"]

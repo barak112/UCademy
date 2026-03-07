@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import queue
 import re
+import secrets
 import smtplib
 import string
 from email.message import EmailMessage
@@ -52,8 +53,20 @@ class ServerLogic:
     """
 
     EMAIL_COMMENT_REMOVE_SUBJECT = "Ucademy Comment Removal Notification"
+
+    EMAIL_VERIFICATION_CODE_MSG = """
+    Your verification code for Ucademy email verification is: {}
+    Do not share this code with anyone.
     
-        
+    A user "{}" has recently signed up to Ucademy's platform with this email address.
+    We would like to ensure that the email used at the registration was used by its rightfully owner.
+    
+    If you did not recently signed up to the Ucademy platform, please ignore this email.
+    For any questions, please contact us at ucademy.team@gmail.com.
+    """
+
+    EMAIL_VERIFICATION_CODE_SUBJECT = "Ucademy Email Verification Code"
+
     def __init__(self):
         """Initialize the server object.
 
@@ -66,22 +79,23 @@ class ServerLogic:
         self.comm = comm
         self.commands = {
             '00': self.handle_registration,
-            '01': self.handle_sign_in,
-            '02': self.handle_set_user_topics,
-            '03': self.handle_filter_user_topics,
-            '04': self.handle_creators_search,
-            '05': self.handle_videos_search,
-            '06': self.handle_video_comment,
-            '07': self.handle_test_req,
-            '08': self.handle_report,
-            '09': self.handle_comments_req,
-            '10': self.handle_video_del,
-            '11': self.handle_del_comment,
-            '12': self.handle_creator_videos_req,
-            '13': self.handle_user_follow_list_req,
-            '14': self.handle_video_req,
-            '15': self.handle_video_upload,
-            '16': self.handle_follow_user,
+            '01': self.handle_email_verification,
+            '02': self.handle_sign_in,
+            '03': self.handle_set_user_topics,
+            '04': self.handle_filter_user_topics,
+            '05': self.handle_creators_search,
+            '06': self.handle_videos_search,
+            '07': self.handle_video_comment,
+            '08': self.handle_test_req,
+            '09': self.handle_report,
+            '10': self.handle_comments_req,
+            '11': self.handle_video_del,
+            '12': self.handle_del_comment,
+            '13': self.handle_creator_videos_req,
+            '14': self.handle_user_follow_list_req,
+            '15': self.handle_video_req,
+            '16': self.handle_video_upload,
+            '17': self.handle_follow_user,
 
             '98': self.handle_comment_or_video_remove,
             '99': self.handle_user_kick,
@@ -114,28 +128,23 @@ class ServerLogic:
                 if opcode in self.commands.keys():
                     self.commands[opcode](ip, data)
 
-    def handle_registration(self, client_ip, data): # command 0
+    def handle_registration(self, client_ip, data):  # command 0
         username, password, email = data
 
         status = self.validate_credentials_registration(username, password, email)
 
-        msg = serverProtocol.build_sign_up_status(status)
         if not any(status):
-            self.clients_awaiting_email_verification[client_ip] = [username, password, email]
+            verification_code = self.create_email_verification_code()
+            self.clients_awaiting_email_verification[client_ip] = [username, password, email, verification_code]
+            self.send_email_verification_code(email, verification_code, username)
 
-            self.db.add_user(username, email, self.hash_password(password))
-            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), []]
-            self.pfps_sent[client_ip] = []
-            msg = serverProtocol.build_sign_up_status(status, self.current_video_port)
-
-            self.current_video_port+=1
-
+        msg = serverProtocol.build_sign_up_status(status)
         self.comm.send_msg(client_ip, msg)
 
-    def handle_email_verification(self, client_ip, data): # command 1
+    def handle_email_verification(self, client_ip, data):  # command 1
         email_verification_code = data[0]
 
-        msg = serverProtocol.build_sign_up_status(0)
+        msg = serverProtocol.build_email_verification_confirmation(0)
 
         if email_verification_code == self.clients_awaiting_email_verification[client_ip][3]:
             username, password, email = self.clients_awaiting_email_verification[client_ip][:3]
@@ -143,22 +152,25 @@ class ServerLogic:
             self.db.add_user(username, email, self.hash_password(password))
             self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ),[]]
             self.pfps_sent[client_ip] = []
-            msg = serverProtocol.build_sign_up_status(1, self.current_video_port)
+            msg = serverProtocol.build_email_verification_confirmation(1, username, email, self.current_video_port)
 
             self.current_video_port+=1
 
         self.comm.send_msg(client_ip, msg)
 
-    def create_email_verification_code(self):
+    def create_email_verification_code(self , length = 6):
+        return ''.join(secrets.choice('0123456789') for _ in range(length))
 
-    def send_email_verification_code(self):
-        pass
+    def send_email_verification_code(self, email_address, verification_code, username):
+        self.send_email(email_address, self.EMAIL_VERIFICATION_CODE_MSG.format(verification_code, username),
+                        self.EMAIL_VERIFICATION_CODE_SUBJECT)
+
 
     def validate_credentials_registration(self, username, password, email):
         status = [0,0,0] # username, password, email statuses - everything is ok
-        if username<settings.MIN_NAME_LENGTH:
+        if len(username)<settings.MIN_NAME_LENGTH:
             status[0] = 1 # username too short
-        elif username>settings.MAX_NAME_LENGTH:
+        elif len(username)>settings.MAX_NAME_LENGTH:
             status[0] = 2 # username too long
         elif self.db.user_exists(username):
             status[0] = 3 # username already exists
@@ -167,9 +179,9 @@ class ServerLogic:
         elif not username[0] in string.ascii_letters:
             status[0] = 5 # username must start with a letter
 
-        if password<settings.MIN_PASSWORD_LENGTH:
+        if len(password)<settings.MIN_PASSWORD_LENGTH:
             status[1] = 1 # password too short (not secure)
-        elif password>settings.MAX_PASSWORD_LENGTH:
+        elif len(password)>settings.MAX_PASSWORD_LENGTH:
             status[1] = 2 # password too long (extreme long passwords hashing can slow down the server)
         elif not any(letter in username for letter in string.ascii_letters):
             status[1] = 3 # password must include letters
@@ -180,7 +192,7 @@ class ServerLogic:
 
         return status
 
-    def handle_sign_in(self, client_ip, data): #command 1
+    def handle_sign_in(self, client_ip, data):  # command 2
         username_or_email, password = data
         msg = serverProtocol.build_sign_in_status(0)
         status = 0
@@ -204,7 +216,7 @@ class ServerLogic:
         self.comm.send_msg(client_ip, msg)
         print(f"sign in status for {username} is {status}")
 
-    def handle_set_user_topics(self, client_ip, data): # command 2
+    def handle_set_user_topics(self, client_ip, data):  # command 3
         topics = [int(t) for t in data]
         self.db.set_user_topics(self.clients[client_ip][0], topics)
         msg = serverProtocol.build_set_topics_confirmation(topics)
@@ -212,7 +224,7 @@ class ServerLogic:
 
         self.db.print_tables()
 
-    def handle_filter_user_topics(self, client_ip, data): # command 3
+    def handle_filter_user_topics(self, client_ip, data):  # command 4
         topic_filter = [int(t) for t in data]
         self.clients[client_ip][2] = topic_filter
         msg = serverProtocol.build_set_filter_confirmation(1, topic_filter)
@@ -220,7 +232,7 @@ class ServerLogic:
 
         print("set filter:", topic_filter)
 
-    def handle_creators_search(self, client_ip, data): # command 4
+    def handle_creators_search(self, client_ip, data):  # command 5
         username, is_next_send = data[0]
 
         is_next_send = int(is_next_send)
@@ -259,8 +271,7 @@ class ServerLogic:
                         self.pfps_sent[client_ip].append(username)
                         self.clients[client_ip][1].send_file(user_pfp_image_path)
 
-
-    def handle_videos_search(self, client_ip, data):  # command 5
+    def handle_videos_search(self, client_ip, data):  # command 6
         video_name_or_desc, topics, is_next_send = data
 
         is_next_send = int(is_next_send)
@@ -300,10 +311,7 @@ class ServerLogic:
                 self.clients[client_ip][1].send_file(client_ip, f"media\\videos\\{video_id}.png", video_id, creator,
                                                    video_name, video_desc, created_at, likes_amount, comments_amount, liked)
 
-
-
-
-    def handle_video_comment(self, client_ip, data):  # command 6
+    def handle_video_comment(self, client_ip, data):  # command 7
         video_id, comment = data
         commenter_name = self.clients[client_ip][0]
 
@@ -312,7 +320,7 @@ class ServerLogic:
             msg = serverProtocol.build_comment_status(comment_id,video_id, comment)
             self.comm.send_msg(client_ip, msg)
 
-    def handle_test_req(self, client_ip, data):  # command 7
+    def handle_test_req(self, client_ip, data):  # command 8
         video_id = data[0]
         video_link = self.db.get_video_test_link(video_id)
 
@@ -322,7 +330,7 @@ class ServerLogic:
         msg = serverProtocol.build_send_test(video_id, video_link)
         self.comm.send_msg(client_ip, msg)
 
-    def handle_report(self, client_ip, data):  # command 8
+    def handle_report(self, client_ip, data):  # command 9
         id, type = data # 0 - comment, 1 - video
 
         type = int(type)
@@ -353,8 +361,7 @@ class ServerLogic:
 
         self.comm.send_msg(client_ip, msg)
 
-
-    def handle_comments_req(self, client_ip, data):  # command 9
+    def handle_comments_req(self, client_ip, data):  # command 10
         """
             :param data: video_id,, last_comment_id
             last_comment_id -> used to determine which comments should be next to be sent to the client.
@@ -394,9 +401,7 @@ class ServerLogic:
                     self.clients[client_ip][1].send_file(client_ip,pfp_path)
                     print("sending pfp of user:",commenter_name)
 
-
-
-    def handle_video_del(self, client_ip, data):  # command 10
+    def handle_video_del(self, client_ip, data):  # command 11
         video_id = data[0]
         print("trying to deleting video:",video_id)
 
@@ -407,7 +412,7 @@ class ServerLogic:
 
         self.comm.send_msg(client_ip, msg)
 
-    def handle_del_comment(self, client_ip, data):  # command 11
+    def handle_del_comment(self, client_ip, data):  # command 12
         comment_id = data[0]
         msg = serverProtocol.build_del_comment_confirmation(0)
         comment = self.db.get_specific_comment(comment_id)
@@ -418,8 +423,7 @@ class ServerLogic:
             print("deleting comment")
         self.comm.send_msg(client_ip, msg)
 
-
-    def handle_creator_videos_req(self, client_ip, data):  # command 12
+    def handle_creator_videos_req(self, client_ip, data):  # command 13
         username, last_id = data
 
         last_id = int(last_id)
@@ -439,8 +443,8 @@ class ServerLogic:
         else: # indicates there are no more videos to send
             msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
-            
-    def handle_user_follow_list_req(self, client_ip, data):  # command 13
+
+    def handle_user_follow_list_req(self, client_ip, data):  # command 14
         username, follow_type, last_follow_name = data
 
         if last_follow_name and last_follow_name in self.users_to_send[client_ip]:
@@ -464,7 +468,7 @@ class ServerLogic:
             msg_to_send = serverProtocol.build_user_details("", 0, 0, 0)
             self.comm.send_msg(client_ip, msg_to_send)
 
-    def handle_video_req(self, client_ip, data):  # command 14
+    def handle_video_req(self, client_ip, data):  # command 15
         video_id = data[0]
         if video_id:
             video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
@@ -484,7 +488,7 @@ class ServerLogic:
         liked = int(liked)
         return video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked
 
-    def handle_follow_user(self, client_ip, data):  # command 16
+    def handle_follow_user(self, client_ip, data):  # command 17
         username = data
         pass
 
@@ -514,7 +518,7 @@ class ServerLogic:
 
     # Called by System Manager
 
-    def handle_comment_or_video_remove(self, client_ip, data): # command 9
+    def handle_comment_or_video_remove(self, client_ip, data):  # command 98
         id, type = data # type = 0 - comment, 1 - video
         if self.db.is_system_manager(self.clients[client_ip][0]):
             if type == settings.COMMENT_DIGIT_REPR:
@@ -535,16 +539,17 @@ class ServerLogic:
         else:
             print("not a system manager")
 
-    def handle_user_kick(self, client_ip, data):
+    def handle_user_kick(self, client_ip, data):  # command 99
         username = data[0]
         if self.db.is_system_manager(self.clients[client_ip][0]):
             self.db.remove_user(username)
-            self.send_email(username, self.EMAIL_USER_KICK_MSG.format(username), self.EMAIL_USER_KICK_SUBJECT)
+            email_address = self.db.get_user_email(username)
+            self.send_email(email_address, self.EMAIL_USER_KICK_MSG.format(username), self.EMAIL_USER_KICK_SUBJECT)
 
-    def send_email(self, username, email_msg, email_subject):
+    def send_email(self, email_address, email_msg, email_subject):
         sender = "ucademy.team@gmail.com"
         password = "ehfl pina bfmw ojte"  # app password
-        receiver = self.db.get_user_email(username)
+        receiver = email_address
         msg = EmailMessage()
 
         msg["Subject"] = email_subject

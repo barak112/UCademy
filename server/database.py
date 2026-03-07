@@ -789,6 +789,6 @@ if __name__ == "__main__":
     # db._create_system_managers_table()
     # db.add_system_manager("Barak")
 
-    print(db.get_system_managers())
+    # print(db.get_system_managers())
 
     db.close()

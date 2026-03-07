@@ -19,26 +19,29 @@ def build_command(command, params):
     return str(command).zfill(2) + "@#".join(params)
 
 
-def build_sign_up_status(status, port = None):
-    return build_command(0, [status, port])
+def build_sign_up_status(status):
+    return build_command(0, [status])
 
+def build_email_verification_confirmation(status, username = None, email = None, port=None):
+    return build_command(1, [status, username, email, port])
 
 def build_sign_in_status(status, port = None, username = None, followers_amount = None,
                          followings_amount = None, videos_amount = None, email = None, topics = None, followings_names = None):
-    return build_command(1, [status, port, username, followers_amount, followings_amount, videos_amount, email, topics, followings_names])
+    return build_command(2, [status, port, username, followers_amount, followings_amount, videos_amount, email, topics,
+                             followings_names])
 
 
 def build_set_topics_confirmation(topics):
-    return build_command(2, [topics])
+    return build_command(3, [topics])
 
 
 def build_set_filter_confirmation(status, filter):
-    return build_command(3, [status, filter])
+    return build_command(4, [status, filter])
 
 
 def build_user_details(username, followers_amount, followings_amount, videos_amount):
     return build_command(
-        4,
+        5,
         [username, followers_amount, followings_amount, videos_amount]
     )
 
@@ -46,47 +49,48 @@ def build_user_details(username, followers_amount, followings_amount, videos_amo
 def build_video_details(video_id, creator_name, video_name, video_desc, created_at, likes_amount,
                         comments_amount, liked):
     return build_command(
-        5,
+        6,
         [video_id, creator_name, video_name, video_desc, created_at, likes_amount,
          comments_amount, liked]
     )
 
 
 def build_comment_status(comment_id, video_id, comment):
-    return build_command(6, [comment_id, video_id, comment])
+    return build_command(7, [comment_id, video_id, comment])
 
 
 def build_send_test(video_id, link):
     if not link:
         link = ""
-    return build_command(7, [video_id, link])
+    return build_command(8, [video_id, link])
 
 
 def build_report_status(id, type = "", content = "", content_publisher = "", status = "", date = None, time = None):
-    return build_command(8, [id, type, content, content_publisher, status, date, time])
+    return build_command(9, [id, type, content, content_publisher, status, date, time])
 
 
 def build_send_comments(comments):
     # comments = [[comment_id, video_id, commenter_name, comment], ...]
-    return build_command(9, comments)
+    return build_command(10, comments)
 
 
 def build_del_video_confirmation(video_id):
-    return build_command(10, [video_id])
+    return build_command(11, [video_id])
 
 
 def build_del_comment_confirmation(video_id = 0, comment_id = 0):
-    return build_command(11, [video_id, comment_id])
+    return build_command(12, [video_id, comment_id])
 
 
 #12-14 are client requests that are handles using other commands
 
 
 def build_video_upload_confirmation(status):
-    return build_command(15, [status])
+    return build_command(16, [status])
+
 
 def build_follow_user_status(status):
-    return build_command(16, [status])
+    return build_command(17, [status])
 
 
 # ----- Video transfer protocol -----

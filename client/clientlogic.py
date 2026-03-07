@@ -1,5 +1,6 @@
 import time
 
+
 import clientCommVideos
 import clientProtocol
 import clientComm
@@ -35,19 +36,20 @@ class ClientLogic:
         
         self.commands = {
             "00": self.handle_reg_confirmation,
-            "01": self.handle_sign_in_confirmation,
-            "02": self.handle_topics_confirmation,
-            "03": self.handle_filter_confirmation,
-            "04": self.handle_user_details,
-            "05": self.handle_video_details,
-            "06": self.handle_video_comment_confirmation,
-            "07": self.handle_test,
-            "08": self.handle_report_status,
-            "09": self.handle_comments,
-            "10": self.handle_vid_del_confirmation,
-            "11": self.handle_comment_del_confirmation,
-            "15": self.handle_video_upload_confirmation,
-            "16": self.handle_follow_status
+            "01": self.handle_email_verification_confirmation,
+            "02": self.handle_sign_in_confirmation,
+            "03": self.handle_topics_confirmation,
+            "04": self.handle_filter_confirmation,
+            "05": self.handle_user_details,
+            "06": self.handle_video_details,
+            "07": self.handle_video_comment_confirmation,
+            "08": self.handle_test,
+            "09": self.handle_report_status,
+            "10": self.handle_comments,
+            "11": self.handle_vid_del_confirmation,
+            "12": self.handle_comment_del_confirmation,
+            "16": self.handle_video_upload_confirmation,
+            "17": self.handle_follow_status
         }
         self.video_commands = {
             "00": self.handle_video_details,
@@ -77,28 +79,37 @@ class ClientLogic:
                 if opcode in self.commands:
                     self.commands[opcode](data)
 
-    def handle_reg_confirmation(self, data): # command 0
+    def handle_reg_confirmation(self, data):  # command 1
         status = data[0]
         status = [int(i) for i in status]
         if not any(status):
-            username, email = data
-            video_port = int(data[1])
-            self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
-            self.video_comm.connect()
-            self.user = user.User(username, 0,0,0,email)
+            print("an email verification code has been sent to the user's email account")
         else:
             username_status, password_status, email_status = status
             print("error signing up:")
             if username_status:
                 print("username error: ",settings.USERNAME_ERRORS[username_status])
             if password_status:
-                print("password error: ", settings.USERNAME_ERRORS[password_status])
+                print("password error: ", settings.PASSWORD_ERRORS[password_status])
             if email_status:
-                print("email error: ", settings.USERNAME_ERRORS[password_status])
+                print("email error: ", settings.EMAIL_ERRORS[email_status])
 
-        print("sign up status:",status)
+    def handle_email_verification_confirmation(self, data):  # command 2
+        status = data[0]
+        status = int(status)
+        if status:
+            username, email, video_port= data[1:]
+            video_port = int(video_port)
+            self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
+            self.video_comm.connect()
+            self.user = user.User(username, 0, 0, 0, email)
+        else:
+            print("email verification failed, not a valid code")
+            verification_code = input("Enter verification code: ")
+            msg_to_send = clientProtocol.build_email_verification_code(verification_code)
+            client.comm.send_msg(msg_to_send)
 
-    def handle_sign_in_confirmation(self, data):  # command 1
+    def handle_sign_in_confirmation(self, data):  # command 2
         status = int(data[0])
 
         print("sign in status:",status)
@@ -114,17 +125,16 @@ class ClientLogic:
 
             self.user = user.User(username, followers_amount, followings_amount, videos_amount,email, topics, followings_names)
 
-
-    def handle_topics_confirmation(self, data):  # command 2
+    def handle_topics_confirmation(self, data):  # command 3
         topics = data[0]
         self.user.topics = topics
 
-    def handle_filter_confirmation(self, data):  # command 3
+    def handle_filter_confirmation(self, data):  # command 4
         filter = data[0]
         self.filter = filter
         print("setting filter:", filter)
 
-    def handle_user_details(self, data):  # command 4
+    def handle_user_details(self, data):  # command 5
         username, followers_amount, followings_amount, videos_amount = data
 
         if username:
@@ -136,8 +146,7 @@ class ClientLogic:
         else:
             print("NO MORE USERS TO SEND")
 
-
-    def handle_video_details(self, data): # command 5
+    def handle_video_details(self, data):  # command 6
         video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked, arrived_with_video = data
 
         video_id = int(video_id)
@@ -151,11 +160,11 @@ class ClientLogic:
         else:
             print("NO MORE VIDEOS TO SEND")
 
-    def handle_video_comment_confirmation(self, data): # command 6
+    def handle_video_comment_confirmation(self, data):  # command 7
         comment_id, video_id, added_comment = data
         self.videos[video_id].comments.append(comment.Comment(comment_id, added_comment, self.user.username))
 
-    def handle_test(self, data):  # command 7
+    def handle_test(self, data):  # command 8
         video_id, test_link = data
 
         if test_link:
@@ -164,7 +173,7 @@ class ClientLogic:
         if video_id in self.videos:
             self.videos[video_id].test_link = test_link # if no test link, test_link = ""
 
-    def handle_report_status(self, data):  # command 8
+    def handle_report_status(self, data):  # command 9
         id, type, content, content_publisher, status = data[:5]
         type = int(type)
         id = int(id)
@@ -202,7 +211,7 @@ class ClientLogic:
             else:
                 print(f"{type_str} reported does not exist!")
 
-    def handle_comments(self, data):  # command 9
+    def handle_comments(self, data):  # command 10
         # data = [[comment_info], [comment_info]]
         if data:
             for comment_info in data:
@@ -214,7 +223,7 @@ class ClientLogic:
         else:
             print("no more comments")
 
-    def handle_vid_del_confirmation(self, data):  # command 10
+    def handle_vid_del_confirmation(self, data):  # command 11
         video_id = int(data[0])
         if video_id:
             print(f"video {video_id} is deleted")
@@ -222,7 +231,7 @@ class ClientLogic:
         else:
             print("video deletion failed")
 
-    def handle_comment_del_confirmation(self, data):  # command 11
+    def handle_comment_del_confirmation(self, data):  # command 12
         video_id, comment_id = data
         video_id = int(video_id)
         comment_id = int(comment_id)
@@ -234,14 +243,14 @@ class ClientLogic:
         else:
             print("comment deletion failed")
 
-
-    def handle_video_upload_confirmation(self, data):  # command 12
+    def handle_video_upload_confirmation(self, data):  # command 13
         status = data[0]
         print("video upload status:",status)
 
-    def handle_follow_status(self, data):  # command 13
+    def handle_follow_status(self, data):  # command 14
         status = data[0]
         pass
+    #todo implement this, add to self.user i think
 
     # called by the video_comm
     def handle_confirm_file_upload(self, data):  # command 01
@@ -255,20 +264,26 @@ if __name__ == "__main__":
     time.sleep(0.1)
 
     # test command 0
-    msg_to_send = clientProtocol.build_sign_up("Barak", "password123", "Barak@")
-    client.comm.send_msg(msg_to_send)
-
-    # test command 1
-    msg_to_send = clientProtocol.build_sign_in("Barak", "password123")
+    # msg_to_send = clientProtocol.build_sign_up("Barak3", "password123", "bbmalt9@gmail.com")
+    # client.comm.send_msg(msg_to_send)
+    
+    #test command 1
+    # verification_code = input("Enter verification code: ")
+    # msg_to_send = clientProtocol.build_email_verification_code(verification_code)
+    # client.comm.send_msg(msg_to_send)
+    
+    
+    # test command 2
+    msg_to_send = clientProtocol.build_sign_in("Barak2", "password123")
     client.comm.send_msg(msg_to_send)
 
     time.sleep(1)
 
-    # test command 2
+    # test command 3
     # msg_to_send = clientProtocol.build_set_topics([2, 3, 4])
     # client.comm.send_msg(msg_to_send)
 
-    # test command 3
+    # test command 4
     # msg_to_send = clientProtocol.build_set_filter([5, 6, 7])
     # client.comm.send_msg(msg_to_send)
 
@@ -313,8 +328,8 @@ if __name__ == "__main__":
     # client.comm.send_msg(msg_to_send)
 
     #test command 14
-    # msg_to_send = clientProtocol.build_req_video(1)
-    # client.comm.send_msg(msg_to_send)
+    msg_to_send = clientProtocol.build_req_video(1)
+    client.comm.send_msg(msg_to_send)
 
     #video comm
     #test command 0
