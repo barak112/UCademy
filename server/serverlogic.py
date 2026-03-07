@@ -148,13 +148,15 @@ class ServerLogic:
 
         if email_verification_code == self.clients_awaiting_email_verification[client_ip][3]:
             username, password, email = self.clients_awaiting_email_verification[client_ip][:3]
-
+            #todo check why it doesnt add Barak3 user
+            #todo add limited time to verification codes
             self.db.add_user(username, email, self.hash_password(password))
             self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ),[]]
             self.pfps_sent[client_ip] = []
             msg = serverProtocol.build_email_verification_confirmation(1, username, email, self.current_video_port)
 
             self.current_video_port+=1
+            self.clients_awaiting_email_verification.pop(client_ip)
 
         self.comm.send_msg(client_ip, msg)
 

@@ -264,13 +264,13 @@ if __name__ == "__main__":
     time.sleep(0.1)
 
     # test command 0
-    # msg_to_send = clientProtocol.build_sign_up("Barak3", "password123", "bbmalt9@gmail.com")
-    # client.comm.send_msg(msg_to_send)
+    msg_to_send = clientProtocol.build_sign_up("Barak3", "password123", "bbmalt9@gmail.com")
+    client.comm.send_msg(msg_to_send)
     
     #test command 1
-    # verification_code = input("Enter verification code: ")
-    # msg_to_send = clientProtocol.build_email_verification_code(verification_code)
-    # client.comm.send_msg(msg_to_send)
+    verification_code = input("Enter verification code: ")
+    msg_to_send = clientProtocol.build_email_verification_code(verification_code)
+    client.comm.send_msg(msg_to_send)
     
     
     # test command 2
@@ -328,8 +328,8 @@ if __name__ == "__main__":
     # client.comm.send_msg(msg_to_send)
 
     #test command 14
-    msg_to_send = clientProtocol.build_req_video(1)
-    client.comm.send_msg(msg_to_send)
+    # msg_to_send = clientProtocol.build_req_video(1)
+    # client.comm.send_msg(msg_to_send)
 
     #video comm
     #test command 0
