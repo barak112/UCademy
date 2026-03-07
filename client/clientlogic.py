@@ -78,13 +78,23 @@ class ClientLogic:
                     self.commands[opcode](data)
 
     def handle_reg_confirmation(self, data): # command 0
-        status = int(data[0])
-        if status:
+        status = data[0]
+        status = [int(i) for i in status]
+        if not any(status):
             username, email = data
             video_port = int(data[1])
             self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
             self.video_comm.connect()
-            self.user = user.User(username, email)
+            self.user = user.User(username, 0,0,0,email)
+        else:
+            username_status, password_status, email_status = status
+            print("error signing up:")
+            if username_status:
+                print("username error: ",settings.USERNAME_ERRORS[username_status])
+            if password_status:
+                print("password error: ", settings.USERNAME_ERRORS[password_status])
+            if email_status:
+                print("email error: ", settings.USERNAME_ERRORS[password_status])
 
         print("sign up status:",status)
 
@@ -281,13 +291,7 @@ if __name__ == "__main__":
     # msg_to_send = clientProtocol.build_report(1, 0)
     # client.comm.send_msg(msg_to_send)
 
-    #test command 14
-    # msg_to_send = clientProtocol.build_req_video(1)
-    # client.comm.send_msg(msg_to_send)
-
-
-
-    #test command 9
+    #test command 9 (requires command 14 first)
     # msg_to_send = clientProtocol.build_req_comments(1)
     # client.comm.send_msg(msg_to_send)
 
@@ -308,6 +312,9 @@ if __name__ == "__main__":
     # msg_to_send = clientProtocol.build_req_user_follow_list("Barak", 0)
     # client.comm.send_msg(msg_to_send)
 
+    #test command 14
+    # msg_to_send = clientProtocol.build_req_video(1)
+    # client.comm.send_msg(msg_to_send)
 
     #video comm
     #test command 0

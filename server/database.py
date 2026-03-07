@@ -256,7 +256,10 @@ class DataBase:
 
     def get_user_email(self, username):
         self.cur.execute("SELECT email FROM users WHERE username = ?", (username,))
-        return self.cur.fetchone()[0]
+        res = self.cur.fetchone()
+        if res:
+            res = res[0]
+        return res
 
     def get_username(self, username_or_email):
         """
@@ -375,6 +378,13 @@ class DataBase:
         return self.cur.lastrowid
 
     def get_specific_comment(self, comment_id):
+        """
+            Retrieve a specific comment from the database by its comment_id.
+            This method executes a query to retrieve a single comment from the `comments`
+            table using the given comment_id.
+        :param comment_id: The id of the comment to retrieve.
+        :return: Tuple representing the comment: video_id, comment_id, commenter, comment, created_at
+        """
         self.cur.execute("SELECT * FROM comments WHERE comment_id = ?", (comment_id,))
         return self.cur.fetchone()
 

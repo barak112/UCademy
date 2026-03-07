@@ -22,6 +22,8 @@ def build_command(command, params):
 def build_sign_up(username, password, email):
     return build_command(0, [username, password, email])
 
+def verify_email(email_verification_code):
+    return build_command(7, [email_verification_code])
 
 def build_sign_in(username_or_email, password):
     return build_command(1, [username_or_email, password])

@@ -3,6 +3,11 @@ import os
 import hashlib
 import hmac
 import queue
+import re
+import smtplib
+import string
+from email.message import EmailMessage
+from string import punctuation
 
 import database
 import serverComm
@@ -19,13 +24,36 @@ class ServerLogic:
     """
 
     EMAIL_USER_KICK_MSG = """
-    Your user % has been kicked from the Ucademy platform for uploading inappropriate content multiple times.
-    If you believe this is a mistake, please contact us at ucademy@gmail.com.
+    Your user {} has been kicked from the Ucademy platform for uploading inappropriate content multiple times.
+    If you believe this is a mistake, please contact us at ucademy.team@gmail.com.
     
     Sincerely,
     The Ucademy System Managers Team
     """
 
+    EMAIL_USER_KICK_SUBJECT = "Ucademy User Kick Notification"
+
+    EMAIL_VIDEO_REMOVE_MSG = """
+    Your video "{}" with description "{}" that was uploaded on {} by user {} has been removed from the Ucademy platform for violating our community guidelines.
+    If you believe this is a mistake, please contact us at ucademy.team@gmail.com.
+    
+    Sincerely,
+    The Ucademy System Managers Team
+    """
+
+    EMAIL_VIDEO_REMOVE_SUBJECT = "Ucademy Video Removal Notification"
+
+    EMAIL_COMMENT_REMOVE_MSG = """
+    Your comment "{}" that has been commented by user {} on the video "{}" by {} on {} has been removed from the Ucademy platform for violating our community guidelines.
+    If you believe this is a mistake, please contact us at ucademy.team@gmail.com.
+    
+    Sincerely,
+    The Ucademy System Managers Team
+    """
+
+    EMAIL_COMMENT_REMOVE_SUBJECT = "Ucademy Comment Removal Notification"
+    
+        
     def __init__(self):
         """Initialize the server object.
 
@@ -63,6 +91,8 @@ class ServerLogic:
         self.current_video_port = settings.VIDEO_PORT
         self.clients = {} # [client_ip] = (username, video_comm, [topics_filter])
 
+        self.clients_awaiting_email_verification = {} # [client_ip] = [username, password, email, email_verification_code]
+
         self.videos_to_send = {} # [client_ip] = [videos_ids]
         self.users_to_send = {} # [client_ip] = [users_names]
         self.comments_to_send = {} # [client_ip] = [comments_ids]
@@ -87,15 +117,68 @@ class ServerLogic:
     def handle_registration(self, client_ip, data): # command 0
         username, password, email = data
 
-        msg = serverProtocol.build_sign_up_status(0)
-        if self.db.add_user(username, email, self.hash_password(password)):
+        status = self.validate_credentials_registration(username, password, email)
+
+        msg = serverProtocol.build_sign_up_status(status)
+        if not any(status):
+            self.clients_awaiting_email_verification[client_ip] = [username, password, email]
+
+            self.db.add_user(username, email, self.hash_password(password))
             self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), []]
+            self.pfps_sent[client_ip] = []
+            msg = serverProtocol.build_sign_up_status(status, self.current_video_port)
+
+            self.current_video_port+=1
+
+        self.comm.send_msg(client_ip, msg)
+
+    def handle_email_verification(self, client_ip, data): # command 1
+        email_verification_code = data[0]
+
+        msg = serverProtocol.build_sign_up_status(0)
+
+        if email_verification_code == self.clients_awaiting_email_verification[client_ip][3]:
+            username, password, email = self.clients_awaiting_email_verification[client_ip][:3]
+
+            self.db.add_user(username, email, self.hash_password(password))
+            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ),[]]
             self.pfps_sent[client_ip] = []
             msg = serverProtocol.build_sign_up_status(1, self.current_video_port)
 
-        self.current_video_port+=1
+            self.current_video_port+=1
 
         self.comm.send_msg(client_ip, msg)
+
+    def create_email_verification_code(self):
+
+    def send_email_verification_code(self):
+        pass
+
+    def validate_credentials_registration(self, username, password, email):
+        status = [0,0,0] # username, password, email statuses - everything is ok
+        if username<settings.MIN_NAME_LENGTH:
+            status[0] = 1 # username too short
+        elif username>settings.MAX_NAME_LENGTH:
+            status[0] = 2 # username too long
+        elif self.db.user_exists(username):
+            status[0] = 3 # username already exists
+        elif not all(char in string.ascii_letters + string.digits + "_-." for char in username):
+            status[0] = 4 # invalid username characters
+        elif not username[0] in string.ascii_letters:
+            status[0] = 5 # username must start with a letter
+
+        if password<settings.MIN_PASSWORD_LENGTH:
+            status[1] = 1 # password too short (not secure)
+        elif password>settings.MAX_PASSWORD_LENGTH:
+            status[1] = 2 # password too long (extreme long passwords hashing can slow down the server)
+        elif not any(letter in username for letter in string.ascii_letters):
+            status[1] = 3 # password must include letters
+
+        pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+        if re.match(pattern, email) is None:
+            status[2] = 1 # not a valid email
+
+        return status
 
     def handle_sign_in(self, client_ip, data): #command 1
         username_or_email, password = data
@@ -435,9 +518,18 @@ class ServerLogic:
         id, type = data # type = 0 - comment, 1 - video
         if self.db.is_system_manager(self.clients[client_ip][0]):
             if type == settings.COMMENT_DIGIT_REPR:
+                comment_id, video_id, commenter, comment, created_at = self.db.get_specific_comment(id)
+                creator, video_name = self.db.get_specific_video(video_id)[:2]
+
                 self.db.delete_comment(id)
+                self.send_email(comment_id, self.EMAIL_COMMENT_REMOVE_MSG.format(comment, commenter, video_name, creator, created_at), self.EMAIL_COMMENT_REMOVE_SUBJECT)
+
             elif type == settings.VIDEO_DIGIT_REPR:
+                creator, video_name, desc, created_at = self.db.get_specific_video(id)[:4]
+
                 self.db.delete_video(id)
+                self.send_email(creator, self.EMAIL_VIDEO_REMOVE_MSG.format(video_name, desc, created_at, creator), self.EMAIL_VIDEO_REMOVE_SUBJECT)
+
             else:
                 print("Invalid type value")
         else:
@@ -447,11 +539,22 @@ class ServerLogic:
         username = data[0]
         if self.db.is_system_manager(self.clients[client_ip][0]):
             self.db.remove_user(username)
-            self.send_email(username, self.EMAIL_USER_KICK_MSG)
+            self.send_email(username, self.EMAIL_USER_KICK_MSG.format(username), self.EMAIL_USER_KICK_SUBJECT)
 
-    def send_email(self, username, email_msg):
-        pass
-        #todo implement this
+    def send_email(self, username, email_msg, email_subject):
+        sender = "ucademy.team@gmail.com"
+        password = "ehfl pina bfmw ojte"  # app password
+        receiver = self.db.get_user_email(username)
+        msg = EmailMessage()
+
+        msg["Subject"] = email_subject
+        msg["From"] = sender
+        msg["To"] = receiver
+        msg.set_content(email_msg)
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(sender, password)
+            server.send_message(msg)
 
 
     @staticmethod
