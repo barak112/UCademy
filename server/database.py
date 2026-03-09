@@ -26,14 +26,34 @@ class DataBase:
         self._create_watched_videos_table()
         self._create_video_hashes_table()
         self._create_reports_table()
+        self._create_removed_content_table()
         self._create_system_managers_table()
 
+
+    # ==== db in general ====
     def close(self):
         """
         Closes the database connection.
         :return: Closes the active database connection
         """
         self.conn.close()
+
+    def delete_database(self):
+        self.conn.close()
+        os.remove("ucademy.db")
+
+    def print_tables(self):
+        # Get all table names
+        self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = [t[0] for t in self.cur.fetchall()]
+
+        # Print first 15 rows of each table
+        for table in tables:
+            print(f"\nTable: {table}")
+            self.cur.execute(f"SELECT * FROM {table} LIMIT 15;")
+            rows = self.cur.fetchall()
+            for row in rows:
+                print(row)
 
     # ===== table creation =====
 
@@ -171,15 +191,26 @@ class DataBase:
                                                                    target_type INTEGER,
                                                                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                                                                    status INTEGER,
+                                                                   notified INTEGER DEFAULT 0,
                                                                    PRIMARY KEY (reporter_name, target_id, target_type)
                             )
                          """)
         self.conn.commit()
 
+    def _create_removed_content_table(self):
+        self.cur.execute("""CREATE TABLE IF NOT EXISTS removed_content (
+            target_id TEXT,
+            target_type INTEGER,
+            content TEXT,
+            content_publisher TEXT,
+            PRIMARY KEY (target_id, target_type)
+            )
+            """)
+        self.conn.commit()
 
     def _create_system_managers_table(self):
         self.cur.execute("""CREATE TABLE IF NOT EXISTS system_managers (
-                        username TEXT               
+                        username TEXT PRIMARY KEY
         )
         """)
 
@@ -212,7 +243,7 @@ class DataBase:
         :return: Inserts a new row into the users table if the username is available
         """
         added = False
-        if not self.user_exists(username) and not self.email_exists(email):
+        if not self.user_exists(username): #and not self.email_exists(email): #todo return this at the end of logic testings
             self.cur.execute("INSERT INTO users VALUES (?,?,?)", (username, email, password_hash))
             self.conn.commit()
             added = True
@@ -236,23 +267,12 @@ class DataBase:
         self.cur.execute("SELECT username FROM users WHERE username LIKE ? COLLATE NOCASE", ("%"+ username + "%",))
         return self.cur.fetchall()
 
-    def log_in(self, username_or_email, password):
-        self.cur.execute("SELECT password FROM users WHERE username = ? OR email = ?", (username_or_email, username_or_email))
-        stored_password_hash = self.cur.fetchone()
-        verified = False
-        if stored_password_hash:
-            stored_password_hash = stored_password_hash[0]
-            verified = self.verify_password(password, stored_password_hash)
-        return verified
-
-    @staticmethod
-    def verify_password(password: str, stored: str) -> bool:
-        algo, iters, salt_hex, dk_hex = stored.split("$")
-        iterations = int(iters)
-        salt = bytes.fromhex(salt_hex)
-        expected = bytes.fromhex(dk_hex)
-        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
-        return hmac.compare_digest(dk, expected)
+    def get_password_hash(self, username):
+        self.cur.execute("SELECT password FROM users WHERE username = ?", (username,))
+        res = self.cur.fetchone()
+        if res:
+            res = res[0]
+        return res
 
     def get_user_email(self, username):
         self.cur.execute("SELECT email FROM users WHERE username = ?", (username,))
@@ -285,7 +305,6 @@ class DataBase:
         return self.cur.fetchone() is not None
 
     def video_exists(self, video_id):
-        print("video id in video exists:",video_id)
         self.cur.execute("SELECT 1 FROM videos WHERE video_id = ?", (video_id,))
         return self.cur.fetchone() is not None
 
@@ -417,6 +436,13 @@ class DataBase:
         self.cur.execute("SELECT 1 FROM comments WHERE comment_id = ?", (comment_id,))
         return self.cur.fetchone() is not None
 
+    def get_video_id_by_comment_id(self, comment_id):
+        self.cur.execute("SELECT video_id FROM comments WHERE comment_id = ?", (comment_id,))
+        res = self.cur.fetchone()
+        if res:
+            res = res[0]
+        return res
+
     # ===== likes =====
 
     def add_video_like(self, video_id, username):
@@ -501,11 +527,9 @@ class DataBase:
     def get_videos_ids_by_topics(self, topics):
         video_ids = []
         if topics:
-            print("topics:",topics)
             placeholders = ",".join(["?"] * len(topics))
             self.cur.execute(f"SELECT video_id FROM video_topics WHERE topic IN ({placeholders})", (*topics,))
             video_ids = self.cur.fetchall()
-            print("video_ids in get_videos_ids_by_topics",video_ids)
             video_ids = [i[0] for i in video_ids]
 
         return video_ids
@@ -569,7 +593,6 @@ class DataBase:
 
 
         results = self.cur.fetchall()
-        print("video_ids:", video_ids, "results:", results )
         results = [i[0] for i in results]
 
 
@@ -619,6 +642,16 @@ class DataBase:
 
     # ===== reports =====
 
+    def set_report_notified(self, username, id, type):
+        """
+        Sets a report as notified.
+        :param username: Username of the user who reported
+        :param id: ID of the target (video or comment)
+        :param type: Type of the target (VIDEO_REPORT or COMMENT_REPORT)
+        """
+        self.cur.execute("UPDATE reports SET notified = 1 WHERE reporter_name = ? AND target_id = ? AND target_type = ?", (username, id, type))
+        self.conn.commit()
+
     def has_user_reported(self, username, id, type):
             self.cur.execute("SELECT 1 FROM reports WHERE reporter_name = ? AND target_id = ? AND target_type = ?", (username, id, type))
             return self.cur.fetchone() is not None
@@ -631,10 +664,12 @@ class DataBase:
         :param target_type: Type of the target (VIDEO_REPORT or COMMENT_REPORT)
         :return: Inserts a new row into the reports table
         """
-
         self.cur.execute("INSERT INTO reports (reporter_name, target_id, target_type) VALUES (?,?,?)", (reporter_name, target_id, target_type))
         self.conn.commit()
-        print("inserted reports", reporter_name, target_id, target_type)
+
+    def get_report_status_and_created_at(self, username, target_id, target_type):
+        self.cur.execute("SELECT status, strftime('%d/%m/%Y %H:%M', created_at) FROM reports WHERE target_id = ? AND target_type = ? AND reporter_name = ?", (target_id, target_type,username))
+        return self.cur.fetchone()
 
     def get_reports(self):
         """
@@ -657,6 +692,9 @@ class DataBase:
         self.cur.execute("UPDATE reports SET status = ? WHERE (target_id, target_type) = (?,?)", (status, target_id, target_type))
         self.conn.commit()
 
+    def get_not_notified_reports(self, username):
+        self.cur.execute("SELECT target_id, target_type FROM reports WHERE reporter_name = ? and status IS NOT NULL and notified = 0", (username,))
+        return self.cur.fetchall()
 
     def delete_report(self, report_id):
         """
@@ -667,24 +705,22 @@ class DataBase:
         self.cur.execute("DELETE FROM reports WHERE report_id = ?", (report_id,))
         self.conn.commit()
 
-    # ===== reports =====
+    def is_report_concluded(self, id, type):
+        self.cur.execute("SELECT 1 FROM reports WHERE target_id = ? AND target_type = ? AND status IS NOT NULL", (id, type))
+        return self.cur.fetchone() is not None
 
-    def delete_database(self):
-        self.conn.close()
-        os.remove("ucademy.db")
+    # ==== removed_content ====
+    def get_removed_content(self, id, type):
+        self.cur.execute(
+            "SELECT content, content_publisher FROM removed_content WHERE target_id = ? AND target_type = ?",
+            (id, type))
+        return self.cur.fetchone()
 
-    def print_tables(self):
-        # Get all table names
-        self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = [t[0] for t in self.cur.fetchall()]
-
-        # Print first 15 rows of each table
-        for table in tables:
-            print(f"\nTable: {table}")
-            self.cur.execute(f"SELECT * FROM {table} LIMIT 15;")
-            rows = self.cur.fetchall()
-            for row in rows:
-                print(row)
+    def add_removed_content(self, id, type, content, content_publisher):
+        self.cur.execute(
+            "INSERT INTO removed_content (target_id, target_type, content, content_publisher) VALUES (?, ?, ?, ?)",
+            (id, type, content, content_publisher))
+        self.conn.commit()
 
     # ===== system_managers =====
     def add_system_manager(self, username):
@@ -702,7 +738,7 @@ class DataBase:
 if __name__ == "__main__":
     db = DataBase()
 
-    db.print_tables()
+    # db.print_tables()
     print("\n\n")
 
     # --- testing ---
@@ -775,6 +811,7 @@ if __name__ == "__main__":
     # db.cur.execute("DROP TABLE IF EXISTS reports")
     # db._create_reports_table()
     # db.add_report("Barak",1,0)
+    # db.set_report_status(1,0, 0)
     # db.add_report("Alon",1,0)
     # db.add_report("Ella",1,0)
     # db.add_report("Barak",1,1)
@@ -784,6 +821,14 @@ if __name__ == "__main__":
     # print("get reports:")
     # print(db.get_reports())
 
+    # # --- removed_content ---
+    # db.cur.execute("DROP TABLE IF EXISTS removed_content")
+    # db._create_removed_content_table()
+
+    # db.add_removed_content(1, 0, "test content", "test publisher")
+    # content, content_publisher = db.get_removed_content(1, 0)
+    # print(content, content_publisher)
+
     # # --- system_managers ---
     # db.cur.execute("DROP TABLE IF EXISTS system_managers")
     # db._create_system_managers_table()
@@ -791,4 +836,5 @@ if __name__ == "__main__":
 
     # print(db.get_system_managers())
 
+    db.print_tables()
     db.close()

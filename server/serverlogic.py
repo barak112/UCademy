@@ -7,8 +7,8 @@ import re
 import secrets
 import smtplib
 import string
+import time
 from email.message import EmailMessage
-from string import punctuation
 
 import database
 import serverComm
@@ -68,11 +68,7 @@ class ServerLogic:
     EMAIL_VERIFICATION_CODE_SUBJECT = "Ucademy Email Verification Code"
 
     def __init__(self):
-        """Initialize the server object.
-
-        :param comm: ServerComm object for client communication.
-        :param recvQ: Queue for receiving messages from clients.
-        """
+        """Initialize the server object."""
 
         self.recvQ = queue.Queue()
         comm = serverComm.ServerComm(settings.PORT, self.recvQ)
@@ -97,7 +93,7 @@ class ServerLogic:
             '16': self.handle_video_upload,
             '17': self.handle_follow_user,
 
-            '98': self.handle_comment_or_video_remove,
+            '98': self.handle_comment_or_video_status,
             '99': self.handle_user_kick,
         }
 
@@ -135,7 +131,8 @@ class ServerLogic:
 
         if not any(status):
             verification_code = self.create_email_verification_code()
-            self.clients_awaiting_email_verification[client_ip] = [username, password, email, verification_code]
+            time_of_code_creation = time.time()
+            self.clients_awaiting_email_verification[client_ip] = [username, password, email, verification_code, time_of_code_creation]
             self.send_email_verification_code(email, verification_code, username)
 
         msg = serverProtocol.build_sign_up_status(status)
@@ -144,23 +141,37 @@ class ServerLogic:
     def handle_email_verification(self, client_ip, data):  # command 1
         email_verification_code = data[0]
 
-        msg = serverProtocol.build_email_verification_confirmation(0)
+        status = 0
+        username = None
+        email = None
+        port = None
 
-        if email_verification_code == self.clients_awaiting_email_verification[client_ip][3]:
-            username, password, email = self.clients_awaiting_email_verification[client_ip][:3]
-            #todo check why it doesnt add Barak3 user
-            #todo add limited time to verification codes
-            self.db.add_user(username, email, self.hash_password(password))
-            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ),[]]
-            self.pfps_sent[client_ip] = []
-            msg = serverProtocol.build_email_verification_confirmation(1, username, email, self.current_video_port)
+        #todo request a new email verification code
 
-            self.current_video_port+=1
-            self.clients_awaiting_email_verification.pop(client_ip)
+        #checks if code is valid
+        print(self.clients_awaiting_email_verification)
+        if client_ip in self.clients_awaiting_email_verification and email_verification_code == self.clients_awaiting_email_verification[client_ip][3]:
+            #check if code is expired
+            if settings.EMAIL_VERIFICATION_CODE_EXPIRATION < time.time() - self.clients_awaiting_email_verification[client_ip][4]:
+                status = 2
+                print("code expired:", settings.EMAIL_VERIFICATION_CODE_EXPIRATION,
+                      time.time() - self.clients_awaiting_email_verification[client_ip][4])
+            else:
+                username, password, email = self.clients_awaiting_email_verification[client_ip][:3]
+                self.db.add_user(username, email, self.hash_password(password))
+                self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ),[]]
+                self.pfps_sent[client_ip] = []
+                port = self.current_video_port
+                status = 1
 
+                self.current_video_port+=1
+                del self.clients_awaiting_email_verification[client_ip]
+
+        msg = serverProtocol.build_email_verification_confirmation(status, username, email, port)
         self.comm.send_msg(client_ip, msg)
 
-    def create_email_verification_code(self , length = 6):
+    @staticmethod
+    def create_email_verification_code(length = 6):
         return ''.join(secrets.choice('0123456789') for _ in range(length))
 
     def send_email_verification_code(self, email_address, verification_code, username):
@@ -169,28 +180,30 @@ class ServerLogic:
 
 
     def validate_credentials_registration(self, username, password, email):
-        status = [0,0,0] # username, password, email statuses - everything is ok
-        if len(username)<settings.MIN_NAME_LENGTH:
-            status[0] = 1 # username too short
-        elif len(username)>settings.MAX_NAME_LENGTH:
-            status[0] = 2 # username too long
+        status = [0, 0, 0]  # username, password, email statuses - everything is ok
+        if len(username) < settings.MIN_NAME_LENGTH:
+            status[0] = settings.USERNAME_TOO_SHORT  # username too short
+        elif len(username) > settings.MAX_NAME_LENGTH:
+            status[0] = settings.USERNAME_TOO_LONG  # username too long
         elif self.db.user_exists(username):
-            status[0] = 3 # username already exists
+            status[0] = settings.USERNAME_ALREADY_EXISTS  # username already exists
         elif not all(char in string.ascii_letters + string.digits + "_-." for char in username):
-            status[0] = 4 # invalid username characters
+            status[0] = settings.USERNAME_INVALID_CHARACTERS  # invalid username characters
         elif not username[0] in string.ascii_letters:
-            status[0] = 5 # username must start with a letter
+            status[0] = settings.USERNAME_NOT_START_LETTER  # username must start with a letter
 
-        if len(password)<settings.MIN_PASSWORD_LENGTH:
-            status[1] = 1 # password too short (not secure)
-        elif len(password)>settings.MAX_PASSWORD_LENGTH:
-            status[1] = 2 # password too long (extreme long passwords hashing can slow down the server)
+        if len(password) < settings.MIN_PASSWORD_LENGTH:
+            status[1] = settings.PASSWORD_TOO_SHORT  # password too short (not secure)
+        elif len(password) > settings.MAX_PASSWORD_LENGTH:
+            status[1] = settings.PASSWORD_TOO_LONG  # password too long (extreme long passwords hashing can slow down the server)
         elif not any(letter in username for letter in string.ascii_letters):
-            status[1] = 3 # password must include letters
+            status[1] = settings.PASSWORD_NO_LETTERS  # password must include letters
 
         pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
         if re.match(pattern, email) is None:
-            status[2] = 1 # not a valid email
+            status[2] = settings.EMAIL_NOT_VALID # not a valid email
+        # elif self.db.email_exists(email): # TODO return this at the end of the logic testings
+        #     status[2] = settings.EMAIL_ALREADY_EXISTS # email already exists
 
         return status
 
@@ -200,23 +213,57 @@ class ServerLogic:
         status = 0
         username = self.db.get_username(username_or_email)
         print(f"trying to sign in user: {username} ")
-        if self.db.log_in(username_or_email, password):
-            followers_amount = self.db.get_followers_amount(username)
-            followings_amount = self.db.get_following_amount(username)
-            videos_amount = self.db.get_videos_amount(username)
 
-            topics = self.db.get_user_topics(username)
-            email = self.db.get_user_email(username)
-            followings_names = self.db.get_followings(username)
-            msg = serverProtocol.build_sign_in_status(1,self.current_video_port,username, followers_amount,
-                                                      followings_amount, videos_amount, email, topics, followings_names)
-            status = 1
-            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), topics]
-            self.pfps_sent[client_ip] = []
-            self.current_video_port+=1
+        if self.db.user_exists(username):
+            password_hash = self.db.get_password_hash(username)
+            if self.verify_password(password, password_hash):
+                status = 1
+
+                followers_amount = self.db.get_followers_amount(username)
+                followings_amount = self.db.get_following_amount(username)
+                videos_amount = self.db.get_videos_amount(username)
+
+                topics = self.db.get_user_topics(username)
+                email = self.db.get_user_email(username)
+                followings_names = self.db.get_followings(username)
+                msg = serverProtocol.build_sign_in_status(1,self.current_video_port,username, followers_amount,
+                                                          followings_amount, videos_amount, email, topics, followings_names)
+                self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), topics]
+                self.pfps_sent[client_ip] = []
+                self.current_video_port+=1
 
         self.comm.send_msg(client_ip, msg)
-        print(f"sign in status for {username} is {status}")
+        if status:
+            self.check_user_reports(client_ip, username)
+
+    def check_user_reports(self, client_ip, username):
+        reports = self.db.get_not_notified_reports(username)
+        print(f"reports for username {username} are:", reports)
+        for id, type in reports:
+            self.db.set_report_notified(username, id, type)
+
+            content, content_publisher = self.db.get_removed_content(id, type)
+            status, created_at = self.db.get_report_status_and_created_at(username, id, type)
+            date, time = created_at.split(" ")
+
+            if type == settings.COMMENT_DIGIT_REPR:
+                video_id = self.db.get_video_id_by_comment_id(id)
+                creator, video_name = self.db.get_specific_video(video_id)[:2]
+
+                content = (content, video_name)
+                content_publisher = (content_publisher, creator)
+
+            msg = serverProtocol.build_report_status(status, id, type, content, content_publisher, date, time)
+            self.comm.send_msg(client_ip, msg)
+
+    @staticmethod
+    def verify_password(password: str, stored: str) -> bool:
+        algo, iters, salt_hex, dk_hex = stored.split("$")
+        iterations = int(iters)
+        salt = bytes.fromhex(salt_hex)
+        expected = bytes.fromhex(dk_hex)
+        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
+        return hmac.compare_digest(dk, expected)
 
     def handle_set_user_topics(self, client_ip, data):  # command 3
         topics = [int(t) for t in data]
@@ -340,6 +387,8 @@ class ServerLogic:
         username = self.clients[client_ip][0]
         content, content_publisher = "", ""
 
+        status = settings.REPORT_RECEIVED
+
         if type == settings.COMMENT_DIGIT_REPR and self.db.comment_exists(id):
             video_id, content_publisher, content = self.db.get_specific_comment(id)[1:4]
             # comments also share the video's name and creator
@@ -351,21 +400,23 @@ class ServerLogic:
             content, content_publisher = self.db.get_specific_video(id)[:2]
 
         else:
-            id = 0
+            status = settings.REPORT_CONTENT_DOESNT_EXISTS
 
-        if self.db.has_user_reported(username, id, type):
-            id = 0
+        if self.db.is_report_concluded(id, type):
+            status = settings.REPORT_CONCLUDED
 
-        if id:
+        elif self.db.has_user_reported(username, id, type):
+            status = settings.REPORT_ALREADY_ISSUED
+
+        elif status == settings.REPORT_RECEIVED:
             self.db.add_report(username, id, type)
 
-        msg = serverProtocol.build_report_status(id, type, content, content_publisher)
-
+        msg = serverProtocol.build_report_status(status, id, type, content, content_publisher)
         self.comm.send_msg(client_ip, msg)
 
     def handle_comments_req(self, client_ip, data):  # command 10
         """
-            :param data: video_id,, last_comment_id
+            :param data: video_id, last_comment_id
             last_comment_id -> used to determine which comments should be next to be sent to the client.
             last_comment_id is the last comment's id the client has received.
             if last_comment_id = 0. it means that its the first time the client has requested comments.
@@ -491,9 +542,15 @@ class ServerLogic:
         return video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked
 
     def handle_follow_user(self, client_ip, data):  # command 17
-        username = data
-        pass
+        followed = data[0]
+        follower = self.clients[client_ip][0]
 
+        if self.db.user_exists(followed):
+            self.db.add_following(follower, followed)
+        else:
+            followed = "" # indicates user doesnt exist
+        msg = serverProtocol.build_follow_user_status(followed)
+        self.comm.send_msg(client_ip, msg)
 
     #called by video comm
 
@@ -520,24 +577,29 @@ class ServerLogic:
 
     # Called by System Manager
 
-    def handle_comment_or_video_remove(self, client_ip, data):  # command 98
-        id, type = data # type = 0 - comment, 1 - video
+    def handle_comment_or_video_status(self, client_ip, data):  # command 98
+        id, type, status = data # type = 0 - comment, 1 - video, status = 0 - dont remove, 1 - remove
         if self.db.is_system_manager(self.clients[client_ip][0]):
-            if type == settings.COMMENT_DIGIT_REPR:
-                comment_id, video_id, commenter, comment, created_at = self.db.get_specific_comment(id)
-                creator, video_name = self.db.get_specific_video(video_id)[:2]
 
-                self.db.delete_comment(id)
-                self.send_email(comment_id, self.EMAIL_COMMENT_REMOVE_MSG.format(comment, commenter, video_name, creator, created_at), self.EMAIL_COMMENT_REMOVE_SUBJECT)
+            self.db.set_report_status(id, type, status)
 
-            elif type == settings.VIDEO_DIGIT_REPR:
-                creator, video_name, desc, created_at = self.db.get_specific_video(id)[:4]
+            if status == settings.REPORT_ACCEPTED:
+                if type == settings.COMMENT_DIGIT_REPR:
+                    comment_id, video_id, commenter, comment, created_at = self.db.get_specific_comment(id)
+                    creator, video_name = self.db.get_specific_video(video_id)[:2]
+                    content = comment
+                    content_publisher = commenter
+                    self.db.delete_comment(id)
+                    self.send_email(comment_id, self.EMAIL_COMMENT_REMOVE_MSG.format(comment, commenter, video_name, creator, created_at), self.EMAIL_COMMENT_REMOVE_SUBJECT)
 
-                self.db.delete_video(id)
-                self.send_email(creator, self.EMAIL_VIDEO_REMOVE_MSG.format(video_name, desc, created_at, creator), self.EMAIL_VIDEO_REMOVE_SUBJECT)
+                else:
+                    creator, video_name, desc, created_at = self.db.get_specific_video(id)[:4]
+                    content = video_name
+                    content_publisher = creator
+                    self.db.delete_video(id)
+                    self.send_email(creator, self.EMAIL_VIDEO_REMOVE_MSG.format(video_name, desc, created_at, creator), self.EMAIL_VIDEO_REMOVE_SUBJECT)
 
-            else:
-                print("Invalid type value")
+                self.db.add_removed_content(id,type,content, content_publisher)
         else:
             print("not a system manager")
 

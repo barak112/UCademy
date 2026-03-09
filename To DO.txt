@@ -1,9 +1,20 @@
-learn how the hashing works
-get the hashing out of the db
-
 add confirmation to file uploading
 
-when client connects, checks if he has any handled reports.
-if he has, sends them the report status and deletes from reports table in db
 
 
+
+
+
+
+
+
+
+to ask merry:
+
+how to implement asking for a new code
+
+check if its okay i extract password hash out of db
+
+check if its okay to let the email code verifications dictionary get big
+
+should notified be integer or boolean

@@ -25,6 +25,16 @@ MAX_NAME_LENGTH = 15
 MIN_PASSWORD_LENGTH = 6
 MAX_PASSWORD_LENGTH = 256
 
+# --- reports ---
+REPORT_DENIED = 0
+REPORT_ACCEPTED = 1
+
+REPORT_CONTENT_DOESNT_EXISTS = 2
+REPORT_ALREADY_ISSUED = 3
+REPORT_RECEIVED = 4
+REPORT_CONCLUDED = 5
+
+
 # error codes
 #username:
 USERNAME_TOO_SHORT = 1
@@ -54,10 +64,15 @@ PASSWORD_ERRORS = {
 
 #email:
 EMAIL_NOT_VALID = 1
+EMAIL_ALREADY_EXISTS = 2
 
 EMAIL_ERRORS = {
-    EMAIL_NOT_VALID: "Email is not valid"
+    EMAIL_NOT_VALID: "Email is not valid",
+    EMAIL_ALREADY_EXISTS: "Email already exists"
 }
+
+EMAIL_VERIFICATION_CODE_EXPIRATION = 30 * 60 #seconds->minutes
+EMAIL_VERIFICATION_CODE_EXPIRED = 2
 
 #currently 10 topics
 TOPICS = ["Computer Science", "Math", "Physics", "Cooking", "Baking", "Music", "Wild", "Views", "Art", "History"]

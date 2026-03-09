@@ -65,8 +65,8 @@ def build_send_test(video_id, link):
     return build_command(8, [video_id, link])
 
 
-def build_report_status(id, type = "", content = "", content_publisher = "", status = "", date = None, time = None):
-    return build_command(9, [id, type, content, content_publisher, status, date, time])
+def build_report_status(status, id, type, content, content_publisher, date = "", time = ""):
+    return build_command(9, [status, id, type, content, content_publisher, date, time])
 
 
 def build_send_comments(comments):
@@ -116,7 +116,7 @@ def unpack(data):
     :return: Tuple of (opcode, parameters list).
     """
     opcode = data[:2]
-    params = ""
+    params = [""]
     if len(data) > 2:
         params = data[2:].split("@#")
 

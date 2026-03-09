@@ -79,7 +79,7 @@ class ClientLogic:
                 if opcode in self.commands:
                     self.commands[opcode](data)
 
-    def handle_reg_confirmation(self, data):  # command 1
+    def handle_reg_confirmation(self, data):  # command 0
         status = data[0]
         status = [int(i) for i in status]
         if not any(status):
@@ -94,20 +94,24 @@ class ClientLogic:
             if email_status:
                 print("email error: ", settings.EMAIL_ERRORS[email_status])
 
-    def handle_email_verification_confirmation(self, data):  # command 2
+    def handle_email_verification_confirmation(self, data):  # command 1
         status = data[0]
         status = int(status)
         if status:
-            username, email, video_port= data[1:]
-            video_port = int(video_port)
-            self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
-            self.video_comm.connect()
-            self.user = user.User(username, 0, 0, 0, email)
+            if status == settings.EMAIL_VERIFICATION_CODE_EXPIRED:
+                print("Code has expired, please request a new one")
+            else:
+                username, email, video_port= data[1:]
+                video_port = int(video_port)
+                self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
+                self.video_comm.connect()
+                self.user = user.User(username, 0, 0, 0, email)
+                print("email verification successful")
         else:
             print("email verification failed, not a valid code")
             verification_code = input("Enter verification code: ")
             msg_to_send = clientProtocol.build_email_verification_code(verification_code)
-            client.comm.send_msg(msg_to_send)
+            self.comm.send_msg(msg_to_send)
 
     def handle_sign_in_confirmation(self, data):  # command 2
         status = int(data[0])
@@ -124,6 +128,7 @@ class ClientLogic:
             videos_amount = int(videos_amount)
 
             self.user = user.User(username, followers_amount, followings_amount, videos_amount,email, topics, followings_names)
+            print(f"signed in as {username}")
 
     def handle_topics_confirmation(self, data):  # command 3
         topics = data[0]
@@ -173,43 +178,36 @@ class ClientLogic:
         if video_id in self.videos:
             self.videos[video_id].test_link = test_link # if no test link, test_link = ""
 
+
     def handle_report_status(self, data):  # command 9
-        id, type, content, content_publisher, status = data[:5]
+        status, id, type, content, content_publisher, date, time = data
+        status = int(status)
         type = int(type)
-        id = int(id)
+        # id will be future used to view the reported content if it is decided to not be removed
 
         msg2 = f"has been examined and it has been decided that the"
 
         msg1 = f"report of video {content} by {content_publisher}"
-        type_str = "video"
 
-        if type == settings.COMMENT_DIGIT_REPR:
-            type_str = "comment"
+        type_str = "video" if status == settings.VIDEO_DIGIT_REPR else "comment"
 
-            if content and content_publisher:
-                comment, video_name = content
-                commenter, video_creator = content_publisher
-                msg1 = f"report of comment {comment} by {commenter} on video {video_name} by {video_creator}"
+        if type == settings.COMMENT_DIGIT_REPR and content and content_publisher:
+            comment, video_name = content
+            commenter, video_creator = content_publisher
+            msg1 = f"report of comment {comment} by {commenter} on video {video_name} by {video_creator}"
 
-        if id:
-            if status:
-                date, time = data[5:]
+        # Determine the message based on status
+        status_messages = {
+            settings.REPORT_DENIED: f"{msg1} you issued on {date} at {time} {msg2} {type_str} will not be removed",
+            settings.REPORT_ACCEPTED: f"{msg1} you issued on {date} at {time} {msg2} {type_str} will be removed",
+            settings.REPORT_CONTENT_DOESNT_EXISTS: f"{type_str} reported does not exist!",
+            settings.REPORT_ALREADY_ISSUED: f"{msg1} has already been issued by you!",
+            settings.REPORT_RECEIVED: f"{msg1} has been received at the server and will be examined",
+            settings.REPORT_CONCLUDED: f"{msg1} has already been concluded"
+        }
 
-                status = int(status)
-                if status:
-                    result = "will be removed"
-                else:
-                    result = "will not be removed"
-                print(f"{msg1} you issued on {date} at {time} {msg2} {type_str} {result}")
-            else:
-                msg2 = "has been received at the server and will be examined"
-                print(f"{msg1} {msg2}")
+        print(status_messages[status])
 
-        else:
-            if content and content_publisher:
-                print(f"{msg1} has already been issued!")
-            else:
-                print(f"{type_str} reported does not exist!")
 
     def handle_comments(self, data):  # command 10
         # data = [[comment_info], [comment_info]]
@@ -248,9 +246,11 @@ class ClientLogic:
         print("video upload status:",status)
 
     def handle_follow_status(self, data):  # command 14
-        status = data[0]
-        pass
-    #todo implement this, add to self.user i think
+        following = data[0]
+        if following:
+            self.user.followings.append(following)
+        else:
+            print("user trying to follow doesnt exists")
 
     # called by the video_comm
     def handle_confirm_file_upload(self, data):  # command 01
@@ -264,17 +264,16 @@ if __name__ == "__main__":
     time.sleep(0.1)
 
     # test command 0
-    msg_to_send = clientProtocol.build_sign_up("Barak3", "password123", "bbmalt9@gmail.com")
-    client.comm.send_msg(msg_to_send)
-    
-    #test command 1
-    verification_code = input("Enter verification code: ")
-    msg_to_send = clientProtocol.build_email_verification_code(verification_code)
-    client.comm.send_msg(msg_to_send)
-    
-    
+    # msg_to_send = clientProtocol.build_sign_up("Barak11", "password123", "bbmalt9@gmail.com")
+    # client.comm.send_msg(msg_to_send)
+    #
+    # #test command 1
+    # verification_code = input("Enter verification code: ")
+    # msg_to_send = clientProtocol.build_email_verification_code(verification_code)
+    # client.comm.send_msg(msg_to_send)
+
     # test command 2
-    msg_to_send = clientProtocol.build_sign_in("Barak2", "password123")
+    msg_to_send = clientProtocol.build_sign_in("Barak", "password123")
     client.comm.send_msg(msg_to_send)
 
     time.sleep(1)
@@ -303,8 +302,8 @@ if __name__ == "__main__":
 
     # test command 8
 
-    # msg_to_send = clientProtocol.build_report(1, 0)
-    # client.comm.send_msg(msg_to_send)
+    msg_to_send = clientProtocol.build_report(9, 0)
+    client.comm.send_msg(msg_to_send)
 
     #test command 9 (requires command 14 first)
     # msg_to_send = clientProtocol.build_req_comments(1)
