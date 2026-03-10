@@ -141,7 +141,7 @@ class ServerLogic:
     def handle_email_verification(self, client_ip, data):  # command 1
         email_verification_code = data[0]
 
-        status = 0
+        status = settings.EMAIL_VERIFICATION_CODE_INVALID
         username = None
         email = None
         port = None
@@ -149,23 +149,24 @@ class ServerLogic:
         #todo request a new email verification code
 
         #checks if code is valid
-        print(self.clients_awaiting_email_verification)
         if client_ip in self.clients_awaiting_email_verification and email_verification_code == self.clients_awaiting_email_verification[client_ip][3]:
             #check if code is expired
             if settings.EMAIL_VERIFICATION_CODE_EXPIRATION < time.time() - self.clients_awaiting_email_verification[client_ip][4]:
-                status = 2
-                print("code expired:", settings.EMAIL_VERIFICATION_CODE_EXPIRATION,
-                      time.time() - self.clients_awaiting_email_verification[client_ip][4])
+                status = settings.EMAIL_VERIFICATION_CODE_EXPIRED
             else:
                 username, password, email = self.clients_awaiting_email_verification[client_ip][:3]
-                self.db.add_user(username, email, self.hash_password(password))
-                self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ),[]]
-                self.pfps_sent[client_ip] = []
-                port = self.current_video_port
-                status = 1
-
-                self.current_video_port+=1
-                del self.clients_awaiting_email_verification[client_ip]
+                if self.db.user_exists(username):
+                    status = settings.EMAIL_VERIFICATION_CODE_USERNAME_EXISTS
+                elif self.db.email_exists(email):
+                    status = settings.EMAIL_VERIFICATION_CODE_EMAIL_EXISTS
+                else:
+                    self.db.add_user(username, email, self.hash_password(password))
+                    self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ),[]]
+                    self.pfps_sent[client_ip] = []
+                    port = self.current_video_port
+                    status = settings.EMAIL_VERIFICATION_CODE_VALID
+                    self.current_video_port+=1
+                    del self.clients_awaiting_email_verification[client_ip]
 
         msg = serverProtocol.build_email_verification_confirmation(status, username, email, port)
         self.comm.send_msg(client_ip, msg)
@@ -234,16 +235,29 @@ class ServerLogic:
 
         self.comm.send_msg(client_ip, msg)
         if status:
-            self.check_user_reports(client_ip, username)
+            reports = self.db.get_not_notified_reports(username)
+            for i, report in enumerate(reports):
+                reports[i] = (*report, client_ip)
+            self.send_reports_statuses(reports)
 
-    def check_user_reports(self, client_ip, username):
-        reports = self.db.get_not_notified_reports(username)
-        print(f"reports for username {username} are:", reports)
-        for id, type in reports:
+    def send_reports_statuses(self, reports):
+        #reports = [(id, type, username, client_id),(...)]
+        for id, type, username, client_ip in reports:
+
+            # todo huge changes need to be made here
+            # im currently just assuming that the content is removed
+            # and when there is a comment im just assuming that the video it was commented on still exists
+            # changes suggested:
+            # add to the videos and comments tables a field named "deleted"
+            # and then whenever i select from these tables i filter out the deleted ones.
+            # but when i want them for the report i just dont filter out the deleted ones.
+            # i could even add add a include_deleted = False in the select db functions.
+            # good luck for me
+
             self.db.set_report_notified(username, id, type)
 
-            content, content_publisher = self.db.get_removed_content(id, type)
             status, created_at = self.db.get_report_status_and_created_at(username, id, type)
+            content, content_publisher = self.db.get_removed_content(id, type)
             date, time = created_at.split(" ")
 
             if type == settings.COMMENT_DIGIT_REPR:
@@ -533,6 +547,7 @@ class ServerLogic:
             )
         else:
             #todo: algorithm to choose video
+
             pass
 
     def get_video_details(self,client_ip, video_id): # helper function
@@ -546,7 +561,10 @@ class ServerLogic:
         follower = self.clients[client_ip][0]
 
         if self.db.user_exists(followed):
-            self.db.add_following(follower, followed)
+            if self.db.is_following(follower, followed):
+                self.db.remove_following(follower, followed)
+            else:
+                self.db.add_following(follower, followed)
         else:
             followed = "" # indicates user doesnt exist
         msg = serverProtocol.build_follow_user_status(followed)
@@ -574,32 +592,45 @@ class ServerLogic:
             print("video already exists")
 
 
-
     # Called by System Manager
 
     def handle_comment_or_video_status(self, client_ip, data):  # command 98
         id, type, status = data # type = 0 - comment, 1 - video, status = 0 - dont remove, 1 - remove
+        id, type = int(id), int(type)
         if self.db.is_system_manager(self.clients[client_ip][0]):
 
-            self.db.set_report_status(id, type, status)
+            if (type == settings.COMMENT_DIGIT_REPR and self.db.comment_exists(id)) or (type == settings.VIDEO_DIGIT_REPR and self.db.video_exists(id)):
 
-            if status == settings.REPORT_ACCEPTED:
-                if type == settings.COMMENT_DIGIT_REPR:
-                    comment_id, video_id, commenter, comment, created_at = self.db.get_specific_comment(id)
-                    creator, video_name = self.db.get_specific_video(video_id)[:2]
-                    content = comment
-                    content_publisher = commenter
-                    self.db.delete_comment(id)
-                    self.send_email(comment_id, self.EMAIL_COMMENT_REMOVE_MSG.format(comment, commenter, video_name, creator, created_at), self.EMAIL_COMMENT_REMOVE_SUBJECT)
+                if status == settings.REPORT_ACCEPTED:
+                    if type == settings.COMMENT_DIGIT_REPR:
+                        comment_id, video_id, commenter, comment, created_at = self.db.get_specific_comment(id)
+                        creator, video_name = self.db.get_specific_video(video_id)[:2]
+                        content = comment
+                        content_publisher = commenter
+                        self.db.delete_comment(id)
+                        self.send_email(comment_id, self.EMAIL_COMMENT_REMOVE_MSG.format(comment, commenter, video_name, creator, created_at), self.EMAIL_COMMENT_REMOVE_SUBJECT)
 
-                else:
-                    creator, video_name, desc, created_at = self.db.get_specific_video(id)[:4]
-                    content = video_name
-                    content_publisher = creator
-                    self.db.delete_video(id)
-                    self.send_email(creator, self.EMAIL_VIDEO_REMOVE_MSG.format(video_name, desc, created_at, creator), self.EMAIL_VIDEO_REMOVE_SUBJECT)
+                    else: # video
+                        creator, video_name, desc, created_at = self.db.get_specific_video(id)[:4]
+                        content = video_name
+                        content_publisher = creator
+                        self.db.delete_video(id)
+                        self.send_email(creator, self.EMAIL_VIDEO_REMOVE_MSG.format(video_name, desc, created_at, creator), self.EMAIL_VIDEO_REMOVE_SUBJECT)
 
-                self.db.add_removed_content(id,type,content, content_publisher)
+                    self.db.add_removed_content(id,type,content, content_publisher)
+
+                self.db.set_report_status(id, type, status)
+
+                usernames = self.db.get_reporters(id, type)
+                reports = []
+                for a_clients_ip in self.clients.keys():
+                    username = self.clients[a_clients_ip][0]
+                    if username in usernames:
+                        reports.append((id, type, username, client_ip))
+
+                self.send_reports_statuses(reports)
+            else:
+                print("content does not exist")
         else:
             print("not a system manager")
 
@@ -610,7 +641,8 @@ class ServerLogic:
             email_address = self.db.get_user_email(username)
             self.send_email(email_address, self.EMAIL_USER_KICK_MSG.format(username), self.EMAIL_USER_KICK_SUBJECT)
 
-    def send_email(self, email_address, email_msg, email_subject):
+    @staticmethod
+    def send_email(email_address, email_msg, email_subject):
         sender = "ucademy.team@gmail.com"
         password = "ehfl pina bfmw ojte"  # app password
         receiver = email_address

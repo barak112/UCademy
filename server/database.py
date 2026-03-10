@@ -684,16 +684,25 @@ class DataBase:
         # self.cur.execute("SELECT * FROM reports")
         return self.cur.fetchall()
 
-    def get_report_users_names_and_times(self, target_id, target_type):
+    def get_report_usernames_and_times(self, target_id, target_type):
         self.cur.execute("SELECT reporter_name, strftime('%d/%m/%Y %H:%M', created_at) FROM reports WHERE (target_id, target_type) = (?,?)", (target_id, target_type))
         return self.cur.fetchall()
+
+    def get_reporters(self, target_id, target_type):
+        self.cur.execute(
+            "SELECT reporter_name FROM reports WHERE (target_id, target_type) = (?,?)",
+            (target_id, target_type))
+        res = self.cur.fetchall()
+        if res:
+            res = [i[0] for i in res]
+        return res
 
     def set_report_status(self, target_id, target_type, status):
         self.cur.execute("UPDATE reports SET status = ? WHERE (target_id, target_type) = (?,?)", (status, target_id, target_type))
         self.conn.commit()
 
     def get_not_notified_reports(self, username):
-        self.cur.execute("SELECT target_id, target_type FROM reports WHERE reporter_name = ? and status IS NOT NULL and notified = 0", (username,))
+        self.cur.execute("SELECT target_id, target_type, reporter_name FROM reports WHERE reporter_name = ? and status IS NOT NULL and notified = 0", (username,))
         return self.cur.fetchall()
 
     def delete_report(self, report_id):
@@ -810,7 +819,7 @@ if __name__ == "__main__":
     # # --- reports ---
     # db.cur.execute("DROP TABLE IF EXISTS reports")
     # db._create_reports_table()
-    # db.add_report("Barak",1,0)
+    # db.add_report("Alon",1,0)
     # db.set_report_status(1,0, 0)
     # db.add_report("Alon",1,0)
     # db.add_report("Ella",1,0)
@@ -820,6 +829,8 @@ if __name__ == "__main__":
 
     # print("get reports:")
     # print(db.get_reports())
+
+    print(db.get_reporters(1,0))
 
     # # --- removed_content ---
     # db.cur.execute("DROP TABLE IF EXISTS removed_content")

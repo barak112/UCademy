@@ -180,6 +180,7 @@ class ClientLogic:
 
 
     def handle_report_status(self, data):  # command 9
+        print(data, "1")
         status, id, type, content, content_publisher, date, time = data
         status = int(status)
         type = int(type)
@@ -302,8 +303,8 @@ if __name__ == "__main__":
 
     # test command 8
 
-    msg_to_send = clientProtocol.build_report(9, 0)
-    client.comm.send_msg(msg_to_send)
+    # msg_to_send = clientProtocol.build_report(2, 1)
+    # client.comm.send_msg(msg_to_send)
 
     #test command 9 (requires command 14 first)
     # msg_to_send = clientProtocol.build_req_comments(1)
@@ -337,6 +338,10 @@ if __name__ == "__main__":
     # client.video_comm.send_file("barak.txt")
 
 
+    #test system manager
+
+    msg_to_send = clientProtocol.build_comment_or_video_status(1,0, settings.REPORT_ACCEPTED)
+    client.comm.send_msg(msg_to_send)
 
     time.sleep(0.5)
     # print(client.user)
