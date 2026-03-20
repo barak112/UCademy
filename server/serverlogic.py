@@ -101,7 +101,7 @@ class ServerLogic:
         self.current_video_port = settings.VIDEO_PORT
         self.clients = {} # [client_ip] = (username, video_comm, [topics_filter])
 
-        self.clients_awaiting_email_verification = {} # [client_ip] = [username, password, email, email_verification_code]
+        self.clients_awaiting_email_verification = {} # [client_ip] = [username, password, email, email_verification_code, time]
 
         self.videos_to_send = {} # [client_ip] = [videos_ids]
         self.users_to_send = {} # [client_ip] = [users_names]
@@ -141,12 +141,17 @@ class ServerLogic:
     def handle_email_verification(self, client_ip, data):  # command 1
         email_verification_code = data[0]
 
+        # todo change this in the way merry said, in a way that the dictionary doesnt get big
+        # do not remember what it was though
+        # to ask: when should i delete the code from the dictionary?
+        #        should i let the user know when their code is expired (client counting 10 mins)?
+        #        should i just kick the user to the sign up screen once time is up?
+        #        if so, how would i know to delete their code from the dictionary?
+
         status = settings.EMAIL_VERIFICATION_CODE_INVALID
         username = None
         email = None
         port = None
-
-        #todo request a new email verification code
 
         #checks if code is valid
         if client_ip in self.clients_awaiting_email_verification and email_verification_code == self.clients_awaiting_email_verification[client_ip][3]:
@@ -215,23 +220,21 @@ class ServerLogic:
         username = self.db.get_username(username_or_email)
         print(f"trying to sign in user: {username} ")
 
-        if self.db.user_exists(username):
-            password_hash = self.db.get_password_hash(username)
-            if self.verify_password(password, password_hash):
-                status = 1
+        if self.db.log_in(username, self.hash_password(password)):
+            status = 1
 
-                followers_amount = self.db.get_followers_amount(username)
-                followings_amount = self.db.get_following_amount(username)
-                videos_amount = self.db.get_videos_amount(username)
+            followers_amount = self.db.get_followers_amount(username)
+            followings_amount = self.db.get_following_amount(username)
+            videos_amount = self.db.get_videos_amount(username)
 
-                topics = self.db.get_user_topics(username)
-                email = self.db.get_user_email(username)
-                followings_names = self.db.get_followings(username)
-                msg = serverProtocol.build_sign_in_status(1,self.current_video_port,username, followers_amount,
-                                                          followings_amount, videos_amount, email, topics, followings_names)
-                self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), topics]
-                self.pfps_sent[client_ip] = []
-                self.current_video_port+=1
+            topics = self.db.get_user_topics(username)
+            email = self.db.get_user_email(username)
+            followings_names = self.db.get_followings(username)
+            msg = serverProtocol.build_sign_in_status(1,self.current_video_port,username, followers_amount,
+                                                      followings_amount, videos_amount, email, topics, followings_names)
+            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), topics]
+            self.pfps_sent[client_ip] = []
+            self.current_video_port+=1
 
         self.comm.send_msg(client_ip, msg)
         if status:
@@ -242,42 +245,27 @@ class ServerLogic:
 
     def send_reports_statuses(self, reports):
         #reports = [(id, type, username, client_id),(...)]
+        print("sending reports:",reports)
         for id, type, username, client_ip in reports:
-
-            # todo huge changes need to be made here
-            # im currently just assuming that the content is removed
-            # and when there is a comment im just assuming that the video it was commented on still exists
-            # changes suggested:
-            # add to the videos and comments tables a field named "deleted"
-            # and then whenever i select from these tables i filter out the deleted ones.
-            # but when i want them for the report i just dont filter out the deleted ones.
-            # i could even add add a include_deleted = False in the select db functions.
-            # good luck for me
 
             self.db.set_report_notified(username, id, type)
 
             status, created_at = self.db.get_report_status_and_created_at(username, id, type)
-            content, content_publisher = self.db.get_removed_content(id, type)
             date, time = created_at.split(" ")
 
             if type == settings.COMMENT_DIGIT_REPR:
-                video_id = self.db.get_video_id_by_comment_id(id)
-                creator, video_name = self.db.get_specific_video(video_id)[:2]
 
-                content = (content, video_name)
-                content_publisher = (content_publisher, creator)
+                video_id, commenter, comment = self.db.get_specific_comment(id, False)[1:4]
+                video_id = self.db.get_video_id_by_comment_id(id)
+                creator, video_name = self.db.get_specific_video(video_id, False)[:2]
+
+                content = (comment, video_name)
+                content_publisher = (commenter, creator)
+            else:
+                content, content_publisher = self.db.get_specific_video(id, False)[:2]
 
             msg = serverProtocol.build_report_status(status, id, type, content, content_publisher, date, time)
             self.comm.send_msg(client_ip, msg)
-
-    @staticmethod
-    def verify_password(password: str, stored: str) -> bool:
-        algo, iters, salt_hex, dk_hex = stored.split("$")
-        iterations = int(iters)
-        salt = bytes.fromhex(salt_hex)
-        expected = bytes.fromhex(dk_hex)
-        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
-        return hmac.compare_digest(dk, expected)
 
     def handle_set_user_topics(self, client_ip, data):  # command 3
         topics = [int(t) for t in data]
@@ -537,18 +525,26 @@ class ServerLogic:
 
     def handle_video_req(self, client_ip, data):  # command 15
         video_id = data[0]
-        if video_id:
-            video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
-            file_path = f"media\\videos\\{video_id}.{settings.VIDEO_EXTENSION}"
-            self.clients[client_ip][1].send_file(client_ip, file_path, video_id, creator, video_name, video_desc,
-                                                 created_at, likes_amount, comments_amount, liked)
-            print(
-                f"sending video {video_id} to {client_ip} with creator {creator}, name {video_name}, desc {video_desc}, likes {likes_amount}, comments {comments_amount}, liked {liked}"
-            )
-        else:
-            #todo: algorithm to choose video
+        if not video_id:
+            video_id = self.db.get_video_for_user(self.clients[client_ip][0], self.clients[client_ip][2])
 
-            pass
+        if video_id:
+            self.send_video_and_details(client_ip, video_id)
+        else:
+            msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
+            self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
+
+    def send_video_and_details(self, client_ip, video_id):
+        video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = self.get_video_details(
+            client_ip, video_id)
+        file_path = f"media\\videos\\{video_id}.{settings.VIDEO_EXTENSION}"
+        self.clients[client_ip][1].send_file(client_ip, file_path, video_id, creator, video_name, video_desc,
+                                             created_at, likes_amount, comments_amount, liked)
+
+        print(
+            f"sending video {video_id} to {client_ip} with creator {creator}, name {video_name}, desc {video_desc}, likes {likes_amount}, comments {comments_amount}, liked {liked}"
+        )
+
 
     def get_video_details(self,client_ip, video_id): # helper function
         creator, video_name, video_desc, created_at, likes_amount, comments_amount = self.db.get_specific_video(video_id)
@@ -605,28 +601,23 @@ class ServerLogic:
                     if type == settings.COMMENT_DIGIT_REPR:
                         comment_id, video_id, commenter, comment, created_at = self.db.get_specific_comment(id)
                         creator, video_name = self.db.get_specific_video(video_id)[:2]
-                        content = comment
-                        content_publisher = commenter
                         self.db.delete_comment(id)
                         self.send_email(comment_id, self.EMAIL_COMMENT_REMOVE_MSG.format(comment, commenter, video_name, creator, created_at), self.EMAIL_COMMENT_REMOVE_SUBJECT)
 
                     else: # video
                         creator, video_name, desc, created_at = self.db.get_specific_video(id)[:4]
-                        content = video_name
-                        content_publisher = creator
                         self.db.delete_video(id)
                         self.send_email(creator, self.EMAIL_VIDEO_REMOVE_MSG.format(video_name, desc, created_at, creator), self.EMAIL_VIDEO_REMOVE_SUBJECT)
 
-                    self.db.add_removed_content(id,type,content, content_publisher)
-
                 self.db.set_report_status(id, type, status)
 
-                usernames = self.db.get_reporters(id, type)
-                reports = []
-                for a_clients_ip in self.clients.keys():
-                    username = self.clients[a_clients_ip][0]
-                    if username in usernames:
-                        reports.append((id, type, username, client_ip))
+                usernames = set(self.db.get_reporters(id, type))
+
+                client_names = {i[0] for i in self.clients.values()}
+
+                active_reporters = usernames & client_names
+
+                reports = [[id, type, username, client_ip] for username in active_reporters]
 
                 self.send_reports_statuses(reports)
             else:
@@ -673,10 +664,9 @@ class ServerLogic:
         return h.hexdigest()
 
     @staticmethod
-    def hash_password(password: str, *, iterations: int = 200_000) -> str:
-        salt = os.urandom(16)
-        dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations)
-        return f"pbkdf2_sha256${iterations}${salt.hex()}${dk.hex()}"
+    def hash_password(password):
+        return hashlib.md5(password.encode()).hexdigest()
+
 
 if __name__ == "__main__":
     msgsQ = queue.Queue()

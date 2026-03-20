@@ -1,20 +1,9 @@
 add confirmation to file uploading
 
-
-
-
-
-
-
-
-
-
 to ask merry:
 
-how to implement asking for a new code
-
-check if its okay i extract password hash out of db
-
-check if its okay to let the email code verifications dictionary get big
-
-should notified be integer or boolean
+about report concluded
+should i create a table that consists of
+id, type, status (deleted/not_deleted)
+so for each concluded report i have one row in a table
+so that i can delete the rows of reports once i have notified the reporter

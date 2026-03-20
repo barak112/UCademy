@@ -129,6 +129,8 @@ class ClientLogic:
 
             self.user = user.User(username, followers_amount, followings_amount, videos_amount,email, topics, followings_names)
             print(f"signed in as {username}")
+        else:
+            print("one of the credentials inputted is incorrect")
 
     def handle_topics_confirmation(self, data):  # command 3
         topics = data[0]
@@ -265,9 +267,9 @@ if __name__ == "__main__":
     time.sleep(0.1)
 
     # test command 0
-    # msg_to_send = clientProtocol.build_sign_up("Barak11", "password123", "bbmalt9@gmail.com")
+    # msg_to_send = clientProtocol.build_sign_up("Barak", "password123", "bbmalt9@gmail.com")
     # client.comm.send_msg(msg_to_send)
-    #
+    # #
     # #test command 1
     # verification_code = input("Enter verification code: ")
     # msg_to_send = clientProtocol.build_email_verification_code(verification_code)
@@ -340,7 +342,7 @@ if __name__ == "__main__":
 
     #test system manager
 
-    msg_to_send = clientProtocol.build_comment_or_video_status(1,0, settings.REPORT_ACCEPTED)
+    msg_to_send = clientProtocol.build_comment_or_video_status(2,1, settings.REPORT_ACCEPTED)
     client.comm.send_msg(msg_to_send)
 
     time.sleep(0.5)
