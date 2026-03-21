@@ -64,8 +64,6 @@ class ClientCommVideos (clientComm.ClientComm):
     def _recv_file(self, msg):
         """
             recvs file send from the server and saves it at media//``file_name``
-        :param file_size: size of the file that needs to be received
-        :param file_name: the name and extension of file to be received
         :return: returns whether the recv was successful
         """
         # called by handle_save_file in logic
@@ -91,6 +89,16 @@ class ClientCommVideos (clientComm.ClientComm):
             self._close_client()
 
     def _recv_file_content(self, file_size):
+        """
+        Handles the process of receiving a file's content from a socket connection.
+        Data is received in chunks of up to 1024 bytes until the full file content
+        is retrieved or an error occurs.
+
+        :param file_size: The expected size of the file to be received in bytes.
+        :return: A bytearray containing the received file content. If the connection
+             is interrupted or an error occurs, the content received until the point
+             of interruption is returned.
+        """
         file_content = bytearray()
         while len(file_content) < file_size:
             slice = min(1024, (file_size - len(file_content)))
@@ -101,6 +109,7 @@ class ClientCommVideos (clientComm.ClientComm):
                 data = ''
 
             if not data:
+                file_content = None
                 break
 
             file_content.extend(data)

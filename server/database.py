@@ -1,10 +1,5 @@
-import hashlib
-import hmac
 import os
 import sqlite3
-
-import serverProtocol
-
 
 class DataBase:
 
@@ -28,7 +23,6 @@ class DataBase:
         self._create_reports_table()
         self._create_system_managers_table()
 
-
     # ==== db in general ====
     def close(self):
         """
@@ -38,18 +32,23 @@ class DataBase:
         self.conn.close()
 
     def delete_database(self):
+        """
+        Close the database connection and delete the database file.
+        """
         self.conn.close()
-        os.remove("ucademy.db")
+        if os.path.isfile("ucademy.db"):
+            os.remove("ucademy.db")
 
     def print_tables(self):
-        # Get all table names
+        """
+        Print the first 15 rows of every table in the database for debugging purposes.
+        """
         self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = [t[0] for t in self.cur.fetchall()]
 
-        # Print first 15 rows of each table
         for table in tables:
             print(f"\nTable: {table}")
-            self.cur.execute(f"SELECT * FROM {table} LIMIT 15;")
+            self.cur.execute(f"SELECT * FROM ? LIMIT 15;", table)
             rows = self.cur.fetchall()
             for row in rows:
                 print(row)
@@ -62,153 +61,180 @@ class DataBase:
         :return: Creates the users table if it does not already exist
         """
         self.cur.execute("""
-                         CREATE TABLE IF NOT EXISTS users (
-                                                              username TEXT PRIMARY KEY,
-                                                              email TEXT,
-                                                              password_hash TEXT
-                         )
-                         """)
+        CREATE TABLE IF NOT EXISTS users (
+            username TEXT PRIMARY KEY,
+            email TEXT,
+            password_hash TEXT
+        ) """)
         self.conn.commit()
+
+
 
     def _create_videos_table(self):
         """
         Creates the videos table.
-        :return: Creates the videos table if it does not already exist
+        :return: Creates the videos table if it does not already exist.
         """
-        self.cur.execute("""CREATE TABLE IF NOT EXISTS videos (
-                                                                  video_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                                                  creator TEXT,
-                                                                  name TEXT,
-                                                                  description TEXT,
-                                                                  test_link TEXT,
-                                                                  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                                                  deleted DEFAULT 0
-                            )
-                         """)
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS videos (
+                video_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                creator TEXT,
+                name TEXT,
+                description TEXT,
+                test_link TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                deleted INTEGER DEFAULT 0
+            )
+        """)
         self.conn.commit()
+
 
     def _create_comments_table(self):
         """
         Creates the comments table.
-        :return: Creates the comments table if it does not already exist
+        :return: Creates the comments table if it does not already exist.
         """
-        self.cur.execute("""CREATE TABLE IF NOT EXISTS comments (
-                                                                    comment_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                                                    video_id INTEGER,
-                                                                    commenter TEXT,
-                                                                    comment TEXT,
-                                                                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                                                    deleted INTEGER DEFAULT 0
-                            )
-                         """)
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS comments (
+                comment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                video_id INTEGER,
+                commenter TEXT,
+                comment TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                deleted INTEGER DEFAULT 0
+            )
+        """)
         self.conn.commit()
+
 
     def _create_likes_table(self):
         """
         Creates the likes table.
-        :return: Creates the likes table if it does not already exist
+        :return: Creates the likes table if it does not already exist.
         """
-        self.cur.execute("""CREATE TABLE IF NOT EXISTS likes (
-                                                                 video_id INTEGER,
-                                                                 username TEXT,
-                                                                 PRIMARY KEY (video_id, username)
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS likes (
+                video_id INTEGER,
+                username TEXT,
+                PRIMARY KEY (video_id, username)
             )
-                         """)
+        """)
         self.conn.commit()
+
 
     def _create_following_table(self):
         """
         Creates the following table.
-        :return: Creates the following table if it does not already exist
+        :return: Creates the following table if it does not already exist.
         """
-        self.cur.execute("""CREATE TABLE IF NOT EXISTS following (
-                                                                     following TEXT,
-                                                                     followed TEXT,
-                                                                     PRIMARY KEY (following, followed)
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS following (
+                follower TEXT,
+                followed TEXT,
+                PRIMARY KEY (follower, followed)
             )
-                         """)
+        """)
         self.conn.commit()
+        # TODO: rename 'following' to 'follower' (follower, followed)
+
 
     def _create_video_topics_table(self):
         """
         Creates the video_topics table.
-        :return: Creates the video_topics table if it does not already exist
+        :return: Creates the video_topics table if it does not already exist.
         """
-        self.cur.execute("""CREATE TABLE IF NOT EXISTS video_topics (
-                                                                        video_id INTEGER,
-                                                                        topic INTEGER,
-                                                                        PRIMARY KEY (video_id, topic)
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS video_topics (
+                video_id INTEGER,
+                topic INTEGER,
+                PRIMARY KEY (video_id, topic)
             )
-                         """)
+        """)
         self.conn.commit()
+
 
     def _create_user_topics_table(self):
         """
         Creates the user_topics table.
-        :return: Creates the user_topics table if it does not already exist
+        :return: Creates the user_topics table if it does not already exist.
         """
-        self.cur.execute("""CREATE TABLE IF NOT EXISTS user_topics (
-                                                                       username TEXT,
-                                                                       topic INTEGER,
-                                                                       PRIMARY KEY (username, topic)
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS user_topics (
+                username TEXT,
+                topic INTEGER,
+                PRIMARY KEY (username, topic)
             )
-                         """)
+        """)
         self.conn.commit()
+
 
     def _create_watched_videos_table(self):
         """
         Creates the watched_videos table.
-        :return: Creates the watched_videos table if it does not already exist
+        :return: Creates the watched_videos table if it does not already exist.
         """
-        self.cur.execute(
-            """CREATE TABLE IF NOT EXISTS watched_videos (
-                                                             username TEXT,
-                                                             video_id INTEGER,
-                                                             PRIMARY KEY (username, video_id)
-                )
-            """)
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS watched_videos (
+                username TEXT,
+                video_id INTEGER,
+                PRIMARY KEY (username, video_id)
+            )
+        """)
         self.conn.commit()
+
 
     def _create_video_hashes_table(self):
         """
         Creates the video_hashes table.
-        :return: Creates the video_hashes table if it does not already exist
+        :return: Creates the video_hashes table if it does not already exist.
         """
-        self.cur.execute("""CREATE TABLE IF NOT EXISTS video_hashes (
-                                                                        video_id INTEGER PRIMARY KEY,
-                                                                        video_hash TEXT UNIQUE
-                            )
-                         """)
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS video_hashes (
+                video_id INTEGER PRIMARY KEY,
+                video_hash TEXT UNIQUE
+            )
+        """)
         self.conn.commit()
+
 
     def _create_reports_table(self):
         """
         Creates the reports table.
-        :return: Creates the reports table if it does not already exist
+        :return: Creates the reports table if it does not already exist.
         """
-        self.cur.execute("""CREATE TABLE IF NOT EXISTS reports (
-                                                                   reporter_name TEXT,
-                                                                   target_id INTEGER,
-                                                                   target_type INTEGER,
-                                                                   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                                                   status INTEGER,
-                                                                   notified INTEGER DEFAULT 0,
-                                                                   PRIMARY KEY (reporter_name, target_id, target_type)
-                            )
-                         """)
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS reports (
+                reporter_name TEXT,
+                target_id INTEGER,
+                target_type INTEGER,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status INTEGER DEFAULT NULL,
+                notified INTEGER DEFAULT 0,
+                PRIMARY KEY (reporter_name, target_id, target_type)
+            )
+        """)
         self.conn.commit()
 
 
     def _create_system_managers_table(self):
-        self.cur.execute("""CREATE TABLE IF NOT EXISTS system_managers (
-                        username TEXT PRIMARY KEY
-        )
+        """
+        Creates the system_managers table.
+        :return: Creates the system_managers table if it does not already exist.
+        """
+        self.cur.execute("""
+            CREATE TABLE IF NOT EXISTS system_managers (
+                username TEXT PRIMARY KEY
+            )
         """)
-
+        self.conn.commit()
 
     # ===== users =====
 
     def remove_user(self, username):
+        """
+        Removes a user from the database.
+        :param username: Username of the user to delete
+        """
         self.cur.execute("DELETE FROM users WHERE username = ?", (username,))
         self.conn.commit()
 
@@ -222,10 +248,21 @@ class DataBase:
         return self.cur.fetchone() is not None
 
     def email_exists(self, email):
+        """
+        Checks whether an email exists in the database.
+        :param email: Email to check
+        :return: True if the email exists, False otherwise
+        """
         self.cur.execute("SELECT 1 FROM users WHERE email = ?", (email,))
         return self.cur.fetchone() is not None
 
     def log_in(self, username, password_hash):
+        """
+        Validates user login credentials.
+        :param username: Username of the user
+        :param password_hash: Hashed password to verify
+        :return: True if credentials match, False otherwise
+        """
         self.cur.execute("SELECT 1 FROM users WHERE username = ? AND password_hash = ?", (username, password_hash))
         return self.cur.fetchone() is not None
 
@@ -238,7 +275,7 @@ class DataBase:
         :return: Inserts a new row into the users table if the username is available
         """
         added = False
-        if not self.user_exists(username): #and not self.email_exists(email): #todo return this at the end of logic testings
+        if not self.user_exists(username):
             self.cur.execute("INSERT INTO users VALUES (?,?,?)", (username, email, password_hash))
             self.conn.commit()
             added = True
@@ -252,17 +289,21 @@ class DataBase:
         self.cur.execute("SELECT username FROM users")
         return [row[0] for row in self.cur.fetchall()]
 
-
     def get_similar_usernames(self, username):
         """
         Retrieves users whose usernames start with a prefix.
         :param username: Username prefix
         :return: List of matching usernames
         """
-        self.cur.execute("SELECT username FROM users WHERE username LIKE ? COLLATE NOCASE", ("%"+ username + "%",))
+        self.cur.execute("SELECT username FROM users WHERE username LIKE ? COLLATE NOCASE", ("%" + username + "%",))
         return self.cur.fetchall()
 
     def get_password_hash(self, username):
+        """
+        Retrieves the password hash of a user.
+        :param username: Username of the user
+        :return: Password hash if found, otherwise None
+        """
         self.cur.execute("SELECT password_hash FROM users WHERE username = ?", (username,))
         res = self.cur.fetchone()
         if res:
@@ -270,6 +311,11 @@ class DataBase:
         return res
 
     def get_user_email(self, username):
+        """
+        Retrieves the email of a user.
+        :param username: Username of the user
+        :return: Email if found, otherwise None
+        """
         self.cur.execute("SELECT email FROM users WHERE username = ?", (username,))
         res = self.cur.fetchone()
         if res:
@@ -281,7 +327,8 @@ class DataBase:
         :param username_or_email: The username or email address to search for in the users table.
         :return: The first username found matching the given username or email address.
         """
-        self.cur.execute("SELECT username FROM users WHERE username = ? OR email = ?", (username_or_email, username_or_email))
+        self.cur.execute("SELECT username FROM users WHERE username = ? OR email = ?",
+                         (username_or_email, username_or_email))
         username = self.cur.fetchone()
         if username:
             username = username[0]
@@ -290,31 +337,48 @@ class DataBase:
     # ===== videos =====
 
     def get_videos_by_creator(self, username):
+        """
+        Retrieves video IDs created by a specific user ordered by views.
+        :param username: Creator username
+        :return: List of video IDs sorted by number of views
+        """
         self.cur.execute("""
-        SELECT videos.video_id, COUNT(watched_videos.username) AS views 
-        FROM videos 
-            LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id 
-        WHERE videos.creator = ? 
-        GROUP BY videos.video_id 
-        ORDER BY views DESC
-        """, (username,))
+                         SELECT videos.video_id, COUNT(watched_videos.username) AS views
+                         FROM videos
+                                  LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id
+                         WHERE videos.creator = ?
+                         GROUP BY videos.video_id
+                         ORDER BY views DESC
+                         """, (username,))
 
         results = self.cur.fetchall()
         results = [i[0] for i in results]
         return results
 
     def is_the_video_creator(self, video_id, username):
+        """
+        Checks if a user is the creator of a video.
+        :param video_id: ID of the video
+        :param username: Username to check
+        :return: True if the user is the creator, False otherwise
+        """
         self.cur.execute("SELECT 1 FROM videos WHERE video_id = ? AND creator = ?", (video_id, username))
         return self.cur.fetchone() is not None
 
     def video_exists(self, video_id):
+        """
+        Checks if a video exists.
+        :param video_id: ID of the video
+        :return: True if the video exists, False otherwise
+        """
         self.cur.execute("SELECT 1 FROM videos WHERE video_id = ?", (video_id,))
         return self.cur.fetchone() is not None
 
-    def get_specific_video(self, video_id, matter_deleted = True):
+    def get_specific_video(self, video_id, matter_deleted=True):
         """
         Retrieves a video by ID.
         :param video_id: ID of the video
+        :param matter_deleted: A boolean indicating whether deleted videos should be excluded from the results.
         :return: video details: creator, name, desc, created_at, likes_amount, comments_amount
         """
         ret_val = None
@@ -323,8 +387,8 @@ class DataBase:
                              SELECT videos.creator,
                                     videos.name,
                                     videos.description,
-                                    strftime('%d/%m/%Y %H:%M',videos.created_at),
-                                    COUNT(DISTINCT likes.username) AS likes_count,
+                                    strftime('%d/%m/%Y %H:%M', videos.created_at),
+                                    COUNT(DISTINCT likes.username)     AS likes_count,
                                     COUNT(DISTINCT comments.commenter) AS comments_count
                              FROM videos
                                       LEFT JOIN likes ON videos.video_id = likes.video_id
@@ -333,19 +397,26 @@ class DataBase:
                              WHERE videos.video_id = ?
                              GROUP BY videos.video_id
                              """, (video_id,))
-            ret_val = self.cur.fetchall()[0]
+            ret_val = self.cur.fetchone()
 
         return ret_val
 
     def video_deleted(self, video_id):
+        """
+        Checks if a video is marked as deleted.
+        :param video_id: ID of the video
+        :return: True if deleted, False otherwise
+        """
         self.cur.execute("SELECT 1 FROM videos WHERE video_id = ? AND deleted = 1", (video_id,))
+        return self.cur.fetchone() is not None
 
-    def add_video(self, creator, name, description, test_link = None):
+    def add_video(self, creator, name, description, test_link=None):
         """
         Adds a new video.
         :param creator: Username of the uploader
         :param name: Video title
         :param description: Video description
+        :param test_link: An optional test link for the video.
         :return: Inserts a new row into the videos table
         """
         self.cur.execute("INSERT INTO videos (creator, name, description, test_link) VALUES (?,?,?,?)",
@@ -354,22 +425,30 @@ class DataBase:
         video_id = self.cur.lastrowid
         return video_id
 
-
     def delete_video(self, video_id):
         """
         Deletes a video.
         :param video_id: ID of the video
         :return: Removes the video row from the videos table
         """
-        print("settings delted")
         self.cur.execute("UPDATE videos SET deleted = 1 WHERE video_id = ?", (video_id,))
         self.conn.commit()
 
     def get_videos_amount(self, username):
+        """
+        Counts how many videos a user has.
+        :param username: Creator username
+        :return: Number of videos created by the user
+        """
         self.cur.execute("SELECT COUNT(*) FROM videos WHERE creator = ?", (username,))
         return self.cur.fetchone()[0]
 
     def get_video_test_link(self, video_id):
+        """
+        Retrieves the test link of a video.
+        :param video_id: ID of the video
+        :return: Test link if exists, otherwise None
+        """
         self.cur.execute("SELECT test_link FROM videos WHERE video_id = ?", (video_id,))
         result = self.cur.fetchone()
         if result:
@@ -377,6 +456,11 @@ class DataBase:
         return result
 
     def get_videos_with_similar_desc(self, desc):
+        """
+        Finds videos with similar descriptions.
+        :param desc: Description keyword
+        :return: List of matching video IDs
+        """
         self.cur.execute(
             "SELECT video_id FROM videos WHERE description LIKE ? COLLATE NOCASE",
             ('%' + desc + '%',)
@@ -387,30 +471,39 @@ class DataBase:
         return results
 
     def get_videos_with_similar_name(self, name):
+        """
+        Finds videos with similar names.
+        :param name: Name keyword
+        :return: List of matching video IDs
+        """
         self.cur.execute(
-            "SELECT video_id FROM videos WHERE description LIKE ? COLLATE NOCASE",
+            "SELECT video_id FROM videos WHERE name LIKE ? COLLATE NOCASE",
             ('%' + name + '%',)
         )
         results = self.cur.fetchall()
         results = [i[0] for i in results]
         return results
 
-
     def get_most_viewed_video_for_user(self, username):
+        """
+        Retrieves the most viewed video the user has not watched yet.
+        :param username: Username of the viewer
+        :return: Video ID of the most viewed unseen video or None
+        """
         self.cur.execute("""
-        SELECT videos.video_id, COUNT(watched_videos.video_id) AS views
-        FROM videos
-            LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id 
-        WHERE videos.deleted = 0
-        AND NOT EXISTS (
-        SELECT 1 FROM watched_videos WHERE watched_videos.video_id = videos.video_id
-        AND watched_videos.username = ?
-        )
-        
-        GROUP BY videos.video_id
-        ORDER BY views DESC
+                         SELECT videos.video_id, COUNT(watched_videos.video_id) AS views
+                         FROM videos
+                                  LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id
+                         WHERE videos.deleted = 0
+                           AND NOT EXISTS (SELECT 1
+                                           FROM watched_videos
+                                           WHERE watched_videos.video_id = videos.video_id
+                                             AND watched_videos.username = ?)
 
-         """, (username,))
+                         GROUP BY videos.video_id
+                         ORDER BY views DESC
+
+                         """, (username,))
 
         res = self.cur.fetchone()
         if res:
@@ -418,29 +511,46 @@ class DataBase:
 
         return res
 
-    # ===== comments =====
+    # todo 2/4 <-37 funcs | 19 func ->
 
     def add_comment(self, video_id, commenter_name, comment):
-        self.cur.execute("INSERT INTO comments (video_id, commenter, comment) VALUES (?,?,?)", (video_id, commenter_name, comment))
+        """
+        Adds a new comment to a video
+        :param video_id: ID of the video the comment belongs to
+        :param commenter_name: the username of the person adding the comment
+        :param comment: the content of the comment
+        :return: ID of the newly inserted comment
+        """
+        self.cur.execute("INSERT INTO comments (video_id, commenter, comment) VALUES (?,?,?)",
+                         (video_id, commenter_name, comment))
         self.conn.commit()
         return self.cur.lastrowid
 
-    def get_specific_comment(self, comment_id, matter_deleted = True):
+    def get_specific_comment(self, comment_id, matter_deleted=True):
         """
             Retrieve a specific comment from the database by its comment_id.
             This method executes a query to retrieve a single comment from the `comments`
             table using the given comment_id.
         :param comment_id: The id of the comment to retrieve.
+        :param matter_deleted: A boolean indicating whether deleted comments should be excluded from the results.
         :return: Tuple representing the comment: video_id, comment_id, commenter, comment, created_at
         """
         res = None
         if self.comment_exists(comment_id) and not (matter_deleted and self.comment_deleted(comment_id)):
-            self.cur.execute("comment_id, video_id, commenter, comment, strftime('%d/%m/%Y %H:%M', created_at) FROM comments WHERE comment_id = ?", (comment_id,))
+            self.cur.execute(
+                "SELECT comment_id, video_id, commenter, comment, strftime('%d/%m/%Y %H:%M', created_at) FROM comments WHERE comment_id = ?",
+                (comment_id,))
             res = self.cur.fetchone()
         return res
 
     def comment_deleted(self, comment_id):
-        self.cur.execute("SELECT 1 FROM comments WHERE comment_id = ? AND deleted = 1", (comment_id))
+        """
+        Checks if a comment is marked as deleted
+        :param comment_id: ID of the comment to check
+        :return: True if the comment is deleted, False otherwise
+        """
+        self.cur.execute("SELECT 1 FROM comments WHERE comment_id = ? AND deleted = 1", (comment_id,))
+        return self.cur.fetchone() is not None
 
     def get_comments(self, video_id, username):
         """
@@ -450,15 +560,22 @@ class DataBase:
         :return: List of comment rows from the comments table, when the comments of username are first
         """
         self.cur.execute("""
-        SELECT comment_id, video_id, commenter, comment, strftime('%d/%m/%Y %H:%M', created_at)
-        FROM comments WHERE video_id = ? AND deleted = 0
-        ORDER BY CASE WHEN commenter = ? THEN 0 ELSE 1 END, comment_id DESC;""", (video_id, username))
+                         SELECT comment_id, video_id, commenter, comment, strftime('%d/%m/%Y %H:%M', created_at)
+                         FROM comments
+                         WHERE video_id = ?
+                           AND deleted = 0
+                         ORDER BY CASE WHEN commenter = ? THEN 0 ELSE 1 END, comment_id DESC;""", (video_id, username))
         comments = self.cur.fetchall()
         return comments
 
     def get_comments_amount(self, video_id):
+        """
+        Counts the number of non-deleted comments for a video
+        :param video_id: ID of the video
+        :return: Number of comments for the video
+        """
         self.cur.execute("SELECT COUNT(*) FROM comments WHERE video_id = ? and deleted = 0", (video_id,))
-        return self.cur.fetchall()
+        return self.cur.fetchone()[0]
 
     def delete_comment(self, comment_id):
         """
@@ -470,10 +587,20 @@ class DataBase:
         self.conn.commit()
 
     def comment_exists(self, comment_id):
+        """
+        Checks if a comment exists in the database
+        :param comment_id: ID of the comment to check
+        :return: True if the comment exists, False otherwise
+        """
         self.cur.execute("SELECT 1 FROM comments WHERE comment_id = ?", (comment_id,))
         return self.cur.fetchone() is not None
 
     def get_video_id_by_comment_id(self, comment_id):
+        """
+        Retrieves the video ID associated with a specific comment
+        :param comment_id: ID of the comment
+        :return: Video ID if found, otherwise None
+        """
         self.cur.execute("SELECT video_id FROM comments WHERE comment_id = ?", (comment_id,))
         res = self.cur.fetchone()
         if res:
@@ -512,56 +639,111 @@ class DataBase:
         return self.cur.fetchone()[0]
 
     def is_liked_by_user(self, video_id, username):
-        self.cur.execute("SELECT 1 FROM likes WHERE video_id = ? AND username = ?",(video_id, username))
-        return self.cur.fetchone() is None
+        """
+        Checks if a user has liked a specific video
+        :param video_id: ID of the video
+        :param username: Username of the user
+        :return: True if the user liked the video, False otherwise
+        """
+        self.cur.execute("SELECT 1 FROM likes WHERE video_id = ? AND username = ?", (video_id, username))
+        return self.cur.fetchone() is not None
 
     # ===== following =====
     def add_following(self, following, followed):
+        """
+        Adds a following relationship between two users
+        :param following: Username of the follower
+        :param followed: Username of the user being followed
+        """
         self.cur.execute("INSERT INTO following VALUES (?, ?)", (following, followed))
         self.conn.commit()
 
     def get_followings(self, username):
-        self.cur.execute("SELECT followed FROM following WHERE following = ?", (username,))
-        followings = self.cur.fetchall()
-        if followings:
-            followings = [i[0] for i in followings]
+        """
+        Retrieves a list of users that the given user is following
+        :param username: Username of the user
+        :return: List of followed usernames
+        """
+        self.cur.execute("SELECT followed FROM following WHERE follower = ?", (username,))
+        followings = [i[0] for i in self.cur.fetchall()]
         return followings  # Return a list of followed usernames
 
     def get_followers(self, username):
+        """
+        Retrieves a list of users who follow the given user
+        :param username: Username of the user
+        :return: List of follower usernames
+        """
         self.cur.execute("SELECT following FROM following WHERE followed = ?", (username,))
-        followers = self.cur.fetchall()
-        if followers:
-            followers = [i[0] for i in followers]
+        followers = [i[0] for i in self.cur.fetchall()]
         return followers
 
     def remove_following(self, following, followed):
-        self.cur.execute("DELETE FROM following WHERE following = ? and followed = ?", (following, followed))
+        """
+        Removes a following relationship between two users
+        :param following: Username of the follower
+        :param followed: Username of the user being unfollowed
+        """
+        self.cur.execute("DELETE FROM follower WHERE following = ? and followed = ?", (following, followed))
         self.conn.commit()
 
     def is_following(self, following, followed):
-        self.cur.execute("SELECT 1 FROM following WHERE following = ? and followed = ?", (following, followed))
+        """
+        Checks if one user is following another
+        :param following: Username of the follower
+        :param followed: Username of the user being followed
+        :return: True if following, False otherwise
+        """
+        self.cur.execute("SELECT 1 FROM following WHERE follower = ? and followed = ?", (following, followed))
         return self.cur.fetchone() is not None
 
     def get_followers_amount(self, username):
+        """
+        Counts the number of followers a user has
+        :param username: Username of the user
+        :return: Number of followers
+        """
         self.cur.execute("SELECT COUNT(*) FROM following WHERE followed = ?", (username,))
         return self.cur.fetchone()[0]
 
     def get_following_amount(self, username):
-        self.cur.execute("SELECT COUNT(*) FROM following WHERE following = ?", (username,))
+        """
+        Counts the number of users a given user is following
+        :param username: Username of the user
+        :return: Number of followings
+        """
+        self.cur.execute("SELECT COUNT(*) FROM following WHERE follower = ?", (username,))
         return self.cur.fetchone()[0]
+
+    # todo 3/4 <-19 funcs |  func -> 10
 
     # ===== video topics =====
 
     def add_video_topics(self, video_id, topics):
+        """
+        Adds multiple topics to a video
+        :param video_id: ID of the video
+        :param topics: iterable of topics to associate with the video
+        """
         for topic in topics:
             self.cur.execute("INSERT INTO video_topics VALUES (?,?)", (video_id, topic))
         self.conn.commit()
 
     def get_video_topics(self, video_id):
+        """
+        Retrieves all topics associated with a video
+        :param video_id: ID of the video
+        :return: List of tuples representing video-topic relationships
+        """
         self.cur.execute("SELECT * FROM video_topics WHERE video_id = ?", (video_id,))
         return self.cur.fetchall()
 
     def get_videos_ids_by_topics(self, topics):
+        """
+        Retrieves video IDs that match any of the given topics
+        :param topics: list of topics to filter videos by
+        :return: List of video IDs matching the topics
+        """
         video_ids = []
         if topics:
             placeholders = ",".join(["?"] * len(topics))
@@ -572,28 +754,33 @@ class DataBase:
         return video_ids
 
     def get_video_for_user_topics(self, username):
+        """
+        Retrieves a recommended video for a user based on shared topics and popularity
+        :param username: Username of the user
+        :return: Video ID if found, otherwise None
+        """
         self.cur.execute("""
-        SELECT video_topics.video_id, 
-            COUNT(watched_videos.username) AS views, 
-            COUNT(video_topics.topic) AS shared_topics
+                         SELECT video_topics.video_id,
+                                COUNT(watched_videos.username) AS views,
+                                COUNT(video_topics.topic)      AS shared_topics
 
-        FROM user_topics 
-             LEFT JOIN video_topics ON user_topics.topic = video_topics.topic
-             LEFT JOIN watched_videos ON video_topics.video_id = watched_videos.video_id
-        
-        WHERE EXISTS(
-            SELECT 1 FROM videos
-            WHERE videos.video_id = videos_topics.video_id AND deleted = 0
-        )
-         AND user_topics.username = ?
-         AND NOT EXISTS (
-            SELECT 1 FROM watched_videos 
-            WHERE watched_videos.video_id = video_topics.video_id AND watched_videos.username = ?
-         )
+                         FROM user_topics
+                                  LEFT JOIN video_topics ON user_topics.topic = video_topics.topic
+                                  LEFT JOIN watched_videos ON video_topics.video_id = watched_videos.video_id
 
-         GROUP BY video_topics.video_id
-         ORDER BY shared_topics DESC, views DESC
-         """, (username, username))
+                         WHERE EXISTS(SELECT 1
+                                      FROM videos
+                                      WHERE videos.video_id = video_topics.video_id
+                                        AND deleted = 0)
+                           AND user_topics.username = ?
+                           AND NOT EXISTS (SELECT 1
+                                           FROM watched_videos
+                                           WHERE watched_videos.video_id = video_topics.video_id
+                                             AND watched_videos.username = ?)
+
+                         GROUP BY video_topics.video_id
+                         ORDER BY shared_topics DESC, views DESC
+                         """, (username, username))
 
         res = self.cur.fetchone()
         if res:
@@ -601,68 +788,99 @@ class DataBase:
         return res
 
     def get_video_for_user_filter(self, username, filter):
+        """
+        Retrieves a recommended video for a user based on a filter of topics
+        :param username: Username of the user
+        :param filter: list of topics to filter videos
+        :return: Video ID if found, otherwise None
+        """
+        res = None
+        if filter:
+            place_holders = ("?," * len(filter))[:-1]
+            self.cur.execute(
+                f"""
+                SELECT video_topics.video_id, 
+                    COUNT(watched_videos.username) AS views, 
+                    COUNT(video_topics.topic) AS shared_topics
+                FROM video_topics
+                    LEFT JOIN watched_videos ON video_topics.video_id = watched_videos.video_id
 
-        place_holders = ("?," * len(filter))[:-1]
-        self.cur.execute(
-            f"""
-            SELECT video_topics.video_id, 
-                COUNT(watched_videos.username) AS views, 
-                COUNT(video_topics.topic) AS shared_topics
-            FROM video_topics
-                LEFT JOIN watched_videos ON video_topics.video_id = watched_videos.video_id
-                
-            WHERE EXISTS(
-                SELECT 1 FROM videos
-                WHERE videos.video_id = videos_topics.video_id AND deleted = 0
-            )
-            AND video_topics.topic IN ({place_holders})
-            AND NOT EXISTS (
-                SELECT 1 FROM watched_videos 
-                WHERE watched_videos.video_id = video_topics.video_id AND watched_videos.username = ?
-            )
-            GROUP BY video_topics.video_id
-            ORDER BY shared_topics, views
-        """, (*filter, username))
+                WHERE EXISTS(
+                    SELECT 1 FROM videos
+                    WHERE videos.video_id = video_topics.video_id AND deleted = 0
+                )
+                AND video_topics.topic IN ({place_holders})
+                AND NOT EXISTS (
+                    SELECT 1 FROM watched_videos 
+                    WHERE watched_videos.video_id = video_topics.video_id AND watched_videos.username = ?
+                )
+                GROUP BY video_topics.video_id
+                ORDER BY shared_topics, views
+            """, (*filter, username))
 
-        res = self.cur.fetchone()
-        if res:
-            res = res[0]
+            res = self.cur.fetchone()
+            if res:
+                res = res[0]
         return res
 
     def get_video_for_user(self, username, filter=None):
+        """
+        Retrieves a recommended video for a user based on filters, topics, or popularity
+        :param username: Username of the user
+        :param filter: optional list of topics to filter videos
+        :return: Video ID of the recommended video
+        """
         # returns the most viewed video that the user has not seen and is included in his topics
 
         if filter:
             res = self.get_video_for_user_filter(username, filter)
-            if not res: # if not videos matching filter
-                res = self.get_video_for_user_topics(username) # use video matching topics
+            if not res:  # if not videos matching filter
+                res = self.get_video_for_user_topics(username)  # use video matching topics
         else:
             res = self.get_video_for_user_topics(username)
 
-
-
-        if not res: # if no video matches filter or topics
+        if not res:  # if no video matches filter or topics
             res = self.get_most_viewed_video_for_user(username)
         return res
 
     # ===== user topics =====
 
     def _add_user_topics(self, username, topics):
+        """
+        Adds topics to a user's preferences
+        :param username: Username of the user
+        :param topics: iterable of topics to add
+        """
         for topic in topics:
             self.cur.execute("INSERT INTO user_topics VALUES (?, ?)", (username, topic))
         self.conn.commit()
 
     def _remove_user_topics(self, username, topics):
+        """
+        Removes topics from a user's preferences
+        :param username: Username of the user
+        :param topics: iterable of topics to remove
+        """
         for topic in topics:
             self.cur.execute("DELETE FROM user_topics WHERE username = ? AND topic = ?", (username, topic))
         self.conn.commit()
 
     def get_user_topics(self, username):
+        """
+        Retrieves all topics associated with a user
+        :param username: Username of the user
+        :return: List of topics
+        """
         self.cur.execute("SELECT topic FROM user_topics WHERE username = ?", (username,))
         topics = self.cur.fetchall()
         return [t[0] for t in topics]
 
     def set_user_topics(self, username, new_topics):
+        """
+        Updates a user's topics by adding new ones and removing old ones
+        :param username: Username of the user
+        :param new_topics: list of new topics to set
+        """
         old_topics = self.get_user_topics(username)
         to_add_topics = set(new_topics) - set(old_topics)
         to_remove_topics = set(old_topics) - set(new_topics)
@@ -670,56 +888,89 @@ class DataBase:
         self._add_user_topics(username, to_add_topics)
         self._remove_user_topics(username, to_remove_topics)
 
+    # todo 4/4 <- 10 funcs |  func -> 23
+
     # ===== Watched videos =====
 
     def add_watched_video(self, username, video_id):
+        """
+        Adds a record of a user watching a video
+        :param username: Username of the user
+        :param video_id: ID of the watched video
+        """
         self.cur.execute("INSERT INTO watched_videos VALUES (?,?)", (username, video_id))
         self.conn.commit()
 
     def get_watched_videos(self, username):
-        self.cur.execute("SELECT watched FROM watched_videos WHERE username = ?", (username,))
+        """
+        Retrieves all videos watched by a user
+        :param username: Username of the user
+        :return: List of video IDs watched by the user
+        """
+        self.cur.execute("SELECT video_id FROM watched_videos WHERE username = ?", (username,))
         return self.cur.fetchall()
 
     def get_amount_of_views(self, video_id):
+        """
+        Counts how many times a video has been watched
+        :param video_id: ID of the video
+        :return: Number of views for the video
+        """
         self.cur.execute("SELECT COUNT(*) FROM watched_videos WHERE video_id = ?", (video_id,))
         return self.cur.fetchone()[0]
 
     def has_watched_video(self, username, video_id):
+        """
+        Checks if a user has watched a specific video
+        :param username: Username of the user
+        :param video_id: ID of the video
+        :return: True if the user has watched the video, False otherwise
+        """
         self.cur.execute("SELECT 1 FROM watched_videos WHERE username = ? AND video_id = ?", (username, video_id))
         return self.cur.fetchone() is not None
 
     def order_ids_by_views(self, video_ids):
+        """
+        Orders a list of video IDs by their view count in descending order
+        :param video_ids: iterable of video IDs to sort
+        :return: List of video IDs sorted by views
+        """
         video_ids = list(video_ids)
+        results = []
+        if video_ids:
+            ids_query_insert_placeholder = ",".join("?" * len(video_ids))
+            self.cur.execute(f"""
 
-        ids_query_insert_placeholder = ",".join("?" * len(video_ids))
-        self.cur.execute(f"""
-        
-        SELECT videos.video_id, COUNT(watched_videos.username) AS views
-        FROM videos LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id
-        WHERE videos.video_id IN ({ids_query_insert_placeholder})
-        GROUP BY videos.video_id
-        ORDER BY views DESC
-        
-        """, (*video_ids,))
+            SELECT videos.video_id, COUNT(watched_videos.username) AS views
+            FROM videos LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id
+            WHERE videos.video_id IN ({ids_query_insert_placeholder})
+            GROUP BY videos.video_id
+            ORDER BY views DESC
 
+            """, (*video_ids,))
 
-        results = self.cur.fetchall()
-        results = [i[0] for i in results]
-
+            results = self.cur.fetchall()
+            results = [i[0] for i in results]
 
         return results
 
     def videos_user_has_not_watched(self, username, video_ids):
-        potential_videos_ids_placeholder = ",".join("?"*len(video_ids))
+        """
+        Filters out videos that a user has already watched
+        :param username: Username of the user
+        :param video_ids: iterable of video IDs to check
+        :return: a list of video IDs the user has not watched
+        """
+        result_ids = []
+        if video_ids:
+            potential_videos_ids_placeholder = ",".join("?" * len(video_ids))
+            self.cur.execute(f"""SELECT videos.video_id FROM videos
+             LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id AND watched_videos.username = ?
+              WHERE videos.video_id IN ({potential_videos_ids_placeholder}) AND watched_videos.video_id IS NULL""",
+                             (username, *video_ids))
 
-        self.cur.execute(f"""SELECT videos.video_id FROM videos
-         LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id AND watched_videos.username = ?
-          WHERE videos.video_id IN ({potential_videos_ids_placeholder}) AND watched_videos.video_id IS NULL""",
-                         (username, *video_ids))
-
-        result_ids = self.cur.fetchall()
-
-        result_ids = [x[0] for x in result_ids]
+            result_ids = self.cur.fetchall()
+            result_ids = [x[0] for x in result_ids]
 
         return result_ids
 
@@ -760,12 +1011,22 @@ class DataBase:
         :param id: ID of the target (video or comment)
         :param type: Type of the target (VIDEO_REPORT or COMMENT_REPORT)
         """
-        self.cur.execute("UPDATE reports SET notified = 1 WHERE reporter_name = ? AND target_id = ? AND target_type = ?", (username, id, type))
+        self.cur.execute(
+            "UPDATE reports SET notified = 1 WHERE reporter_name = ? AND target_id = ? AND target_type = ?",
+            (username, id, type))
         self.conn.commit()
 
     def has_user_reported(self, username, id, type):
-            self.cur.execute("SELECT 1 FROM reports WHERE reporter_name = ? AND target_id = ? AND target_type = ?", (username, id, type))
-            return self.cur.fetchone() is not None
+        """
+        Checks if a user has already reported a specific target
+        :param username: Username of the reporter
+        :param id: ID of the reported target
+        :param type: Type of the target
+        :return: True if the user has reported, False otherwise
+        """
+        self.cur.execute("SELECT 1 FROM reports WHERE reporter_name = ? AND target_id = ? AND target_type = ?",
+                         (username, id, type))
+        return self.cur.fetchone() is not None
 
     def add_report(self, reporter_name, target_id, target_type):
         """
@@ -775,11 +1036,21 @@ class DataBase:
         :param target_type: Type of the target (VIDEO_REPORT or COMMENT_REPORT)
         :return: Inserts a new row into the reports table
         """
-        self.cur.execute("INSERT INTO reports (reporter_name, target_id, target_type) VALUES (?,?,?)", (reporter_name, target_id, target_type))
+        self.cur.execute("INSERT INTO reports (reporter_name, target_id, target_type) VALUES (?,?,?)",
+                         (reporter_name, target_id, target_type))
         self.conn.commit()
 
     def get_report_status_and_created_at(self, username, target_id, target_type):
-        self.cur.execute("SELECT status, strftime('%d/%m/%Y %H:%M', created_at) FROM reports WHERE target_id = ? AND target_type = ? AND reporter_name = ?", (target_id, target_type,username))
+        """
+        Retrieves the status and creation time of a specific report
+        :param username: Username of the reporter
+        :param target_id: ID of the reported target
+        :param target_type: Type of the target
+        :return: Tuple containing status and formatted creation time
+        """
+        self.cur.execute(
+            "SELECT status, strftime('%d/%m/%Y %H:%M', created_at) FROM reports WHERE target_id = ? AND target_type = ? AND reporter_name = ?",
+            (target_id, target_type, username))
         return self.cur.fetchone()
 
     def get_reports(self):
@@ -788,18 +1059,32 @@ class DataBase:
         :return: Returns all reports from the reports table
         """
         self.cur.execute("""SELECT target_id, target_type, COUNT(*) AS reports_amount
-                         FROM reports
-                         GROUP BY target_id, target_type
-                         ORDER BY reports_amount DESC""")
+                            FROM reports
+                            GROUP BY target_id, target_type
+                            ORDER BY reports_amount DESC""")
 
         # self.cur.execute("SELECT * FROM reports")
         return self.cur.fetchall()
 
     def get_report_usernames_and_times(self, target_id, target_type):
-        self.cur.execute("SELECT reporter_name, strftime('%d/%m/%Y %H:%M', created_at) FROM reports WHERE (target_id, target_type) = (?,?)", (target_id, target_type))
+        """
+        Retrieves all reporters and report times for a specific target
+        :param target_id: ID of the reported target
+        :param target_type: Type of the target
+        :return: List of tuples containing reporter usernames and times
+        """
+        self.cur.execute(
+            "SELECT reporter_name, strftime('%d/%m/%Y %H:%M', created_at) FROM reports WHERE (target_id, target_type) = (?,?)",
+            (target_id, target_type))
         return self.cur.fetchall()
 
     def get_reporters(self, target_id, target_type):
+        """
+        Retrieves usernames of all users who reported a specific target
+        :param target_id: ID of the reported target
+        :param target_type: Type of the target
+        :return: List of reporter usernames
+        """
         self.cur.execute(
             "SELECT reporter_name FROM reports WHERE (target_id, target_type) = (?,?)",
             (target_id, target_type))
@@ -809,38 +1094,75 @@ class DataBase:
         return res
 
     def set_report_status(self, target_id, target_type, status):
-        self.cur.execute("UPDATE reports SET status = ? WHERE (target_id, target_type) = (?,?)", (status, target_id, target_type))
+        """
+        Updates the status of reports for a specific target
+        :param target_id: ID of the reported target
+        :param target_type: Type of the target
+        :param status: New status to set
+        """
+        self.cur.execute("UPDATE reports SET status = ? WHERE (target_id, target_type) = (?,?)",
+                         (status, target_id, target_type))
         self.conn.commit()
 
     def get_not_notified_reports(self, username):
-        self.cur.execute("SELECT target_id, target_type, reporter_name FROM reports WHERE reporter_name = ? and status IS NOT NULL and notified = 0", (username,))
+        """
+        Retrieves reports that have not yet been notified to the user
+        :param username: Username of the reporter
+        :return: List of pending report notifications
+        """
+        self.cur.execute(
+            "SELECT target_id, target_type, reporter_name FROM reports WHERE reporter_name = ? and status IS NOT NULL and notified = 0",
+            (username,))
         return self.cur.fetchall()
 
-    def delete_report(self, report_id):
+    def delete_report(self, username, id, type):
         """
         Deletes a report from the database.
-        :param report_id: ID of the report to delete
+        :param username: The username of the reporter.
+        :param id: The ID of the target
+        :param type: The type of the target (0 for comment or 1 for video).
         :return: Deletes a report from the reports table
         """
-        self.cur.execute("DELETE FROM reports WHERE report_id = ?", (report_id,))
+        self.cur.execute("DELETE FROM reports WHERE reporter_name = ? AND target_id = ? AND target_type  = ?", (username, id, type))
         self.conn.commit()
 
     def is_report_concluded(self, id, type):
-        self.cur.execute("SELECT 1 FROM reports WHERE target_id = ? AND target_type = ? AND status IS NOT NULL", (id, type))
+        """
+        Checks if a report has been concluded (has a status)
+        :param id: ID of the reported target
+        :param type: Type of the target
+        :return: True if the report has a status, False otherwise
+        """
+        self.cur.execute("SELECT 1 FROM reports WHERE target_id = ? AND target_type = ? AND status IS NOT NULL",
+                         (id, type))
         return self.cur.fetchone() is not None
 
     # ===== system_managers =====
     def add_system_manager(self, username):
+        """
+        Adds a user as a system manager
+        :param username: Username to promote
+        """
         self.cur.execute("INSERT INTO system_managers (username) VALUES (?)", (username,))
         self.conn.commit()
 
     def is_system_manager(self, username):
+        """
+        Checks if a user is a system manager
+        :param username: Username to check
+        :return: True if the user is a system manager, False otherwise
+        """
         self.cur.execute("SELECT 1 FROM system_managers WHERE username=?", (username,))
         return self.cur.fetchone() is not None
 
     def get_system_managers(self):
+        """
+        Retrieves all system managers
+        :return: List of usernames of system managers
+        """
         self.cur.execute("SELECT username FROM system_managers")
         return [row[0] for row in self.cur.fetchall()]
+
 
 if __name__ == "__main__":
     db = DataBase()
