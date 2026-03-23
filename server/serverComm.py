@@ -102,7 +102,7 @@ class ServerComm:
         """
         if client_soc in self.open_clients.keys():
             print(f"{self.open_clients[client_soc]} - disconnected")
-            self.recvQ.put((self.open_clients[client_soc][0], '3'))  # Notify logic a player has left
+            self.recvQ.put((self.open_clients[client_soc][0], '22'))  # Notify logic a player has left
             del self.open_clients[client_soc]
             client_soc.close()
 

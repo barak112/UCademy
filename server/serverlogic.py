@@ -151,8 +151,8 @@ class ServerLogic:
             self.clients_awaiting_email_verification[client_ip] = [username, password, email, verification_code, time_of_code_creation]
             self.send_email_verification_code(email, verification_code, username)
 
-        msg = serverProtocol.build_sign_up_status(status)
         self.comm.send_msg(client_ip, msg)
+        msg = serverProtocol.build_sign_up_status(status)
 
     def handle_email_verification(self, client_ip, data):  # command 1
         """
