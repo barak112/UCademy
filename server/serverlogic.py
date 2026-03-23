@@ -1,14 +1,14 @@
 import ast
 import os
 import hashlib
-import hmac
 import queue
-import re
 import secrets
 import smtplib
 import string
 import time
 from email.message import EmailMessage
+
+#from email_validator import validate_email, EmailNotValidError
 
 import database
 import serverComm
@@ -68,7 +68,7 @@ class ServerLogic:
     EMAIL_VERIFICATION_CODE_SUBJECT = "Ucademy Email Verification Code"
 
     def __init__(self):
-        """Initialize the server object."""
+        """Initialize the server object and starts handle msgs"""
 
         self.recvQ = queue.Queue()
         comm = serverComm.ServerComm(settings.PORT, self.recvQ)
@@ -93,6 +93,8 @@ class ServerLogic:
             '16': self.handle_video_upload,
             '17': self.handle_follow_user,
 
+            '22':self.handle_client_disconected,
+
             '98': self.handle_comment_or_video_status,
             '99': self.handle_user_kick,
         }
@@ -110,9 +112,13 @@ class ServerLogic:
 
         self.handle_msgs()
 
+    def handle_client_disconected(self, client_ip, data):
+        pass
+        #todo delete from all dics
+
+
     def handle_msgs(self):
-        """Process incoming messages from clients.
-        """
+        """Process incoming messages from clients"""
         while True:
             ip, msg = self.recvQ.get()
 
@@ -125,6 +131,16 @@ class ServerLogic:
                     self.commands[opcode](ip, data)
 
     def handle_registration(self, client_ip, data):  # command 0
+        """
+        Handles the registration process for a client during sign-up. Ensures that the
+        provided credentials are valid. if valid, a verification code is
+        generated and sent to the client's email. Tracks users awaiting verification.
+        if the credentials are not valid, sends to the user the problems with the credentials
+
+        :param client_ip: The IP address of the client initiating the registration.
+        :param data: A tuple containing the username, password, and email provided
+                     by the client for registration.
+        """
         username, password, email = data
 
         status = self.validate_credentials_registration(username, password, email)
@@ -139,6 +155,15 @@ class ServerLogic:
         self.comm.send_msg(client_ip, msg)
 
     def handle_email_verification(self, client_ip, data):  # command 1
+        """
+        Handles the process of verifying an email verification code sent to clients. This function validates
+        the code provided by the client, checks if the code has expired, and processes the client
+        information accordingly. Once the verification is successful, the client is registered, and a
+        confirmation message is sent back to the client.
+
+        :param client_ip: The IP address of the client attempting email verification.
+        :param data: a list containing the verification code the user entered
+        """
         email_verification_code = data[0]
 
         # todo change this in the way merry said, in a way that the dictionary doesnt get big
@@ -178,6 +203,13 @@ class ServerLogic:
 
     @staticmethod
     def create_email_verification_code(length = 6):
+        """
+        Generates a random numeric verification code of default 6 digits.
+
+        :param length: Specifies the number of digits for the generated code.
+            Defaults to 6 if not provided.
+        :return: A randomly generated string consisting of numeric digits only.
+        """
         return ''.join(secrets.choice('0123456789') for _ in range(length))
 
     def send_email_verification_code(self, email_address, verification_code, username):
@@ -186,6 +218,25 @@ class ServerLogic:
 
 
     def validate_credentials_registration(self, username, password, email):
+        """
+        Validates the credentials for user registration, including username, password,
+        and email address. Performs checks based on predefined settings such as minimum
+        and maximum lengths, format validations, and uniqueness constraints within the
+        system's database. Returns a status list indicating the validity of each credential.
+
+        :param username: The username to validate.
+        :type username: str
+        :param password: The password to validate.
+        :type password: str
+        :param email: The email address to validate.
+        :type email: str
+        :return: A list of integers indicating the validation status for username,
+            password, and email, respectively. Each index of the list represents:
+                - Index 0: Status for username validation
+                - Index 1: Status for password validation
+                - Index 2: Status for email validation
+        :rtype: list[int]
+        """
         status = [0, 0, 0]  # username, password, email statuses - everything is ok
         if len(username) < settings.MIN_NAME_LENGTH:
             status[0] = settings.USERNAME_TOO_SHORT  # username too short
@@ -202,16 +253,29 @@ class ServerLogic:
             status[1] = settings.PASSWORD_TOO_SHORT  # password too short (not secure)
         elif len(password) > settings.MAX_PASSWORD_LENGTH:
             status[1] = settings.PASSWORD_TOO_LONG  # password too long (extreme long passwords hashing can slow down the server)
-        elif not any(letter in username for letter in string.ascii_letters):
+        elif not any(letter in password for letter in string.ascii_letters):
             status[1] = settings.PASSWORD_NO_LETTERS  # password must include letters
 
-        pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
-        if re.match(pattern, email) is None:
+        if not self.is_email_valid(email):
             status[2] = settings.EMAIL_NOT_VALID # not a valid email
+
         # elif self.db.email_exists(email): # TODO return this at the end of the logic testings
         #     status[2] = settings.EMAIL_ALREADY_EXISTS # email already exists
 
+        #todo check with merry:
+        # only login with one credential
+        # OR choose if to login with username or email
+        # OR login with either credential in the same field (prevent username and email overlap)
         return status
+
+    @staticmethod
+    def is_email_valid(email):
+        # try:
+        #     result = validate_email(email, check_deliverability=False).normalized
+        # except EmailNotValidError:
+        #     result = None
+        # return result
+        return True
 
     def handle_sign_in(self, client_ip, data):  # command 2
         username_or_email, password = data

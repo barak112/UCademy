@@ -48,7 +48,7 @@ class DataBase:
 
         for table in tables:
             print(f"\nTable: {table}")
-            self.cur.execute(f"SELECT * FROM ? LIMIT 15;", table)
+            self.cur.execute(f"SELECT * FROM {table} LIMIT 15;")
             rows = self.cur.fetchall()
             for row in rows:
                 print(row)
@@ -135,8 +135,6 @@ class DataBase:
             )
         """)
         self.conn.commit()
-        # TODO: rename 'following' to 'follower' (follower, followed)
-
 
     def _create_video_topics_table(self):
         """
@@ -235,7 +233,7 @@ class DataBase:
         Removes a user from the database.
         :param username: Username of the user to delete
         """
-        self.cur.execute("DELETE FROM users WHERE username = ?", (username,))
+        self.cur.execute("DELETE FROM users WHERE username = ? COLLATE NOCASE", (username,))
         self.conn.commit()
 
     def user_exists(self, username):
@@ -244,7 +242,7 @@ class DataBase:
         :param username: Username to check
         :return: True if the user exists in the users table, False otherwise
         """
-        self.cur.execute("SELECT 1 FROM users WHERE username = ?", (username,))
+        self.cur.execute("SELECT 1 FROM users WHERE username = ? COLLATE NOCASE", (username,))
         return self.cur.fetchone() is not None
 
     def email_exists(self, email):
@@ -253,7 +251,8 @@ class DataBase:
         :param email: Email to check
         :return: True if the email exists, False otherwise
         """
-        self.cur.execute("SELECT 1 FROM users WHERE email = ?", (email,))
+        email = email.lower()
+        self.cur.execute("SELECT 1 FROM users WHERE email = ? COLLATE NOCASE", (email,))
         return self.cur.fetchone() is not None
 
     def log_in(self, username, password_hash):
@@ -263,7 +262,8 @@ class DataBase:
         :param password_hash: Hashed password to verify
         :return: True if credentials match, False otherwise
         """
-        self.cur.execute("SELECT 1 FROM users WHERE username = ? AND password_hash = ?", (username, password_hash))
+        self.cur.execute("SELECT 1 FROM users WHERE username = ? AND password_hash = ?", (
+            username, password_hash))
         return self.cur.fetchone() is not None
 
     def add_user(self, username, email, password_hash):
@@ -316,7 +316,7 @@ class DataBase:
         :param username: Username of the user
         :return: Email if found, otherwise None
         """
-        self.cur.execute("SELECT email FROM users WHERE username = ?", (username,))
+        self.cur.execute("SELECT email FROM users WHERE username = ? COLLATE NOCASE", (username,))
         res = self.cur.fetchone()
         if res:
             res = res[0]
@@ -327,7 +327,7 @@ class DataBase:
         :param username_or_email: The username or email address to search for in the users table.
         :return: The first username found matching the given username or email address.
         """
-        self.cur.execute("SELECT username FROM users WHERE username = ? OR email = ?",
+        self.cur.execute("SELECT username FROM users WHERE username = ? COLLATE NOCASE OR email = ? COLLATE NOCASE",
                          (username_or_email, username_or_email))
         username = self.cur.fetchone()
         if username:
@@ -510,8 +510,6 @@ class DataBase:
             res = res[0]
 
         return res
-
-    # todo 2/4 <-37 funcs | 19 func ->
 
     def add_comment(self, video_id, commenter_name, comment):
         """
@@ -715,8 +713,6 @@ class DataBase:
         self.cur.execute("SELECT COUNT(*) FROM following WHERE follower = ?", (username,))
         return self.cur.fetchone()[0]
 
-    # todo 3/4 <-19 funcs |  func -> 10
-
     # ===== video topics =====
 
     def add_video_topics(self, video_id, topics):
@@ -887,8 +883,6 @@ class DataBase:
 
         self._add_user_topics(username, to_add_topics)
         self._remove_user_topics(username, to_remove_topics)
-
-    # todo 4/4 <- 10 funcs |  func -> 23
 
     # ===== Watched videos =====
 
@@ -1208,10 +1202,10 @@ if __name__ == "__main__":
     # db.add_video_like(2, "Alon")
 
     # # --- following ---
-    # db.cur.execute("DROP TABLE IF EXISTS following")
-    # db._create_following_table()
-    # db.add_following("Barak", "Alon")
-    # db.add_following("Alon", "Barak")
+    db.cur.execute("DROP TABLE IF EXISTS following")
+    db._create_following_table()
+    db.add_following("Barak", "Alon")
+    db.add_following("Alon", "Barak")
 
     # # --- video_topics ---
     # db.cur.execute("DROP TABLE IF EXISTS video_topics")

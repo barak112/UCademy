@@ -23,6 +23,12 @@ class ServerCommVideos (serverComm.ServerComm):
     """
 
     def __init__(self, port, recvQ):
+        """
+        Initializes the instance with the given port and a queue for receiving data.
+
+        :param port: The communication port to be used by the instance.
+        :param recvQ: The queue object used for sending data to the server logic.
+        """
         super().__init__(port, recvQ)
         self.idsQ = queue.Queue()
 
@@ -69,9 +75,25 @@ class ServerCommVideos (serverComm.ServerComm):
     def send_file(self, client_ip, file_path, video_id = None, creator = None, video_name=None, video_description=None,
                   created_at = None, likes_amount = None, comments_amount = None, liked = None):
         """
-            sends a file to the server
-        :param file_path: file path to the file to be sent
-        :return: file sent to server
+        Send a file to a client after encrypting the file and its metadata.
+
+        This method identifies the client by their IP address, encrypts the file
+        content and associated metadata, and sends them over an established
+        socket connection. The metadata includes additional details about the
+        file such as its video ID, creator, video name, description, creation
+        timestamp, likes, comments count, and liked status. If the file does not
+        exist, it prints an error message.
+
+        :param client_ip: The IP address of the client to send the file to.
+        :param file_path: The path to the file to be sent.
+        :param video_id: The unique identifier of the video
+        :param creator: The creator of the video
+        :param video_name: The name of the video
+        :param video_description: A brief description of the video
+        :param created_at: A timestamp indicating when the video was created
+        :param likes_amount: The number of likes the video has
+        :param comments_amount: The number of comments on the video
+        :param liked: Whether the video is liked by the user
         """
 
         if os.path.isfile(file_path):
@@ -99,10 +121,18 @@ class ServerCommVideos (serverComm.ServerComm):
 
     def _recv_file(self, client_socket, decrypted_message):
         """
-            recvs file send from the server and saves it at assets//``file_name``
-        :param file_size: size of the file that needs to be received
-        :param file_name: the name and extension of file to be received
-        :return: returns whether the recv was successful
+        Receive and process a file sent by a client socket.
+
+        This method handles the reception of a file from a client, processing its
+        metadata, decrypting its contents, and saving it to the proper location based
+        on the type of file received (video, thumbnail, etc.). It ensures that the file
+        size matches the expected size and takes necessary actions if the size does not
+        match, such as closing the client connection.
+
+        :param client_socket: The client socket from which the file is being received.
+        :param decrypted_message: The decrypted message containing metadata about the
+            file being transferred.
+        :return: creates file at assets\\ and if video, puts video_details to recvQ
         """
 
         client_ip = self.open_clients[client_socket][0]
