@@ -25,6 +25,38 @@ class LoginPanel(wx.Panel):
         left = wx.Panel(self)
         left.SetBackgroundColour(wx.Colour(self.LEFT_COLOR))
 
+        left_widgets = wx.Panel(left)
+        left_widgets_sizer = wx.BoxSizer(wx.VERTICAL)
+        left_widgets.SetSizer(left_widgets_sizer)
+
+        background_img = wx.Image("assets\\blue_background_960x1080.png")
+        background_bitmap = wx.StaticBitmap(left_widgets, bitmap=wx.Bitmap(background_img))
+
+
+        left_widgets_sizer.AddStretchSpacer()
+
+        left_widgets_sizer.Add(background_bitmap)
+        ucademy_label = wx.StaticText(left_widgets, label="Ucademy")
+        # font = ucademy_label.GetFont()
+        # font.Bold().Scale(6)
+        # ucademy_label.SetFont(font)
+        # ucademy_label.SetForegroundColour(wx.Colour(self.RIGHT_COLOR))
+        welcome_back_label = wx.StaticText(left_widgets, label="Welcome back to your learning journy")
+        # welcome_back_label.SetForegroundColour(wx.WHITE)
+
+        left_widgets_sizer.Add(ucademy_label)
+        left_widgets_sizer.Add(welcome_back_label)
+
+        left_widgets_sizer.AddStretchSpacer()
+
+        left_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        left_sizer.AddStretchSpacer()
+        left_sizer.Add(left_widgets, 1, wx.EXPAND)
+
+        left.SetSizer(left_sizer)
+
+
         # right panel (gray)
         right = wx.Panel(self)
         right.SetBackgroundColour(wx.Colour(self.RIGHT_COLOR))
@@ -42,20 +74,20 @@ class LoginPanel(wx.Panel):
         form.SetSizer(form_sizer)
 
         #title
-        title = wx.StaticText(form, label="Welcome Back               ")
+        title = wx.StaticText(form, label="Welcome Back              ")
         font = title.GetFont()
-        font = font.Bold().Scale(3)
+        font = font.Bold().Scale(4)
         title.SetFont(font)
-        form_sizer.Add(title, 0, wx.BOTTOM, 5)
+        form_sizer.Add(title, 0, wx.BOTTOM, 10)
 
 
         #subtitle
         subtitle = wx.StaticText(form, label="Log in to continue learning")
         font = subtitle.GetFont()
-        font = font.Scale(1.2)
+        font = font.Scale(1.5)
         subtitle.SetForegroundColour(wx.Colour(self.SUBTITLE_COLOR))
         subtitle.SetFont(font)
-        form_sizer.Add(subtitle, 0, wx.BOTTOM, 20)
+        form_sizer.Add(subtitle, 0, wx.BOTTOM, 60)
 
         #login button
 
@@ -77,20 +109,17 @@ class LoginPanel(wx.Panel):
         username_icon_img = wx.Image("assets\\username_icon.png", wx.BITMAP_TYPE_PNG)
         password_icon_img = wx.Image("assets\\password_icon.png", wx.BITMAP_TYPE_PNG)
 
-        username_icon_img = username_icon_img.Scale(24, 24)
-        password_icon_img = password_icon_img.Scale(24, 24)
-
         username_icon = wx.Bitmap(username_icon_img)
         password_icon = wx.Bitmap(password_icon_img)
 
         user_sizer, self.username = self.labeled_input("Username", form, "Enter your username or email", username_icon)
         pass_sizer, self.password = self.labeled_input("Password", form, "Enter your password", password_icon)
 
-        form_sizer.Add(user_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 10)
+        form_sizer.Add(user_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 15)
 
-        form_sizer.Add(pass_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 10)
+        form_sizer.Add(pass_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 15)
 
-        form_sizer.Add(login_button, 0, wx.EXPAND | wx.TOP, 50)
+        form_sizer.Add(login_button, 0, wx.EXPAND | wx.TOP, 60)
         form_sizer.Add(sign_up_container, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 20)
 
         horizontal_right_sizer.AddStretchSpacer()
@@ -98,23 +127,52 @@ class LoginPanel(wx.Panel):
         horizontal_right_sizer.AddStretchSpacer()
 
         right_sizer.AddStretchSpacer()  # push down
-        right_sizer.Add(horizontal_right, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 40)  # center horizontally
+        right_sizer.Add(horizontal_right, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 50)  # center horizontally
         right_sizer.AddStretchSpacer()  # push up
 
         # add to panels to screen
         two_sides.Add(left, 1, wx.EXPAND)
-        two_sides.Add(right, 1, wx.EXPAND)
-        self.SetSizer(two_sides)
+        #todo when the left side is the same size as the right, both start to grow.
 
+        two_sides.Add(right, 0, wx.EXPAND)
+        self.SetSizer(two_sides)
         self.Hide()
 
         pub.subscribe(self.on_login_response, "login_ans")
 
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key)
 
+    def crop_to_fit(self, img, target_width, target_height):
+        # Original image size
+        w, h = img.GetWidth(), img.GetHeight()
+
+        # Target aspect ratio
+        target_ratio = target_width / target_height
+        img_ratio = w / h
+
+        # Decide crop area
+        if img_ratio > target_ratio:
+            # Image is wider → crop width
+            new_w = int(h * target_ratio)
+            new_h = h
+            x_offset = (w - new_w) // 2
+            y_offset = 0
+        else:
+            # Image is taller → crop height
+            new_w = w
+            new_h = int(w / target_ratio)
+            x_offset = 0
+            y_offset = (h - new_h) // 2
+
+        # Crop
+        return img.GetSubImage(wx.Rect(x_offset, y_offset, new_w, new_h))
+
     def labeled_input(self, label_text, parent, placeholder, image_bitmap):
         sizer = wx.BoxSizer(wx.VERTICAL)
         label = wx.StaticText(parent, label=label_text)
+        font = label.GetFont()
+        font = font.Scale(1.5)
+        label.SetFont(font)
 
         # whole box panel
         box = wx.Panel(parent)
@@ -138,12 +196,11 @@ class LoginPanel(wx.Panel):
         image_and_text_sizer.Add(image, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 20)
         image_and_text_sizer.Add(text, 1, wx.TOP, 20)
 
-
         inner.Add(image_and_text, 1, wx.EXPAND | wx.ALL, 1)
         box.SetSizer(inner)
 
         sizer.Add(label, 0, wx.BOTTOM, 8)
-        sizer.Add(box, 0, wx.EXPAND)
+        sizer.Add(box, 0, wx.EXPAND | wx.BOTTOM, 20)
 
         return sizer, text
 

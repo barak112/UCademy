@@ -11,7 +11,7 @@ from sign_up import SignupPanel
 # ----------------------------
 class MainFrame(wx.Frame):
     def __init__(self, comm):
-        super().__init__(None, title="Movie App", size=(800, 600))
+        super().__init__(None, title="Movie App", size=(1280, 720))
         # super().Maximize()
 
         self.comm = comm
@@ -33,12 +33,13 @@ class MainFrame(wx.Frame):
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.sizer.Add(self.login_panel, 1, wx.EXPAND)
+        self.sizer.Add(self.signup_panel, 1, wx.EXPAND)
         self.sizer.Add(self.feed_panel, 1, wx.EXPAND)
 
         self.container.SetSizer(self.sizer)
 
         self.login_panel.Show()
-
+        # self.signup_panel.Show()
     # ----------------------------
     # Navigation Methods
     # ----------------------------
@@ -47,6 +48,9 @@ class MainFrame(wx.Frame):
         old_panel.Hide()
         new_panel.Show()
         self.Layout()
+        self.Refresh()
+        self.sizer.Layout()
+        new_panel.Refresh()
 
     def change_text_status(self, text):
         """Event handler to update the status bar text."""

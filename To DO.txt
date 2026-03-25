@@ -1,5 +1,10 @@
 add confirmation to file uploading
 
+
+fields hover makes the border color to log in button color
+button hover makes it darker
+
+
 to ask merry:
 
 currently only username

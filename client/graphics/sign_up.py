@@ -45,14 +45,14 @@ class SignupPanel(wx.Panel):
         # title
         title = wx.StaticText(form, label="Create Account             ")
         font = title.GetFont()
-        font = font.Bold().Scale(3)
+        font = font.Bold().Scale(4)
         title.SetFont(font)
-        form_sizer.Add(title, 0, wx.BOTTOM, 5)
+        form_sizer.Add(title, 0, wx.BOTTOM, 10)
 
         # subtitle
         subtitle = wx.StaticText(form, label="Sign up to get started")
         font = subtitle.GetFont()
-        font = font.Scale(1.2)
+        font = font.Scale(1.5)
         subtitle.SetForegroundColour(wx.Colour(self.SUBTITLE_COLOR))
         subtitle.SetFont(font)
         form_sizer.Add(subtitle, 0, wx.BOTTOM, 20)
@@ -64,27 +64,26 @@ class SignupPanel(wx.Panel):
 
         # move to sign up label
 
-        no_account_label = wx.StaticText(form, label="Dont have an account?")
-        sign_up = wx.StaticText(form, label="sign up")
-        sign_up.SetForegroundColour(wx.BLUE)
-        sign_up.SetCursor(wx.Cursor(wx.CURSOR_HAND))
-        sign_up.Bind(wx.EVT_LEFT_DOWN, self.on_signup)
+        no_account_label = wx.StaticText(form, label="Already have an account?")
+        log_in = wx.StaticText(form, label="Log in")
+        log_in.SetForegroundColour(wx.BLUE)
+        log_in.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+        log_in.Bind(wx.EVT_LEFT_DOWN, self.on_login)
 
-        sign_up_container = wx.BoxSizer(wx.HORIZONTAL)
-        sign_up_container.Add(no_account_label)
-        sign_up_container.Add(sign_up)
+        log_in_container = wx.BoxSizer(wx.HORIZONTAL)
+        log_in_container.Add(no_account_label)
+        log_in_container.Add(log_in)
 
         username_icon_img = wx.Image("assets\\username_icon.png", wx.BITMAP_TYPE_PNG)
+        email_icon_img = wx.Image("assets\\email_icon.png", wx.BITMAP_TYPE_PNG)
         password_icon_img = wx.Image("assets\\password_icon.png", wx.BITMAP_TYPE_PNG)
 
-        username_icon_img = username_icon_img.Scale(24, 24)
-        password_icon_img = password_icon_img.Scale(24, 24)
-
         username_icon = wx.Bitmap(username_icon_img)
+        email_icon = wx.Bitmap(email_icon_img)
         password_icon = wx.Bitmap(password_icon_img)
 
         user_sizer, self.username = self.labeled_input("Username", form, "Enter your username", username_icon)
-        email_sizer, self.email = self.labeled_input("Email", form, "Enter your email", username_icon)
+        email_sizer, self.email = self.labeled_input("Email", form, "Enter your email", email_icon)
         password_sizer, self.password = self.labeled_input("Password", form, "Create a password", password_icon)
 
         form_sizer.Add(user_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 10)
@@ -92,7 +91,7 @@ class SignupPanel(wx.Panel):
         form_sizer.Add(password_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 10)
 
         form_sizer.Add(signup_button, 0, wx.EXPAND | wx.TOP, 50)
-        form_sizer.Add(sign_up_container, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 20)
+        form_sizer.Add(log_in_container, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 20)
 
         horizontal_right_sizer.AddStretchSpacer()
         horizontal_right_sizer.Add(form, 0, wx.EXPAND)
@@ -155,6 +154,9 @@ class SignupPanel(wx.Panel):
             self.on_signup(None)
 
         event.Skip()
+
+    def on_login(self, event):
+        self.frame.switch_panel(self.frame.login_panel, self)
 
     def on_signup(self, event):
         # Assume validation is done elsewhere
