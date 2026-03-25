@@ -7,7 +7,7 @@ class RoundedButton(wx.Panel):
 
         self.label = label
         self.base_color = wx.Colour(color)
-        self.hover_color = self.make_lighter(self.base_color, 15)  # 15% lighter
+        self.hover_color = self.make_darker(self.base_color, 15)  # 15% lighter
         self.mouse_over = False  # State tracker
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
@@ -21,14 +21,15 @@ class RoundedButton(wx.Panel):
         self.Bind(wx.EVT_ENTER_WINDOW, self.on_mouse_enter)
         self.Bind(wx.EVT_LEAVE_WINDOW, self.on_mouse_leave)
 
-    def make_lighter(self, color, percent):
+    def make_darker(self, color, percent):
         """Helper to programmatically create a hover color."""
         r, g, b = color.Get()[:3]
         return wx.Colour(
-            min(255, int(r + (255 - r) * (percent / 100))),
-            min(255, int(g + (255 - g) * (percent / 100))),
-            min(255, int(b + (255 - b) * (percent / 100)))
+            min(255, int(r * (1 - percent / 100))),
+            min(255, int(g * (1 - percent / 100))),
+            min(255, int(b * (1 - percent / 100)))
         )
+
 
     def on_mouse_enter(self, event):
         self.mouse_over = True

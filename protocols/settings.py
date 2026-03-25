@@ -82,3 +82,5 @@ EMAIL_VERIFICATION_CODE_EMAIL_EXISTS = 4
 TOPICS = ["Computer Science", "Math", "Physics", "Cooking", "Baking", "Music", "Wild", "Views", "Art", "History"]
 
 VIDEO_EXTENSION = "mp4"
+
+THEME_COLOR = (249, 250, 251)

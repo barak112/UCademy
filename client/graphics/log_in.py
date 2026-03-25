@@ -4,14 +4,15 @@ import clientProtocol
 import wx
 
 import rounded_button
+import rounded_text_box
+import settings
 
 
 class LoginPanel(wx.Panel):
-    LEFT_COLOR = (56, 65, 237)
+    LEFT_COLOR = settings.THEME_COLOR
     RIGHT_COLOR = (249, 250, 251)
     TEXT_BOX_BORDER_COLOR = (220, 220, 220)
     SUBTITLE_COLOR = (125, 120, 124)
-    PLACE_HOLER_COLOR = (135, 140, 144)
 
     def __init__(self, frame, parent):
         super().__init__(parent)
@@ -21,44 +22,27 @@ class LoginPanel(wx.Panel):
 
         two_sides = wx.BoxSizer(wx.HORIZONTAL)
 
-        # Left panel (blue)
         left = wx.Panel(self)
-        left.SetBackgroundColour(wx.Colour(self.LEFT_COLOR))
 
-        left_widgets = wx.Panel(left)
-        left_widgets_sizer = wx.BoxSizer(wx.VERTICAL)
-        left_widgets.SetSizer(left_widgets_sizer)
+        self.left = left
 
         background_img = wx.Image("assets\\blue_background_960x1080.png")
-        background_bitmap = wx.StaticBitmap(left_widgets, bitmap=wx.Bitmap(background_img))
+        self.background_bitmap = wx.Bitmap(background_img)
+        left.Bind(wx.EVT_PAINT, self.on_paint)
+        left.Bind(wx.EVT_SIZE, self.on_resize)
 
-
-        left_widgets_sizer.AddStretchSpacer()
-
-        left_widgets_sizer.Add(background_bitmap)
-        ucademy_label = wx.StaticText(left_widgets, label="Ucademy")
-        # font = ucademy_label.GetFont()
-        # font.Bold().Scale(6)
-        # ucademy_label.SetFont(font)
-        # ucademy_label.SetForegroundColour(wx.Colour(self.RIGHT_COLOR))
-        welcome_back_label = wx.StaticText(left_widgets, label="Welcome back to your learning journy")
-        # welcome_back_label.SetForegroundColour(wx.WHITE)
-
-        left_widgets_sizer.Add(ucademy_label)
-        left_widgets_sizer.Add(welcome_back_label)
-
-        left_widgets_sizer.AddStretchSpacer()
-
-        left_sizer = wx.BoxSizer(wx.HORIZONTAL)
-
-        left_sizer.AddStretchSpacer()
-        left_sizer.Add(left_widgets, 1, wx.EXPAND)
-
-        left.SetSizer(left_sizer)
+        icon_with_text = wx.Image("assets\\icon_with_text.png")
+        icon_with_text = wx.Bitmap(icon_with_text)
+        self.icon_with_text = icon_with_text
 
 
         # right panel (gray)
         right = wx.Panel(self)
+        min_size = (630, 680)
+
+        # right.SetMinSize(min_size)
+        frame.SetMinSize(min_size)
+
         right.SetBackgroundColour(wx.Colour(self.RIGHT_COLOR))
         right_sizer = wx.BoxSizer(wx.VERTICAL)
         right.SetSizer(right_sizer)
@@ -122,9 +106,9 @@ class LoginPanel(wx.Panel):
         form_sizer.Add(login_button, 0, wx.EXPAND | wx.TOP, 60)
         form_sizer.Add(sign_up_container, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 20)
 
-        horizontal_right_sizer.AddStretchSpacer()
+        horizontal_right_sizer.AddStretchSpacer(2)
         horizontal_right_sizer.Add(form, 0, wx.EXPAND)
-        horizontal_right_sizer.AddStretchSpacer()
+        horizontal_right_sizer.AddStretchSpacer(2)
 
         right_sizer.AddStretchSpacer()  # push down
         right_sizer.Add(horizontal_right, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 50)  # center horizontally
@@ -132,9 +116,8 @@ class LoginPanel(wx.Panel):
 
         # add to panels to screen
         two_sides.Add(left, 1, wx.EXPAND)
-        #todo when the left side is the same size as the right, both start to grow.
 
-        two_sides.Add(right, 0, wx.EXPAND)
+        two_sides.Add(right, 1, wx.EXPAND)
         self.SetSizer(two_sides)
         self.Hide()
 
@@ -142,30 +125,38 @@ class LoginPanel(wx.Panel):
 
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key)
 
-    def crop_to_fit(self, img, target_width, target_height):
-        # Original image size
-        w, h = img.GetWidth(), img.GetHeight()
+    def on_resize(self, event):
+        self.Refresh()  # trigger repaint
+        event.Skip()
 
-        # Target aspect ratio
-        target_ratio = target_width / target_height
-        img_ratio = w / h
+    def on_paint(self, event):
+        dc = wx.BufferedPaintDC(self.left)
+        dc.DrawBitmap(self.background_bitmap, 0, 0)
 
-        # Decide crop area
-        if img_ratio > target_ratio:
-            # Image is wider → crop width
-            new_w = int(h * target_ratio)
-            new_h = h
-            x_offset = (w - new_w) // 2
-            y_offset = 0
-        else:
-            # Image is taller → crop height
-            new_w = w
-            new_h = int(w / target_ratio)
-            x_offset = 0
-            y_offset = (h - new_h) // 2
+        left_width, left_height, = self.left.GetSize()
 
-        # Crop
-        return img.GetSubImage(wx.Rect(x_offset, y_offset, new_w, new_h))
+        icon_width, icon_height = self.icon_with_text.GetSize()
+        x = (left_width - icon_width) // 2
+        y = (left_height - icon_height) // 2
+
+        dc.DrawBitmap(self.icon_with_text, x, y, True)
+
+
+    # def labeled_input(self, label_text, parent, placeholder, image_bitmap):
+    #     sizer = wx.BoxSizer(wx.VERTICAL)
+    #     # label above box
+    #     label = wx.StaticText(parent, label=label_text)
+    #     font = label.GetFont()
+    #     font = font.Scale(1.5)
+    #     label.SetFont(font)
+    #
+    #     text_box = rounded_text_box.RoundedTextBox(parent, placeholder, image_bitmap)
+    #     input_text = text_box.get_text_ctrl()
+    #
+    #     sizer.Add(label)
+    #     sizer.Add(text_box)
+    #
+    #     return sizer, input_text
 
     def labeled_input(self, label_text, parent, placeholder, image_bitmap):
         sizer = wx.BoxSizer(wx.VERTICAL)
