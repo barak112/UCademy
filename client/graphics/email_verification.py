@@ -9,12 +9,6 @@ class Feed(wx.Panel):
         self.frame = frame
         self.parent = parent
 
-        self.movies = [
-            ("Inception", "Great sci-fi movie"),
-            ("Titanic", "Classic romance"),
-            ("Matrix", "Mind-blowing action"),
-        ]
-
         self.index = 0
 
         vbox = wx.BoxSizer(wx.VERTICAL)

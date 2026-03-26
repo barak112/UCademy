@@ -2,6 +2,7 @@ import ast
 import os
 import hashlib
 import queue
+import re
 import secrets
 import smtplib
 import string
@@ -270,12 +271,9 @@ class ServerLogic:
 
     @staticmethod
     def is_email_valid(email):
-        # try:
-        #     result = validate_email(email, check_deliverability=False).normalized
-        # except EmailNotValidError:
-        #     result = None
-        # return result
-        return True
+        EMAIL_REGEX_PATTERN = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+        return re.match(EMAIL_REGEX_PATTERN, email) is not None
+
 
     def handle_sign_in(self, client_ip, data):  # command 2
         username_or_email, password = data

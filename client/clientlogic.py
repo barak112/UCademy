@@ -85,7 +85,7 @@ class ClientLogic:
         status = data[0]
         status = [int(i) for i in status]
 
-        wx.CallAfter(pub.sendMessage("on_signup_response", status = status))
+        wx.CallAfter(pub.sendMessage, "signup_ans", status=status)
 
         # if not any(status):
         #     print("an email verification code has been sent to the user's email account")
@@ -112,7 +112,7 @@ class ClientLogic:
                 self.video_comm.connect()
                 self.user = user.User(username, 0, 0, 0, email)
                 print("email verification successful")
-                wx.CallAfter(pub.sendMessage("email_verification", status = status, video_comm = video_comm, user = user))
+                wx.CallAfter(pub.sendMessage,"email_verification", status = status, video_comm = video_comm, user = user)
         else:
             print("email verification failed, not a valid code")
             verification_code = input("Enter verification code: ")
@@ -139,7 +139,7 @@ class ClientLogic:
                                   followings_names)
 
             print(f"signed in as {username}")
-            wx.CallAfter(pub.sendMessage, "login_ans", status=status, video=self.video_comm, user=self.user)
+            wx.CallAfter(pub.sendMessage, "login_ans", status=status, video_comm=self.video_comm, user=self.user)
         else:
             wx.CallAfter(pub.sendMessage, "login_ans", status=status)
             print("one of the credentials inputted is incorrect")

@@ -8,6 +8,7 @@
       <sourceFolder url="file://$MODULE_DIR$/client/assets" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/classes" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/client/graphics" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/client/graphics/components" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/.venv2" />
       <excludeFolder url="file://$MODULE_DIR$/.venv3" />
