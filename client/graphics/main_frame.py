@@ -1,15 +1,16 @@
 import wx
-from pubsub import pub
 from feed import Feed
 from log_in import LoginPanel
 from pick_topics import PickTopicsPanel
 from sign_up import SignupPanel
+from sign_up2 import SignupPanel2
 
 
 # ----------------------------
 # Main Frame (Controller)
 # ----------------------------
 class MainFrame(wx.Frame):
+
     def __init__(self, comm):
         super().__init__(None, title="Movie App", size=(1280, 720))
         # super().Maximize()
@@ -26,7 +27,7 @@ class MainFrame(wx.Frame):
         self.container = wx.Panel(self)
 
         self.login_panel = LoginPanel(self, self.container)
-        self.signup_panel = SignupPanel(self, self.container)
+        self.signup_panel = SignupPanel2(self, self.container)
         self.pick_topics_panel = PickTopicsPanel(self, self.container)
         self.feed_panel = Feed(self, self.container)
 

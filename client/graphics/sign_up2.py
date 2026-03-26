@@ -9,7 +9,7 @@ import rounded_input_field
 import settings
 
 
-class LoginPanel(wx.Panel):
+class SignupPanel2(wx.Panel):
     LEFT_COLOR = settings.THEME_COLOR
     RIGHT_COLOR = settings.OFF_WHITE
     TEXT_BOX_BORDER_COLOR = (220, 220, 220)

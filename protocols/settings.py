@@ -83,4 +83,6 @@ TOPICS = ["Computer Science", "Math", "Physics", "Cooking", "Baking", "Music", "
 
 VIDEO_EXTENSION = "mp4"
 
-THEME_COLOR = (249, 250, 251)
+# graphics constants
+THEME_COLOR = (56, 65, 237)
+OFF_WHITE = (249, 250, 251)

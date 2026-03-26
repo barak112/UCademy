@@ -10,7 +10,7 @@ import video
 import comment
 from pubsub import pub
 import wx
-from gui import MainFrame
+from main_frame import MainFrame
 
 class ClientLogic:
     """Manages client-side logic for the UCademy project.
@@ -183,7 +183,7 @@ class ClientLogic:
 
     def handle_video_comment_confirmation(self, data):  # command 7
         comment_id, video_id, added_comment = data
-        self.videos[video_id].comments.append(comment.Comment(comment_id, added_comment, self.user.username))
+        self.videos[video_id].comments.append(comment.Comment(comment_id, added_comment, self.user.username_input_obj))
 
     def handle_test(self, data):  # command 8
         video_id, test_link = data

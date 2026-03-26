@@ -15,7 +15,6 @@ class RoundedButton(wx.Panel):
         # Event Bindings
         self.Bind(wx.EVT_PAINT, self.on_paint)
         self.Bind(wx.EVT_SIZE, self.on_size)
-        self.Bind(wx.EVT_LEFT_DOWN, self.on_clicked)
 
         # Hover Bindings
         self.Bind(wx.EVT_ENTER_WINDOW, self.on_mouse_enter)
@@ -61,6 +60,3 @@ class RoundedButton(wx.Panel):
             gc.SetFont(wx.Font(11, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD), wx.WHITE)
             tw, th = gc.GetTextExtent(self.label)
             gc.DrawText(self.label, (w - tw) / 2, (h - th) / 2)
-
-    def on_clicked(self, event):
-        print(f"Clicked: {self.label}")
