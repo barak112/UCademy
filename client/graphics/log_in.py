@@ -27,12 +27,12 @@ class LoginPanel(wx.Panel):
 
         self.left = left
 
-        self.background_bitmap = wx.Bitmap("assets\\blue_background_960x1080.png", wx.BITMAP_TYPE_PNG)
+        self.background_bitmap = wx.Bitmap("assets\\blue_bg.png", wx.BITMAP_TYPE_PNG)
         left.SetMaxSize(self.background_bitmap.GetSize())
         left.Bind(wx.EVT_PAINT, self.on_paint)
         left.Bind(wx.EVT_SIZE, self.on_resize)
 
-        icon_with_text = wx.Image("assets\\icon_with_text.png")
+        icon_with_text = wx.Image("assets\\ucademy_log_in_logo_with_Text.png")
         icon_with_text = wx.Bitmap(icon_with_text)
         self.icon_with_text = icon_with_text
 
@@ -72,7 +72,17 @@ class LoginPanel(wx.Panel):
         font = font.Scale(1.5)
         subtitle.SetForegroundColour(wx.Colour(self.SUBTITLE_COLOR))
         subtitle.SetFont(font)
-        form_sizer.Add(subtitle, 0, wx.BOTTOM, 60)
+        form_sizer.Add(subtitle, 0, wx.BOTTOM, 30)
+
+
+        # status message
+        self.status_message = wx.StaticText(form)
+        font = self.status_message.GetFont()
+        font = font.Scale(1.5)
+        self.status_message.SetForegroundColour(wx.Colour(self.SUBTITLE_COLOR))
+        self.status_message.SetFont(font)
+        self.status_message.SetForegroundColour(wx.RED)
+
 
         #login button
         login_button = rounded_button.RoundedButton(form, "Log In", self.LEFT_COLOR)
@@ -100,11 +110,21 @@ class LoginPanel(wx.Panel):
         user_sizer, self.username_input_obj = self.labeled_input("Username", form, "Enter your username or email", username_icon)
         pass_sizer, self.password_input_obj = self.labeled_input("Password", form, "Enter your password", password_icon, True)
 
-        form_sizer.Add(user_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 15)
+        self.username_input_obj.get_text_visible().Bind(wx.EVT_KEY_DOWN, self.entering_text)
 
-        form_sizer.Add(pass_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 15)
+        self.password_input_obj.get_text_visible().Bind(wx.EVT_KEY_DOWN, self.entering_text)
+        self.password_input_obj.get_text_hidden().Bind(wx.EVT_KEY_DOWN, self.entering_text)
 
-        form_sizer.Add(login_button, 0, wx.EXPAND | wx.TOP, 60)
+
+        form_sizer.Add(user_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 30)
+
+        form_sizer.Add(pass_sizer, 0, wx.EXPAND | wx.BOTTOM, 35)
+
+        form_sizer.Add(self.status_message, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        form_sizer.Add(login_button, 0, wx.EXPAND | wx.TOP, 40)
+
+
         form_sizer.Add(sign_up_container, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 20)
 
         horizontal_right_sizer.AddStretchSpacer(2)
@@ -125,6 +145,11 @@ class LoginPanel(wx.Panel):
         pub.subscribe(self.on_login_response, "login_ans")
 
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key)
+
+    def entering_text(self, event):
+        print("entering text")
+        self.status_message.SetLabel("")
+        event.Skip()
 
     def on_resize(self, event):
         self.Refresh()  # trigger repaint
@@ -178,8 +203,8 @@ class LoginPanel(wx.Panel):
             msg2send = clientProtocol.build_sign_in(username, password)
             self.frame.comm.send_msg(msg2send)
         else:
-            self.frame.change_text_status("you must enter both username and password to log in")
-
+            self.status_message.SetLabel("you must enter both username and password to log in")
+            self.Layout()
 
     def on_login_response(self, status, video=None, user=None):
         if status:
@@ -190,7 +215,8 @@ class LoginPanel(wx.Panel):
             print("in login resp,", self.frame.user)
 
         else:
-            self.frame.change_text_status("username or password incorrect")
+            self.status_message.SetLabel("username or password incorrect")
+            self.Layout()
 
     def on_move_to_sign_up(self, event):
         self.frame.switch_panel(self.frame.signup_panel, self)

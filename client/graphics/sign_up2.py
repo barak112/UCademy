@@ -27,12 +27,12 @@ class SignupPanel2(wx.Panel):
 
         self.left = left
 
-        self.background_bitmap = wx.Bitmap("assets\\blue_background_960x1080.png", wx.BITMAP_TYPE_PNG)
+        self.background_bitmap = wx.Bitmap("assets\\blue_bg.png", wx.BITMAP_TYPE_PNG)
         left.SetMaxSize(self.background_bitmap.GetSize())
         left.Bind(wx.EVT_PAINT, self.on_paint)
         left.Bind(wx.EVT_SIZE, self.on_resize)
 
-        icon_with_text = wx.Image("assets\\icon_with_text.png")
+        icon_with_text = wx.Image("assets\\ucademy_log_in_logo_with_Text.png")
         icon_with_text = wx.Bitmap(icon_with_text)
         self.icon_with_text = icon_with_text
 

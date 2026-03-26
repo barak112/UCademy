@@ -135,3 +135,9 @@ class RoundedInputField(wx.Panel):
         else:
             value = self.text_hidden.GetValue()
         return value
+
+    def get_text_visible(self):
+        return self.text_visible
+
+    def get_text_hidden(self):
+        return self.text_hidden
