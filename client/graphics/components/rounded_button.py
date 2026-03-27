@@ -2,13 +2,25 @@ import wx
 
 
 class RoundedButton(wx.Panel):
-    def __init__(self, parent, label, color, pos=wx.DefaultPosition, size=wx.DefaultSize):
-        super().__init__(parent, pos=pos, size=size)
+    def __init__(self, parent, label, color):
+        """
+
+        :param parent: parent to add the button to
+        :param label: which label to put inside the button
+        :param color: what color should be the button
+        """
+        super().__init__(parent)
+
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+        self.SetDoubleBuffered(True)
+        self.SetWindowStyleFlag(wx.WANTS_CHARS)  # 👈 important
 
         self.label = label
         self.base_color = wx.Colour(color)
-        self.hover_color = self.make_darker(self.base_color, 15)  # 15% lighter
-        self.mouse_over = False  # State tracker
+        self.hover_color = self.make_darker(self.base_color, 15)  # 15% darker
+        self.mouse_clicked_color = self.make_darker(self.hover_color, 20)
+        self.mouse_over = False
+        self.mouse_clicked = False
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
 
@@ -19,9 +31,11 @@ class RoundedButton(wx.Panel):
         # Hover Bindings
         self.Bind(wx.EVT_ENTER_WINDOW, self.on_mouse_enter)
         self.Bind(wx.EVT_LEAVE_WINDOW, self.on_mouse_leave)
+        self.Bind(wx.EVT_LEFT_DOWN, self.on_mouse_click)
+        self.Bind(wx.EVT_LEFT_UP, self.on_mouse_release)
 
     def make_darker(self, color, percent):
-        """Helper to programmatically create a hover color."""
+        """creates a hover color."""
         r, g, b = color.Get()[:3]
         return wx.Colour(
             min(255, int(r * (1 - percent / 100))),
@@ -29,8 +43,27 @@ class RoundedButton(wx.Panel):
             min(255, int(b * (1 - percent / 100)))
         )
 
+    def on_mouse_click(self, event):
+        """handles button mouse click, indicates to change the button's color"""
+        self.mouse_clicked = True
+        self.CaptureMouse()
+        self.Refresh()
+        self.Update()
+
+    def on_mouse_release(self, event):
+        """handles button mouse release, indicates to change the button's color"""
+        if self.HasCapture():
+            self.ReleaseMouse()
+
+        # Delay resetting the state (e.g. 100ms)
+        wx.CallLater(100, self.reset_click_state)
+
+    def reset_click_state(self):
+        self.mouse_clicked = False
+        self.Refresh()
 
     def on_mouse_enter(self, event):
+        """triggers when hovering over button"""
         self.mouse_over = True
         self.Refresh()  # Redraw with hover color
 
@@ -52,6 +85,7 @@ class RoundedButton(wx.Panel):
 
             # Switch color based on hover state
             current_color = self.hover_color if self.mouse_over else self.base_color
+            current_color = self.mouse_clicked_color if self.mouse_clicked else current_color
 
             gc.SetBrush(wx.Brush(current_color))
             gc.SetPen(wx.NullGraphicsPen)

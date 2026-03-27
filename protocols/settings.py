@@ -57,8 +57,8 @@ PASSWORD_TOO_LONG = 2
 PASSWORD_NO_LETTERS = 3
 
 PASSWORD_ERRORS = {
-    PASSWORD_TOO_SHORT: "Password is too short",
-    PASSWORD_TOO_LONG: "Password is too long",
+    PASSWORD_TOO_SHORT: f"Password must be at least {MIN_PASSWORD_LENGTH} characters",
+    PASSWORD_TOO_LONG: f"Password must be less than {MAX_PASSWORD_LENGTH} characters",
     PASSWORD_NO_LETTERS: "Password must contain at least one letter"
 }
 
@@ -73,10 +73,9 @@ EMAIL_ERRORS = {
 
 EMAIL_VERIFICATION_CODE_EXPIRATION = 10 * 60 #seconds->minutes
 EMAIL_VERIFICATION_CODE_INVALID = 0
-EMAIL_VERIFICATION_CODE_VALID = 1
+EMAIL_VERIFICATION_SUCCESSFUL = 1
 EMAIL_VERIFICATION_CODE_EXPIRED = 2
-EMAIL_VERIFICATION_CODE_USERNAME_EXISTS = 3
-EMAIL_VERIFICATION_CODE_EMAIL_EXISTS = 4
+EMAIL_VERIFICATION_CREDENTIALS_TAKEN = 3
 
 #currently 10 topics
 TOPICS = ["Computer Science", "Math", "Physics", "Cooking", "Baking", "Music", "Wild", "Views", "Art", "History"]

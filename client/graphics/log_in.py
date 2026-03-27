@@ -9,12 +9,13 @@ import settings
 
 
 class LoginPanel(wx.Panel):
+    # graphics constants
     LEFT_COLOR = settings.THEME_COLOR
     RIGHT_COLOR = settings.OFF_WHITE
-    TEXT_BOX_BORDER_COLOR = (220, 220, 220)
     SUBTITLE_COLOR = (125, 120, 124)
 
     def __init__(self, frame, parent):
+        """Log in screen initialization"""
         super().__init__(parent)
 
         self.frame = frame
@@ -86,13 +87,13 @@ class LoginPanel(wx.Panel):
         password_icon = wx.Bitmap("assets\\password_icon.png", wx.BITMAP_TYPE_PNG)
 
         # field sizers containing labels, borders and ctrltext
-        user_sizer, self.username_input_obj = self.labeled_input("Username", form, "Enter your username or email",
-                                                                 username_icon)
+        username_or_email_sizer, self.username_or_email_input_obj = self.labeled_input("Username or email", form, "Enter your username or email",
+                                                                          username_icon)
         password_sizer, self.password_input_obj = self.labeled_input("Password", form, "Enter your password",
                                                                      password_icon, True)
 
         # whenever one of the fields is being written to, make status message disappear
-        self.username_input_obj.get_text_visible().Bind(wx.EVT_KEY_DOWN, self.entering_text)
+        self.username_or_email_input_obj.get_text_visible().Bind(wx.EVT_KEY_DOWN, self.entering_text)
 
         self.password_input_obj.get_text_visible().Bind(wx.EVT_KEY_DOWN, self.entering_text)
         self.password_input_obj.get_text_hidden().Bind(wx.EVT_KEY_DOWN, self.entering_text)
@@ -107,16 +108,16 @@ class LoginPanel(wx.Panel):
 
 
         # login button
-        login_button = rounded_button.RoundedButton(form, "Log In", self.LEFT_COLOR)
-        login_button.SetMinSize((0, 50))
-        login_button.Bind(wx.EVT_LEFT_DOWN, self.on_login)
+        self.login_button = rounded_button.RoundedButton(form, "Log In", self.LEFT_COLOR)
+        self.login_button.SetMinSize((0, 50))
+        self.login_button.Bind(wx.EVT_LEFT_UP, self.on_login)
 
         # move to sign up label
         no_account_label = wx.StaticText(form, label="Dont have an account?")
         sign_up = wx.StaticText(form, label = "sign up")
         sign_up.SetForegroundColour(wx.BLUE)
         sign_up.SetCursor(wx.Cursor(wx.CURSOR_HAND))
-        sign_up.Bind(wx.EVT_LEFT_DOWN, self.on_move_to_sign_up)
+        sign_up.Bind(wx.EVT_LEFT_UP, self.on_move_to_sign_up)
 
         sign_up_container = wx.BoxSizer(wx.HORIZONTAL)
         sign_up_container.Add(no_account_label)
@@ -127,13 +128,13 @@ class LoginPanel(wx.Panel):
 
         form_sizer.Add(subtitle, 0, wx.BOTTOM, 30)
 
-        form_sizer.Add(user_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 50)
+        form_sizer.Add(username_or_email_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 50)
 
         form_sizer.Add(password_sizer, 0, wx.EXPAND)
 
         form_sizer.Add(self.status_message, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, 40)
 
-        form_sizer.Add(login_button, 0, wx.EXPAND)
+        form_sizer.Add(self.login_button, 0, wx.EXPAND)
 
         form_sizer.Add(sign_up_container, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 20)
 
@@ -218,20 +219,24 @@ class LoginPanel(wx.Panel):
         event.Skip()
 
     def on_login(self, event):
-        """triggered on log in, takes input from username and password box objects
+        """triggered on log in, takes input from username_or_email and password box objects
          checks that both arent empty, if they are then it sets status message accordingly.
         if they arent, sends credentials to the server"""
-        username = self.username_input_obj.get_value()
-        password = self.password_input_obj.get_value()
 
-        print("credentials at login", username, password)
+        # either event = None (enter pressed) or the mouse was inside the button once released
+        if not event or self.login_button.GetClientRect().Contains(event.GetPosition()):
+            username_or_email = self.username_or_email_input_obj.get_value()
+            password = self.password_input_obj.get_value()
 
-        if username and password:
-            msg2send = clientProtocol.build_sign_in(username, password)
-            self.frame.comm.send_msg(msg2send)
-        else:
-            self.status_message.SetLabel("you must enter both username and password to log in")
-            self.Layout()
+            print("credentials at login", username_or_email, password)
+            if username_or_email and password:
+                msg2send = clientProtocol.build_sign_in(username_or_email, password)
+                self.frame.comm.send_msg(msg2send)
+            else:
+                self.status_message.SetLabel("you must enter both username/email and password to log in")
+                self.Layout()
+        if event:
+            event.Skip()
 
     def on_login_response(self, status, video_comm=None, user=None):
         """

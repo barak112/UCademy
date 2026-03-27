@@ -15,6 +15,7 @@ class SignupPanel(wx.Panel):
     SUBTITLE_COLOR = (125, 120, 124)
 
     def __init__(self, frame, parent):
+        """Sign up screen initialization"""
         super().__init__(parent)
 
         self.frame = frame
@@ -109,16 +110,16 @@ class SignupPanel(wx.Panel):
         self.status_message.SetForegroundColour(wx.RED)
 
         # signup button
-        signup_button = rounded_button.RoundedButton(form, "Sign up", self.LEFT_COLOR)
-        signup_button.SetMinSize((0, 50))
-        signup_button.Bind(wx.EVT_LEFT_DOWN, self.on_signup)
+        self.signup_button = rounded_button.RoundedButton(form, "Sign up", self.LEFT_COLOR)
+        self.signup_button.SetMinSize((0, 50))
+        self.signup_button.Bind(wx.EVT_LEFT_UP, self.on_signup)
 
         # move to log in label
         already_have_an_account = wx.StaticText(form, label="Already have an account?")
         sign_up = wx.StaticText(form, label="Log in")
         sign_up.SetForegroundColour(wx.BLUE)
         sign_up.SetCursor(wx.Cursor(wx.CURSOR_HAND))
-        sign_up.Bind(wx.EVT_LEFT_DOWN, self.on_move_to_log_in)
+        sign_up.Bind(wx.EVT_LEFT_UP, self.on_move_to_log_in)
 
         sign_up_container = wx.BoxSizer(wx.HORIZONTAL)
         sign_up_container.Add(already_have_an_account)
@@ -135,7 +136,7 @@ class SignupPanel(wx.Panel):
 
         form_sizer.Add(self.status_message, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, 20)
 
-        form_sizer.Add(signup_button, 0, wx.EXPAND)
+        form_sizer.Add(self.signup_button, 0, wx.EXPAND)
 
         form_sizer.Add(sign_up_container, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 20)
 
@@ -219,30 +220,37 @@ class SignupPanel(wx.Panel):
         event.Skip()
 
     def on_signup(self, event):
-        # Assume validation is done elsewhere
-        username = self.username_input_obj.get_value()
-        email = self.email_input_obj.get_value()
-        password = self.password_input_obj.get_value()
+        """checks that all credentials are inputted and sends them to the server"""
+        # either event = None (enter pressed) or the mouse was inside the button once released
+        if not event or self.signup_button.GetClientRect().Contains(event.GetPosition()):
+            username = self.username_input_obj.get_value()
+            email = self.email_input_obj.get_value()
+            password = self.password_input_obj.get_value()
 
-        print("credentials at signup", username, password, email)
+            print("credentials at signup", username, password, email)
 
-        if username and password:
-            msg2send = clientProtocol.build_sign_up(username, password, email)
-            self.frame.comm.send_msg(msg2send)
-        else:
-            self.status_message.SetLabel("you must enter all credentials to sign up")
-            self.Layout()
+            if username and email and password:
+                msg2send = clientProtocol.build_sign_up(username, password, email)
+                self.frame.comm.send_msg(msg2send)
+            else:
+                self.status_message.SetLabel("you must enter all credentials to sign up")
+                self.Layout()
+
+        if event:
+            event.Skip()
 
     def on_signup_response(self, status):
+        """handles response to sign up from the server, either moves to the email verification panel or shows an error message"""
         if not any(status):
-            # self.status_message.SetLabel("an email verification code has been sent to the user's email account")
-            self.frame.switch_panel(self.frame.email_verification, self)
+            self.status_message.SetLabel("an email verification code has been sent to the user's email account")
+            # self.frame.switch_panel(self.frame.email_verification, self)
+            print("moving to next frame in sign up")
         else:
             username_status, password_status, email_status = status
             if username_status:
                 self.status_message.SetLabel("username error: "+ settings.USERNAME_ERRORS[username_status])
             if password_status:
-                self.status_message.SetLabel("password error: "+ settings.PASSWORD_ERRORS[password_status])
+                self.status_message.SetLabel(f"password error: "+ settings.PASSWORD_ERRORS[password_status])
             if email_status:
                 self.status_message.SetLabel("email error: " + settings.EMAIL_ERRORS[email_status])
         self.Layout()

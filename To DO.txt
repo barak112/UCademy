@@ -1,43 +1,13 @@
 add confirmation to file uploading
 
+do so tab toggles between fields
 
-fields hover makes the border color to log in button color
-button hover makes it darker
-
-
-to ask merry:
-
-currently only username
-actually no. login with either (3th option)
-
-WITH WHICH CREDENTIALS SHOULD I LOG IN:
-only login with one credential
-OR choose if to login with username or email
-OR login with either credential in the same field (prevent username and email overlap)
-
-
-
-HOW SHOULD I DO THE VERIFICATION CODE?
-when should i delete the code from the dictionary?
-should i let the user know when their code is expired (client counting 10 mins)?
-should i just kick the user to the sign up screen once time is up?
-if so, how would i know to delete their code from the dictionary?
-
-when trying to enter an expired code, log b ack out and delete from dic
+in verification code, if status != 0, move back to sign up and show error
+when trying to enter an expired code, log back out and delete from dic
 dont delete from dic otherwise
 delete from dic if the client disconnects before entering code
 
 
+to ask merry:
 
-keep it simple
-do not take care of it rn
-about report concluded
-should i create a table that consists of
-id, type, status (deleted/not_deleted)
-so for each concluded report i have one row in a table
-so that i can delete the rows of reports once i have notified the reporter
 
-not neccessary
-is it necessary to normalize email addresses?
-
-*use regex*

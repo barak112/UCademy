@@ -84,20 +84,7 @@ class ClientLogic:
     def handle_reg_confirmation(self, data):  # command 0
         status = data[0]
         status = [int(i) for i in status]
-
         wx.CallAfter(pub.sendMessage, "signup_ans", status=status)
-
-        # if not any(status):
-        #     print("an email verification code has been sent to the user's email account")
-        # else:
-        #     username_status, password_status, email_status = status
-        #     print("error signing up:")
-        #     if username_status:
-        #         print("username error: ", settings.USERNAME_ERRORS[username_status])
-        #     if password_status:
-        #         print("password error: ", settings.PASSWORD_ERRORS[password_status])
-        #     if email_status:
-        #         print("email error: ", settings.EMAIL_ERRORS[email_status])
 
     def handle_email_verification_confirmation(self, data):  # command 1
         status = data[0]
@@ -183,7 +170,7 @@ class ClientLogic:
 
     def handle_video_comment_confirmation(self, data):  # command 7
         comment_id, video_id, added_comment = data
-        self.videos[video_id].comments.append(comment.Comment(comment_id, added_comment, self.user.username_input_obj))
+        self.videos[video_id].comments.append(comment.Comment(comment_id, added_comment, self.user.username_or_email_input_obj))
 
     def handle_test(self, data):  # command 8
         video_id, test_link = data

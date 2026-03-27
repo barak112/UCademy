@@ -94,7 +94,7 @@ class ServerLogic:
             '16': self.handle_video_upload,
             '17': self.handle_follow_user,
 
-            '22':self.handle_client_disconected,
+            '97':self.handle_client_disconnected,
 
             '98': self.handle_comment_or_video_status,
             '99': self.handle_user_kick,
@@ -113,9 +113,18 @@ class ServerLogic:
 
         self.handle_msgs()
 
-    def handle_client_disconected(self, client_ip, data):
-        pass
-        #todo delete from all dics
+    def handle_client_disconnected(self, client_ip, data):
+        """
+            deletes client from all dictionaries in the logic
+        :param client_ip: client_ip to delete from dictionaries
+        :param data: not used
+        """
+        self.clients.pop(client_ip, None)
+        self.clients_awaiting_email_verification.pop(client_ip, None)
+        self.videos_to_send.pop(client_ip, None)
+        self.users_to_send.pop(client_ip, None)
+        self.comments_to_send.pop(client_ip, None)
+        self.pfps_sent.pop(client_ip, None)
 
 
     def handle_msgs(self):
@@ -167,37 +176,36 @@ class ServerLogic:
         """
         email_verification_code = data[0]
 
-        # todo change this in the way merry said, in a way that the dictionary doesnt get big
-        # do not remember what it was though
-        # to ask: when should i delete the code from the dictionary?
-        #        should i let the user know when their code is expired (client counting 10 mins)?
-        #        should i just kick the user to the sign up screen once time is up?
-        #        if so, how would i know to delete their code from the dictionary?
-
         status = settings.EMAIL_VERIFICATION_CODE_INVALID
         username = None
         email = None
         port = None
 
-        #checks if code is valid
-        if client_ip in self.clients_awaiting_email_verification and email_verification_code == self.clients_awaiting_email_verification[client_ip][3]:
-            #check if code is expired
+        # check if user is awaiting verification code
+        if client_ip in self.clients_awaiting_email_verification:
+            # check if code is expired
             if settings.EMAIL_VERIFICATION_CODE_EXPIRATION < time.time() - self.clients_awaiting_email_verification[client_ip][4]:
                 status = settings.EMAIL_VERIFICATION_CODE_EXPIRED
-            else:
+                del self.clients_awaiting_email_verification[client_ip]
+
+            elif email_verification_code == self.clients_awaiting_email_verification[client_ip][3]: # if not expired and is correct
                 username, password, email = self.clients_awaiting_email_verification[client_ip][:3]
-                if self.db.user_exists(username):
-                    status = settings.EMAIL_VERIFICATION_CODE_USERNAME_EXISTS
-                elif self.db.email_exists(email):
-                    status = settings.EMAIL_VERIFICATION_CODE_EMAIL_EXISTS
-                else:
+                # check if user credentials are still available
+                status = self.validate_credentials_registration(username, password, email)
+
+                if not any(status): # credentials are valid:
                     self.db.add_user(username, email, self.hash_password(password))
-                    self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ),[]]
+                    self.clients[client_ip] = [username,
+                                               serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ),
+                                               []]
                     self.pfps_sent[client_ip] = []
                     port = self.current_video_port
-                    status = settings.EMAIL_VERIFICATION_CODE_VALID
-                    self.current_video_port+=1
+                    status = settings.EMAIL_VERIFICATION_SUCCESSFUL
+                    self.current_video_port += 1
                     del self.clients_awaiting_email_verification[client_ip]
+
+                else: # credentials are taken
+                    status = settings.EMAIL_VERIFICATION_CREDENTIALS_TAKEN
 
         msg = serverProtocol.build_email_verification_confirmation(status, username, email, port)
         self.comm.send_msg(client_ip, msg)
@@ -226,25 +234,22 @@ class ServerLogic:
         system's database. Returns a status list indicating the validity of each credential.
 
         :param username: The username to validate.
-        :type username: str
         :param password: The password to validate.
-        :type password: str
         :param email: The email address to validate.
-        :type email: str
         :return: A list of integers indicating the validation status for username,
             password, and email, respectively. Each index of the list represents:
                 - Index 0: Status for username validation
                 - Index 1: Status for password validation
                 - Index 2: Status for email validation
-        :rtype: list[int]
         """
         status = [0, 0, 0]  # username, password, email statuses - everything is ok
+
         if len(username) < settings.MIN_NAME_LENGTH:
             status[0] = settings.USERNAME_TOO_SHORT  # username too short
         elif len(username) > settings.MAX_NAME_LENGTH:
             status[0] = settings.USERNAME_TOO_LONG  # username too long
-        elif self.db.user_exists(username):
-            status[0] = settings.USERNAME_ALREADY_EXISTS  # username already exists
+        elif self.db.user_exists(username) or self.db.email_exists(username):
+            status[0] = settings.USERNAME_ALREADY_EXISTS  # username already used as username or email
         elif not all(char in string.ascii_letters + string.digits + "_-." for char in username):
             status[0] = settings.USERNAME_INVALID_CHARACTERS  # invalid username characters
         elif not username[0] in string.ascii_letters:
@@ -257,16 +262,12 @@ class ServerLogic:
         elif not any(letter in password for letter in string.ascii_letters):
             status[1] = settings.PASSWORD_NO_LETTERS  # password must include letters
 
+
         if not self.is_email_valid(email):
             status[2] = settings.EMAIL_NOT_VALID # not a valid email
 
-        # elif self.db.email_exists(email): # TODO return this at the end of the logic testings
-        #     status[2] = settings.EMAIL_ALREADY_EXISTS # email already exists
-
-        #todo check with merry:
-        # only login with one credential
-        # OR choose if to login with username or email
-        # OR login with either credential in the same field (prevent username and email overlap)
+        elif self.db.email_exists(email) or self.db.user_exists(email):
+            status[2] = settings.EMAIL_ALREADY_EXISTS # email already used as email or username
         return status
 
     @staticmethod
@@ -415,7 +416,6 @@ class ServerLogic:
         else:
             msg_to_send = serverProtocol.build_video_details(0, "", "", "", "",0, 0, 0)
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
-            #todo check that the empty video works
 
     def send_videos_details_and_thumbnail(self, client_ip, video_ids): # Helper function
         for video_id in video_ids:

@@ -3,13 +3,20 @@ import settings
 
 
 class RoundedInputField(wx.Panel):
-    #graphics constants
+    # graphics constants
     BORDER_COLOR = wx.Colour(180, 180, 180)
     FOCUS_COLOR = settings.THEME_COLOR
-    BG_COLOR = wx.Colour(249, 250, 251)
+    BG_COLOR = settings.OFF_WHITE
 
 
     def __init__(self, parent, placeholder, field_icon_bitmap, is_password = False):
+        """
+           Rounded input field init, the rounded field contains
+        :param parent: parent to add this widget to
+        :param placeholder: placeholder to put in the textCtrl
+        :param field_icon_bitmap: field icon to place before the textCtrl
+        :param is_password: whether this field is a password
+        """
         super().__init__(parent)
         
         #attributes
@@ -54,7 +61,7 @@ class RoundedInputField(wx.Panel):
             self.password_visibility_icon = wx.StaticBitmap(self, bitmap=show_password_icon)
             self.sizer.Add(self.password_visibility_icon, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 20)
             # handle change password visibility on icon press
-            self.password_visibility_icon.Bind(wx.EVT_LEFT_DOWN, self.toggle_show_password)
+            self.password_visibility_icon.Bind(wx.EVT_LEFT_UP, self.toggle_show_password)
 
         self.SetSizer(self.sizer)
 
@@ -69,6 +76,7 @@ class RoundedInputField(wx.Panel):
         self.text_hidden.Bind(wx.EVT_KILL_FOCUS, self.on_kill_focus)
 
     def toggle_show_password(self, event):
+        """triggered once clicked on the eye icon on the password field, toggles between text shown and hidden"""
         if self.text_shown: # hide text
             hide_password_icon = wx.Bitmap("assets\\show_password_icon.png", wx.BITMAP_TYPE_PNG)
             self.password_visibility_icon.SetBitmap(hide_password_icon)
@@ -96,20 +104,24 @@ class RoundedInputField(wx.Panel):
         self.sizer.Layout()
 
     def on_focus(self, event):
+        """once field focused, indicates to change the field border color"""
         self.has_focus = True
         self.Refresh()
         event.Skip()
 
     def on_kill_focus(self, event):
+        """once field focused, indicates to change the field border color back to default"""
         self.has_focus = False
         self.Refresh()
         event.Skip()
 
     def on_size(self, event):
+        """triggers field redraw once field resized"""
         self.Refresh()
         event.Skip()
 
     def on_paint(self, event):
+        """paints the rounded field borders, color of them is according to self.has_focused"""
         dc = wx.AutoBufferedPaintDC(self)
         dc.Clear()
 
@@ -130,6 +142,7 @@ class RoundedInputField(wx.Panel):
             gc.DrawRoundedRectangle(1, 1, w - 2, h - 2, 10)
 
     def get_value(self):
+        """returns the value of the field"""
         if self.text_shown:
             value = self.text_visible.GetValue()
         else:
@@ -137,7 +150,9 @@ class RoundedInputField(wx.Panel):
         return value
 
     def get_text_visible(self):
+        """returns the visible text textCtrl widget"""
         return self.text_visible
 
     def get_text_hidden(self):
+        """returns the hidden text textCtrl widget"""
         return self.text_hidden

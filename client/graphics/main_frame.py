@@ -11,8 +11,7 @@ from sign_up import SignupPanel
 class MainFrame(wx.Frame):
 
     def __init__(self, comm):
-        super().__init__(None, title="Ucademy ", size=(1280, 800))
-        # super().__init__(None, title="Ucademy ", size=(1280, 720)) #todo return this
+        super().__init__(None, title="Ucademy ", size=(1280, 720))
         # super().Maximize()
 
         self.comm = comm
