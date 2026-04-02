@@ -6,13 +6,14 @@ import wx
 import rounded_button
 import rounded_input_field
 import settings
+import theme_background_panel
 
 
 class LoginPanel(wx.Panel):
     # graphics constants
     LEFT_COLOR = settings.THEME_COLOR
     RIGHT_COLOR = settings.OFF_WHITE
-    SUBTITLE_COLOR = (125, 120, 124)
+    SUBTITLE_COLOR = settings.SUBTITLE_COLOR
 
     def __init__(self, frame, parent):
         """Log in screen initialization"""
@@ -25,34 +26,21 @@ class LoginPanel(wx.Panel):
         two_sides = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(two_sides)
 
-        #left side is an image background and the Ucademy logo
-        self.left = wx.Panel(self)
-
-        #left side's background image
-        self.background_bitmap = wx.Bitmap("assets\\blue_bg.png", wx.BITMAP_TYPE_PNG)
-        self.left.SetMaxSize(self.background_bitmap.GetSize())
-        self.left.Bind(wx.EVT_PAINT, self.on_paint)
-        self.left.Bind(wx.EVT_SIZE, self.on_resize)
-
-        # left side's Ucademy logo
-        self.icon_with_text = wx.Bitmap(wx.Image("assets\\ucademy_log_in_logo_with_Text.png"))
-
-
-        # the right panel - including the log-in form
-        right = wx.Panel(self)
+        # the self.right panel - including the log-in form
+        self.right = wx.Panel(self)
 
         min_size = (630, 680)
         frame.SetMinSize(min_size)
 
         #right background color -> off-white
-        right.SetBackgroundColour(wx.Colour(self.RIGHT_COLOR))
+        self.right.SetBackgroundColour(wx.Colour(self.RIGHT_COLOR))
 
         #right side sizer -> contains stretchers and horizontal_right which contains form
         right_sizer = wx.BoxSizer(wx.VERTICAL)
-        right.SetSizer(right_sizer)
+        self.right.SetSizer(right_sizer)
 
         #horizontal_right -> contains form and stretchers, keeps form horizontally centered inside right
-        horizontal_right = wx.Panel(right)
+        horizontal_right = wx.Panel(self.right)
         horizontal_right_sizer = wx.BoxSizer(wx.HORIZONTAL)
         horizontal_right.SetSizer(horizontal_right_sizer)
 
@@ -148,15 +136,19 @@ class LoginPanel(wx.Panel):
         right_sizer.Add(horizontal_right, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 50)  # center horizontally
         right_sizer.AddStretchSpacer()  # push up
 
-        # add both left and right panels to the screen
+        # add both left and self.right panels to the screen
+        ucademy_icon = wx.Bitmap(wx.Image("assets\\ucademy_log_in_logo_with_Text.png"))
+        self.left = theme_background_panel.ThemeBackgroundPanel(self, ucademy_icon)
         two_sides.Add(self.left, 1, wx.EXPAND)
-        two_sides.Add(right, 1, wx.EXPAND)
+        two_sides.Add(self.right, 1, wx.EXPAND)
 
         # handles logic response to log in
         pub.subscribe(self.on_login_response, "login_ans")
 
         #handles key press
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key)
+        #handle background disappearance
+        self.Bind(wx.EVT_SIZE, self.on_resize)
 
         self.Hide()
 
@@ -164,24 +156,6 @@ class LoginPanel(wx.Panel):
         """whenever one of the credentials fields is being written to, deletes status message"""
         self.status_message.SetLabel("")
         event.Skip()
-
-    def on_resize(self, event):
-        """redraws the screen whenever the screen resizes, used to redraw the background image"""
-        self.Refresh()  # trigger repaint
-        event.Skip()
-
-    def on_paint(self, event):
-        """draws the background image on the left side of the screen"""
-        dc = wx.BufferedPaintDC(self.left)
-        dc.DrawBitmap(self.background_bitmap, 0, 0)
-
-        left_width, left_height, = self.left.GetSize()
-
-        icon_width, icon_height = self.icon_with_text.GetSize()
-        x = (left_width - icon_width) // 2
-        y = (left_height - icon_height) // 2
-
-        dc.DrawBitmap(self.icon_with_text, x, y, True)
 
     @staticmethod
     def labeled_input(label_text, parent, placeholder, field_icon_bitmap, is_password = False):
@@ -207,6 +181,12 @@ class LoginPanel(wx.Panel):
         sizer.Add(text_box, 0, wx.EXPAND)
         return sizer, text_box
 
+    def on_resize(self, event):
+        if self.GetSize()[0] - self.right.GetSize()[0] == 1:
+            self.left.Hide()
+        else:
+            self.left.Show()
+        event.Skip()
 
     def on_key(self, event):
         """checks for keys pressed, exists on Escape, log in on Enter"""

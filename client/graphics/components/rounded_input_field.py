@@ -4,7 +4,7 @@ import settings
 
 class RoundedInputField(wx.Panel):
     # graphics constants
-    BORDER_COLOR = wx.Colour(180, 180, 180)
+    BORDER_COLOR = settings.TEXT_BOX_BORDER_COLOR
     FOCUS_COLOR = settings.THEME_COLOR
     BG_COLOR = settings.OFF_WHITE
 

@@ -1,4 +1,6 @@
 import wx
+
+from email_verification import EmailVerification
 from feed import Feed
 from log_in import LoginPanel
 from pick_topics import PickTopicsPanel
@@ -23,6 +25,7 @@ class MainFrame(wx.Frame):
 
         self.login_panel = LoginPanel(self, self.container)
         self.signup_panel = SignupPanel(self, self.container)
+        self.email_verification_panel = EmailVerification(self, self.container)
         self.pick_topics_panel = PickTopicsPanel(self, self.container)
         self.feed_panel = Feed(self, self.container)
 
@@ -30,12 +33,14 @@ class MainFrame(wx.Frame):
 
         self.sizer.Add(self.login_panel, 1, wx.EXPAND)
         self.sizer.Add(self.signup_panel, 1, wx.EXPAND)
+        self.sizer.Add(self.email_verification_panel, 1, wx.EXPAND)
         self.sizer.Add(self.feed_panel, 1, wx.EXPAND)
 
         self.container.SetSizer(self.sizer)
 
-        self.login_panel.Show()
+        # self.login_panel.Show()
         # self.signup_panel.Show()
+        self.email_verification_panel.Show()
 
     def switch_panel(self, new_panel, old_panel):
         old_panel.Hide()
