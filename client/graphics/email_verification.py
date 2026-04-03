@@ -55,7 +55,7 @@ class EmailVerification(wx.Panel):
         icon = wx.StaticBitmap(form, bitmap=wx.Bitmap("assets\\email_verification_icon.png"))
 
         # title
-        title = wx.StaticText(form, label="       Verify Your Email       ")
+        title = wx.StaticText(form, label="     Verify Your Email     ")
         font = title.GetFont()
         font = font.Bold().Scale(4)
         title.SetFont(font)
@@ -67,16 +67,23 @@ class EmailVerification(wx.Panel):
         # subtitle.SetForegroundColour(wx.Colour(self.SUBTITLE_COLOR))
         subtitle.SetFont(font)
 
+        # email code was sent to
+        email_label = wx.StaticText(form, label="barakbm9@gmail.com")
+        # email_label = wx.StaticText(form, label=self.frame.signup_panel.email_input_obj.get_value())
+        font = email_label.GetFont()
+        font = font.Bold().Scale(1.5)
+        email_label.SetFont(font)
+
         # verification code label
         enter_ver_code_label = wx.StaticText(form, label="Enter verification code")
         font = enter_ver_code_label.GetFont()
-        font = font.Scale(1.2)
+        font = font.Scale(1.5)
         font = font.Bold()
         enter_ver_code_label.SetFont(font)
 
         # verification code cubes
-        #todo implement verification_code_cubes
-        # ver_code_cubes = verification_code_cubes.VerificationCodeCubes(form)
+        ver_code_cubes = verification_code_cubes.VerificationCodeCubes(self, form)
+        self.ver_code_cubes = ver_code_cubes
 
         # status message
         self.status_message = wx.StaticText(form)
@@ -87,13 +94,15 @@ class EmailVerification(wx.Panel):
         self.status_message.SetForegroundColour(wx.RED)
 
         # verify email button
-        self.verify_email_button = rounded_button.RoundedButton(form, "Verify Email", self.LEFT_COLOR)
-        self.verify_email_button.SetMinSize((0, 50))
+        self.verify_email_button = rounded_button.RoundedButton(form, "Verify Email", wx.Colour(settings.UNACTIVE_BUTTON))
         self.verify_email_button.Bind(wx.EVT_LEFT_UP, self.on_email_verification)
 
         # didnt recv code label
-        didnt_recv_code = wx.StaticText(form, label="Didn't recieve the code?")
+        didnt_recv_code = wx.StaticText(form, label="Didn't receive the code?")
         resend = wx.StaticText(form, label="resend")
+        font = didnt_recv_code.GetFont()
+        resend.SetFont(font)
+        didnt_recv_code.SetFont(font)
         resend.SetForegroundColour(wx.BLUE)
         resend.SetCursor(wx.Cursor(wx.CURSOR_HAND))
         resend.Bind(wx.EVT_LEFT_UP, self.on_resend_code)
@@ -114,19 +123,24 @@ class EmailVerification(wx.Panel):
 
         # add all form widgets to form_sizer
         form_sizer.Add(icon, 0, wx.ALIGN_CENTER_HORIZONTAL)
-        form_sizer.Add(title, 0, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 10)
+        form_sizer.Add(title, 0, wx.BOTTOM | wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 10)
 
-        form_sizer.Add(subtitle, 0, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 30)
+        form_sizer.Add(subtitle, 0, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 10)
 
-        form_sizer.Add(self.status_message, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, 40)
+        form_sizer.Add(email_label, 0, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 75)
 
-        form_sizer.Add(enter_ver_code_label, 0 , wx.ALIGN_CENTER_HORIZONTAL)
+        form_sizer.Add(enter_ver_code_label, 0, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 20)
+
+        form_sizer.Add(ver_code_cubes, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        form_sizer.Add(self.status_message, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, 35)
+
 
         form_sizer.Add(self.verify_email_button, 0, wx.EXPAND)
 
         form_sizer.Add(didnt_recv_code_container, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 20)
 
-        form_sizer.Add(back_to_sign_up, 0, wx.Top | wx.ALIGN_CENTER_HORIZONTAL, 20)
+        form_sizer.Add(back_to_sign_up, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 10)
 
         # center form horizontally
         horizontal_right_sizer.AddStretchSpacer(2)
@@ -168,8 +182,15 @@ class EmailVerification(wx.Panel):
             exit()
         elif keycode == wx.WXK_RETURN:
             self.on_email_verification(None)
-
         event.Skip()
+
+    def verification_code_full(self):
+        self.verify_email_button.set_background_color(self.LEFT_COLOR)
+        self.verify_email_button.Refresh()
+
+    def verification_code_not_full(self):
+        self.verify_email_button.set_background_color(settings.UNACTIVE_BUTTON)
+        self.verify_email_button.Refresh()
 
     def on_back_to_sign_up(self, event):
         print("back to sign up")

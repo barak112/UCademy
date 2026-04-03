@@ -82,6 +82,7 @@ class SignupPanel(wx.Panel):
 
         password_sizer, self.password_input_obj = self.labeled_input("Password", form, "Enter your password",
                                                                      password_icon, True)
+        self.filled_fields = {"Username":0, "Email":0, "Password":0}
 
         # whenever one of the fields is being written to, make status message disappear
         self.username_input_obj.get_text_visible().Bind(wx.EVT_KEY_DOWN, self.entering_text)
@@ -99,8 +100,8 @@ class SignupPanel(wx.Panel):
         self.status_message.SetForegroundColour(wx.RED)
 
         # signup button
-        self.signup_button = rounded_button.RoundedButton(form, "Sign up", self.LEFT_COLOR)
-        self.signup_button.SetMinSize((0, 50))
+        self.signup_button = rounded_button.RoundedButton(form, "Sign up", settings.UNACTIVE_BUTTON)
+        # self.signup_button.SetMinSize((0, 50))
         self.signup_button.Bind(wx.EVT_LEFT_UP, self.on_signup)
 
         # move to log in label
@@ -155,6 +156,17 @@ class SignupPanel(wx.Panel):
 
         self.Hide()
 
+    def field_is_filled(self, field_name):
+        self.filled_fields[field_name] = 1
+        if all(self.filled_fields.values()):
+            self.signup_button.set_background_color(self.LEFT_COLOR)
+        self.signup_button.Refresh()
+
+    def field_is_unfilled(self, field_name):
+        self.filled_fields[field_name] = 0
+        self.signup_button.set_background_color(settings.UNACTIVE_BUTTON)
+        self.signup_button.Refresh()
+
     def entering_text(self, event):
         """whenever one of the credentials fields is being written to, deletes status message"""
         self.status_message.SetLabel("")
@@ -168,8 +180,7 @@ class SignupPanel(wx.Panel):
         event.Skip()
 
 
-    @staticmethod
-    def labeled_input(label_text, parent, placeholder, field_icon_bitmap, is_password=False):
+    def labeled_input(self, label_text, parent, placeholder, field_icon_bitmap, is_password=False):
         """
             creates a credentials field with a textctrl with a placeholder, a label, a rounded border around him, and an icon representing him
         :param label_text: the field label
@@ -186,7 +197,7 @@ class SignupPanel(wx.Panel):
         font = font.Scale(1.5)
         label.SetFont(font)
 
-        text_box = rounded_input_field.RoundedInputField(parent, placeholder, field_icon_bitmap, is_password)
+        text_box = rounded_input_field.RoundedInputField(self,parent, label_text,placeholder, field_icon_bitmap, is_password)
 
         sizer.Add(label)
         sizer.Add(text_box, 0, wx.EXPAND)
@@ -239,4 +250,5 @@ class SignupPanel(wx.Panel):
         self.Layout()
 
     def on_move_to_log_in(self, event):
-        self.frame.switch_panel(self.frame.login_panel, self)
+        self.frame.switch_panel(self.frame.email_verification_panel, self)
+        # self.frame.switch_panel(self.frame.login_panel, self)

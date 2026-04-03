@@ -4,12 +4,12 @@ import settings
 
 class RoundedInputField(wx.Panel):
     # graphics constants
-    BORDER_COLOR = settings.TEXT_BOX_BORDER_COLOR
+    BORDER_COLOR = settings.BORDER_COLOR
     FOCUS_COLOR = settings.THEME_COLOR
     BG_COLOR = settings.OFF_WHITE
 
 
-    def __init__(self, parent, placeholder, field_icon_bitmap, is_password = False):
+    def __init__(self, panel, parent, field_name, placeholder, field_icon_bitmap, is_password = False):
         """
            Rounded input field init, the rounded field contains
         :param parent: parent to add this widget to
@@ -18,7 +18,9 @@ class RoundedInputField(wx.Panel):
         :param is_password: whether this field is a password
         """
         super().__init__(parent)
-        
+        self.panel = panel
+        self.field_name = field_name
+
         #attributes
         self.has_focus = False # used to change the text box border color
         self.text_shown = True # used for password show and hide
@@ -74,6 +76,20 @@ class RoundedInputField(wx.Panel):
 
         self.text_hidden.Bind(wx.EVT_SET_FOCUS, self.on_focus)
         self.text_hidden.Bind(wx.EVT_KILL_FOCUS, self.on_kill_focus)
+
+        self.text_visible.Bind(wx.EVT_TEXT, self.on_text_change)
+        self.text_hidden.Bind(wx.EVT_TEXT, self.on_text_change)
+
+    def on_text_change(self, event):
+        ctrl = event.GetEventObject()
+        value = ctrl.GetValue()
+
+        if value.strip() == "":
+            self.panel.field_is_unfilled(self.field_name)
+        else:
+            self.panel.field_is_filled(self.field_name)
+
+        event.Skip()
 
     def toggle_show_password(self, event):
         """triggered once clicked on the eye icon on the password field, toggles between text shown and hidden"""
@@ -139,7 +155,8 @@ class RoundedInputField(wx.Panel):
 
             gc.SetBrush(wx.TRANSPARENT_BRUSH)
             gc.SetPen(wx.Pen(border_color, 2))
-            gc.DrawRoundedRectangle(1, 1, w - 2, h - 2, 10)
+            gc.DrawRoundedRectangle(1, 1, w - 2, h - 2, settings.ROUND_BORDER_RADIUS)
+
 
     def get_value(self):
         """returns the value of the field"""

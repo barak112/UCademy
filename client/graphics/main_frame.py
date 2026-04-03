@@ -13,7 +13,7 @@ from sign_up import SignupPanel
 class MainFrame(wx.Frame):
 
     def __init__(self, comm):
-        super().__init__(None, title="Ucademy ", size=(1280, 720))
+        super().__init__(None, title="Ucademy ", size=(1366,768))
         # super().Maximize()
 
         self.comm = comm
@@ -38,9 +38,9 @@ class MainFrame(wx.Frame):
 
         self.container.SetSizer(self.sizer)
 
-        # self.login_panel.Show()
+        self.login_panel.Show()
         # self.signup_panel.Show()
-        self.email_verification_panel.Show()
+        # self.email_verification_panel.Show()
 
     def switch_panel(self, new_panel, old_panel):
         old_panel.Hide()

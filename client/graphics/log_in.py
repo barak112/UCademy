@@ -80,6 +80,8 @@ class LoginPanel(wx.Panel):
         password_sizer, self.password_input_obj = self.labeled_input("Password", form, "Enter your password",
                                                                      password_icon, True)
 
+        self.filled_fields = {"Username or email": 0, "Password": 0}
+
         # whenever one of the fields is being written to, make status message disappear
         self.username_or_email_input_obj.get_text_visible().Bind(wx.EVT_KEY_DOWN, self.entering_text)
 
@@ -96,7 +98,7 @@ class LoginPanel(wx.Panel):
 
 
         # login button
-        self.login_button = rounded_button.RoundedButton(form, "Log In", self.LEFT_COLOR)
+        self.login_button = rounded_button.RoundedButton(form, "Log In", settings.UNACTIVE_BUTTON)
         self.login_button.SetMinSize((0, 50))
         self.login_button.Bind(wx.EVT_LEFT_UP, self.on_login)
 
@@ -152,13 +154,23 @@ class LoginPanel(wx.Panel):
 
         self.Hide()
 
+    def field_is_filled(self, field_name):
+        self.filled_fields[field_name] = 1
+        if all(self.filled_fields.values()):
+            self.login_button.set_background_color(self.LEFT_COLOR)
+        self.login_button.Refresh()
+
+    def field_is_unfilled(self, field_name):
+        self.filled_fields[field_name] = 0
+        self.login_button.set_background_color(settings.UNACTIVE_BUTTON)
+        self.login_button.Refresh()
+
     def entering_text(self, event):
         """whenever one of the credentials fields is being written to, deletes status message"""
         self.status_message.SetLabel("")
         event.Skip()
 
-    @staticmethod
-    def labeled_input(label_text, parent, placeholder, field_icon_bitmap, is_password = False):
+    def labeled_input(self, label_text, parent, placeholder, field_icon_bitmap, is_password = False):
         """
             creates a credentials field with a textctrl with a placeholder, a label, a rounded border around him, and an icon representing him
         :param label_text: the field label
@@ -175,7 +187,7 @@ class LoginPanel(wx.Panel):
         font = font.Scale(1.5)
         label.SetFont(font)
 
-        text_box = rounded_input_field.RoundedInputField(parent, placeholder, field_icon_bitmap, is_password)
+        text_box = rounded_input_field.RoundedInputField(self, parent, label_text,placeholder, field_icon_bitmap, is_password)
 
         sizer.Add(label)
         sizer.Add(text_box, 0, wx.EXPAND)

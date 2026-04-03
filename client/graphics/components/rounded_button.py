@@ -1,5 +1,7 @@
 import wx
 
+import settings
+
 
 class RoundedButton(wx.Panel):
     def __init__(self, parent, label, color):
@@ -13,7 +15,8 @@ class RoundedButton(wx.Panel):
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
         self.SetDoubleBuffered(True)
-        self.SetWindowStyleFlag(wx.WANTS_CHARS)  # 👈 important
+        self.SetWindowStyleFlag(wx.WANTS_CHARS)
+        self.SetMinSize((0, settings.BUTTON_SIZE_Y))
 
         self.label = label
         self.base_color = wx.Colour(color)
@@ -80,6 +83,9 @@ class RoundedButton(wx.Panel):
         dc.Clear()
         gc = wx.GraphicsContext.Create(dc)
 
+        self.hover_color = self.make_darker(self.base_color, 15)  # 15% darker
+        self.mouse_clicked_color = self.make_darker(self.hover_color, 20)
+
         if gc:
             w, h = self.GetClientSize()
 
@@ -89,8 +95,11 @@ class RoundedButton(wx.Panel):
 
             gc.SetBrush(wx.Brush(current_color))
             gc.SetPen(wx.NullGraphicsPen)
-            gc.DrawRoundedRectangle(0, 0, w, h, 15)
+            gc.DrawRoundedRectangle(0, 0, w, h, settings.ROUND_BORDER_RADIUS)
 
-            gc.SetFont(wx.Font(11, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD), wx.WHITE)
+            gc.SetFont(wx.Font(settings.BUTTON_TEXT_FONT_SIZE, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD), wx.WHITE)
             tw, th = gc.GetTextExtent(self.label)
             gc.DrawText(self.label, (w - tw) / 2, (h - th) / 2)
+
+    def set_background_color(self, color):
+        self.base_color = wx.Colour(color)
