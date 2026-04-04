@@ -1,3 +1,5 @@
+import time
+
 import wx
 from pubsub import pub
 
@@ -16,8 +18,11 @@ class EmailVerification(wx.Panel):
     def __init__(self, frame, parent):
         super().__init__(parent)
 
+        self.waiting_for_server_response = False
         self.frame = frame
         self.parent = parent
+
+        self.email = ""
 
         # distributes the screen to left and right
         two_sides = wx.BoxSizer(wx.HORIZONTAL)
@@ -68,11 +73,11 @@ class EmailVerification(wx.Panel):
         subtitle.SetFont(font)
 
         # email code was sent to
-        email_label = wx.StaticText(form, label="barakbm9@gmail.com")
-        # email_label = wx.StaticText(form, label=self.frame.signup_panel.email_input_obj.get_value())
-        font = email_label.GetFont()
+        self.email_label = wx.StaticText(form)
+        # self.email_label = wx.StaticText(form, label=self.frame.signup_panel.email_input_obj.get_value())
+        font = self.email_label.GetFont()
         font = font.Bold().Scale(1.5)
-        email_label.SetFont(font)
+        self.email_label.SetFont(font)
 
         # verification code label
         enter_ver_code_label = wx.StaticText(form, label="Enter verification code")
@@ -82,8 +87,7 @@ class EmailVerification(wx.Panel):
         enter_ver_code_label.SetFont(font)
 
         # verification code cubes
-        ver_code_cubes = verification_code_cubes.VerificationCodeCubes(self, form)
-        self.ver_code_cubes = ver_code_cubes
+        self.ver_code_cubes = verification_code_cubes.VerificationCodeCubes(self, form)
 
         # status message
         self.status_message = wx.StaticText(form)
@@ -127,11 +131,11 @@ class EmailVerification(wx.Panel):
 
         form_sizer.Add(subtitle, 0, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 10)
 
-        form_sizer.Add(email_label, 0, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 75)
+        form_sizer.Add(self.email_label, 0, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 75)
 
         form_sizer.Add(enter_ver_code_label, 0, wx.BOTTOM | wx.ALIGN_CENTER_HORIZONTAL, 20)
 
-        form_sizer.Add(ver_code_cubes, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        form_sizer.Add(self.ver_code_cubes, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
         form_sizer.Add(self.status_message, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, 35)
 
@@ -188,25 +192,46 @@ class EmailVerification(wx.Panel):
         self.verify_email_button.set_background_color(self.LEFT_COLOR)
         self.verify_email_button.Refresh()
 
+
     def verification_code_not_full(self):
         self.verify_email_button.set_background_color(settings.UNACTIVE_BUTTON)
         self.verify_email_button.Refresh()
+        if not self.waiting_for_server_response:
+            self.status_message.SetLabel("")
 
     def on_back_to_sign_up(self, event):
-        print("back to sign up")
         self.frame.switch_panel(self.frame.signup_panel, self)
 
-    def on_verification_code_resend(self, event):
-        print("sending verification code again using frame.comm")
+    def set_email(self, email):
+        self.email_label.SetLabel(email)
 
     def on_email_verification(self, event):
         print("entered ver code")
+        self.status_message.SetLabel("Sending verification code...")
+        if not self.waiting_for_server_response:
+            msg = clientProtocol.build_email_verification_code(self.ver_code_cubes.get_value())
+            self.frame.comm.send_msg(msg)
+            self.waiting_for_server_response = True
         if event:
             event.Skip()
 
-    def on_email_verification_ans(self, status):
+    def on_email_verification_ans(self, status, video_comm = None, user = None):
         print("email ver status:", status)
+        if status == settings.EMAIL_VERIFICATION_SUCCESSFUL:
+            print("moving to next screen")
+            self.frame.video_comm = video_comm
+            self.frame.user = user
+            print("videocomm:",video_comm)
+            print("user:",user)
+            # self.frame.switch_panel(self.frame.pick_topics_panel, self)
+        else:
+            self.status_message.SetLabel(settings.EMAIL_VERIFICATION_ERRORS[status])
+            if status in [settings.EMAIL_VERIFICATION_CODE_EXPIRED, settings.EMAIL_VERIFICATION_CREDENTIALS_TAKEN]:
+                time.sleep(2)
+                self.frame.switch_panel(self.frame.signup_panel, self)
+            self.Layout()
+        self.waiting_for_server_response = False
 
     def on_resend_code(self, event):
-        print("resending code")
-        pass
+        self.status_message.SetLabel("Resending code...")
+        self.frame.signup_panel.on_signup(None)

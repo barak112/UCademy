@@ -77,6 +77,12 @@ EMAIL_VERIFICATION_SUCCESSFUL = 1
 EMAIL_VERIFICATION_CODE_EXPIRED = 2
 EMAIL_VERIFICATION_CREDENTIALS_TAKEN = 3
 
+EMAIL_VERIFICATION_ERRORS = {
+    EMAIL_VERIFICATION_CODE_INVALID: "Verification code entered is invalid",
+    EMAIL_VERIFICATION_CODE_EXPIRED: "Verification code entered is expired, returning to sign up",
+    EMAIL_VERIFICATION_CREDENTIALS_TAKEN: "Credentials taken, returning to sign up"
+}
+
 #currently 10 topics
 TOPICS = ["Computer Science", "Math", "Physics", "Cooking", "Baking", "Music", "Wild", "Views", "Art", "History"]
 

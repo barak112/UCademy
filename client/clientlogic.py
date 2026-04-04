@@ -89,22 +89,14 @@ class ClientLogic:
     def handle_email_verification_confirmation(self, data):  # command 1
         status = data[0]
         status = int(status)
-        if status:
-            if status == settings.EMAIL_VERIFICATION_CODE_EXPIRED:
-                print("Code has expired, please request a new one")
-            else:
-                username, email, video_port = data[1:]
-                video_port = int(video_port)
-                self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
-                self.video_comm.connect()
-                self.user = user.User(username, 0, 0, 0, email)
-                print("email verification successful")
-                wx.CallAfter(pub.sendMessage,"email_verification", status = status, video_comm = video_comm, user = user)
-        else:
-            print("email verification failed, not a valid code")
-            verification_code = input("Enter verification code: ")
-            msg_to_send = clientProtocol.build_email_verification_code(verification_code)
-            self.comm.send_msg(msg_to_send)
+        if status == settings.EMAIL_VERIFICATION_SUCCESSFUL:
+            username, email, video_port = data[1:]
+            video_port = int(video_port)
+            self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
+            self.video_comm.connect()
+            self.user = user.User(username, 0, 0, 0, email)
+
+        wx.CallAfter(pub.sendMessage,"email_verification_ans", status = status, video_comm = self.video_comm, user = self.user)
 
     def handle_sign_in_confirmation(self, data):  # command 2
         status = int(data[0])

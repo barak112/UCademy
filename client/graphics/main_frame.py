@@ -14,7 +14,7 @@ class MainFrame(wx.Frame):
 
     def __init__(self, comm):
         super().__init__(None, title="Ucademy ", size=(1366,768))
-        # super().Maximize()
+        super().Maximize()
 
         self.comm = comm
         self.video_comm = None
@@ -45,6 +45,7 @@ class MainFrame(wx.Frame):
     def switch_panel(self, new_panel, old_panel):
         old_panel.Hide()
         new_panel.Show()
+        new_panel.SetFocus()
         self.Layout()
         self.Refresh()
         self.sizer.Layout()

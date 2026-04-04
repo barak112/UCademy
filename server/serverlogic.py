@@ -206,7 +206,6 @@ class ServerLogic:
 
                 else: # credentials are taken
                     status = settings.EMAIL_VERIFICATION_CREDENTIALS_TAKEN
-
         msg = serverProtocol.build_email_verification_confirmation(status, username, email, port)
         self.comm.send_msg(client_ip, msg)
 

@@ -23,6 +23,10 @@ class SignupPanel(wx.Panel):
         self.frame = frame
         self.parent = parent
 
+        self.temp_username = ""
+        self.temp_email = ""
+        self.temp_password = ""
+
         # distributes the screen to left and right
         two_sides = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(two_sides)
@@ -156,6 +160,12 @@ class SignupPanel(wx.Panel):
 
         self.Hide()
 
+    def set_fields(self, username, password, email = None):
+        self.username_input_obj.set_value(username)
+        self.password_input_obj.set_value(password)
+        if email:
+            self.email_input_obj.set_value(email)
+
     def field_is_filled(self, field_name):
         self.filled_fields[field_name] = 1
         if all(self.filled_fields.values()):
@@ -169,7 +179,8 @@ class SignupPanel(wx.Panel):
 
     def entering_text(self, event):
         """whenever one of the credentials fields is being written to, deletes status message"""
-        self.status_message.SetLabel("")
+        if not any((self.temp_username, self.temp_email, self.temp_password)):
+            self.status_message.SetLabel("")
         event.Skip()
 
     def on_resize(self, event):
@@ -223,12 +234,20 @@ class SignupPanel(wx.Panel):
 
             print("credentials at signup", username, password, email)
 
-            if username and email and password:
-                msg2send = clientProtocol.build_sign_up(username, password, email)
-                self.frame.comm.send_msg(msg2send)
+            if all((username, email, password)):
+                # if temp credentials are already set, it means that the client is waiting for a response from the server
+                if not any((self.temp_username, self.temp_email, self.temp_password)):
+                    msg2send = clientProtocol.build_sign_up(username, password, email)
+                    self.frame.comm.send_msg(msg2send)
+                    self.status_message.SetLabel("sending credentials to the server...")
+
+                    self.temp_username = username
+                    self.temp_email = email
+                    self.temp_password = password
             else:
                 self.status_message.SetLabel("you must enter all credentials to sign up")
-                self.Layout()
+
+        self.Layout()
 
         if event:
             event.Skip()
@@ -236,10 +255,16 @@ class SignupPanel(wx.Panel):
     def on_signup_response(self, status):
         """handles response to sign up from the server, either moves to the email verification panel or shows an error message"""
         if not any(status):
-            self.status_message.SetLabel("an email verification code has been sent to the user's email account")
-            # self.frame.switch_panel(self.frame.email_verification, self)
-            print("moving to next frame in sign up")
+            if self.frame.email_verification_panel.IsShown():
+                self.frame.email_verification_panel.status_message.SetLabel("A new email verification code has been sent to your email account")
+            else:
+                # set fields to the temporary credentials set at the sign up, those are the credentials that were actually sent to the server
+                self.set_fields(self.temp_username, self.temp_password, self.temp_email)
+                self.frame.switch_panel(self.frame.email_verification_panel, self) # move to email verification panel
         else:
+            if self.frame.email_verification_panel.IsShown(): # if an error response from a resent code
+                self.frame.switch_panel(self, self.frame.email_verification_panel) # return to sign up panel
+
             username_status, password_status, email_status = status
             if username_status:
                 self.status_message.SetLabel("username error: "+ settings.USERNAME_ERRORS[username_status])
@@ -247,8 +272,14 @@ class SignupPanel(wx.Panel):
                 self.status_message.SetLabel(f"password error: "+ settings.PASSWORD_ERRORS[password_status])
             if email_status:
                 self.status_message.SetLabel("email error: " + settings.EMAIL_ERRORS[email_status])
+
+        # delete temporary credentials set at the sign up
+        self.temp_username = ""
+        self.temp_email = ""
+        self.temp_password = ""
         self.Layout()
 
     def on_move_to_log_in(self, event):
         self.frame.switch_panel(self.frame.email_verification_panel, self)
         # self.frame.switch_panel(self.frame.login_panel, self)
+        # self.frame.login_panel.set_fields(self.username_input_obj.get_value(), self.password_input_obj.get_value())

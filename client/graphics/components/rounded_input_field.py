@@ -173,3 +173,10 @@ class RoundedInputField(wx.Panel):
     def get_text_hidden(self):
         """returns the hidden text textCtrl widget"""
         return self.text_hidden
+
+    def set_value(self, value):
+        """sets the value of the field"""
+        if self.text_shown:
+            self.text_visible.SetValue(value)
+        else:
+            self.text_hidden.SetValue(value)
