@@ -148,7 +148,7 @@ class RoundedInputField(wx.Panel):
             # Background
             gc.SetBrush(wx.Brush(self.BG_COLOR))
             gc.SetPen(wx.NullGraphicsPen)
-            gc.DrawRoundedRectangle(0, 0, w, h, 10)
+            gc.DrawRoundedRectangle(0, 0, w, h, settings.ROUND_BORDER_RADIUS)
 
             # Border color (changes on focus)
             border_color = self.FOCUS_COLOR if self.has_focus else self.BORDER_COLOR
