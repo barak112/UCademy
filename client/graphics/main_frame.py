@@ -13,10 +13,10 @@ from sign_up import SignupPanel
 class MainFrame(wx.Frame):
 
     def __init__(self, comm):
-        super().__init__(None, title="Ucademy ", size=(1366,768))
+        super().__init__(None, title="Ucademy", size=(1366,768))
         super().Maximize()
         # super().ShowFullScreen(True)
-
+        #todo create a icon for the program
         self.comm = comm
         self.video_comm = None
         self.user = None

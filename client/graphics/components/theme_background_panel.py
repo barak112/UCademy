@@ -29,8 +29,6 @@ class ThemeBackgroundPanel(wx.Panel):
         x = (left_width - icon_width) // 2
         y = (left_height - icon_height) // 2
 
-        dc.DrawBitmap(self.icon_with_text, x, y, True)
-
     def on_resize(self, event):
         """redraws the screen whenever the screen resizes, used to redraw the background image"""
         self.Refresh()  # trigger repaint

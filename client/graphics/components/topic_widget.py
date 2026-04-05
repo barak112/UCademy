@@ -7,12 +7,11 @@ import settings
 
 
 class TopicWidget(wx.Panel):
-    # BG_COLOR = wx.BLUE # todo return to white
     BG_COLOR = wx.WHITE
-    ACTIVE_BG_COLOR = settings.BRIGHT_BLUE
+    SELECTED_BG_COLOR = settings.BRIGHT_BLUE
     BORDER_COLOR = settings.BRIGHT_BORDER_COLOR
     HOVER_BORDER_COLOR = settings.BRIGHT_PINK # maybe change to theme color but brighter
-    ACTIVE_BORDER_COLOR = settings.THEME_COLOR
+    SELECTED_BORDER_COLOR = settings.THEME_COLOR
     ICON_SIZE = 48
 
     def __init__(self, parent, topic_name):
@@ -24,7 +23,7 @@ class TopicWidget(wx.Panel):
 
         self.SetDoubleBuffered(True)
 
-        self.active = False
+        self.selected = False
         self.parent = parent
         self.topic_name = topic_name
 
@@ -38,9 +37,10 @@ class TopicWidget(wx.Panel):
 
         icon = wx.StaticBitmap(self, bitmap=icon)
         icon.SetBackgroundColour(self.BG_COLOR)
-
+        self.icon = icon
         topic_label = wx.StaticText(self, label=topic_name)
         topic_label.SetBackgroundColour(self.BG_COLOR)
+        self.topic_label = topic_label
 
         label_and_icon_vbox = wx.BoxSizer(wx.VERTICAL)
         label_and_icon_vbox.Add(icon, 0, wx.ALIGN_CENTER_HORIZONTAL)
@@ -65,14 +65,31 @@ class TopicWidget(wx.Panel):
 
 
     def on_left_up(self, event):
-        self.active = not self.active
+        self.selected = not self.selected
+        new_bg = self.SELECTED_BG_COLOR if self.selected else self.BG_COLOR
+        # w, h = self.GetClientSize()
+        # self.SetMinSize((400, 400))
+        # print(w,h)
+        # if self.selected:
+        #     self.SetMinSize((200, 100))
+        # else:
+        #     self.SetMinSize((int(w*1.2), int(h*1.2)))
+
+        self.parent.Layout()
+        self.parent.Refresh()
+        # self.icon.SetBackgroundColour(new_bg)
+        self.topic_label.SetBackgroundColour(new_bg)
+        self.Refresh()
+        event.Skip()
 
     def on_hover(self, event):
         self.hovering = True
+        self.Refresh()
         event.Skip()
 
     def on_hover_stop(self, event):
         self.hovering = False
+        self.Refresh()
         event.Skip()
 
     def on_resize(self, event):
@@ -87,8 +104,14 @@ class TopicWidget(wx.Panel):
         if gc:
             w, h = self.GetClientSize()
 
-            background_color = self.ACTIVE_BG_COLOR if self.active else self.BG_COLOR
-            print(background_color)
+            if self.selected:
+                scale = 1.1
+                gc.Scale(scale, scale)  # scale graphics context, not the DC
+                w /= scale  # adjust size to match scaling
+                h /= scale
+
+            background_color = self.SELECTED_BG_COLOR if self.selected else self.BG_COLOR
+            print(self.selected, background_color)
             # Background
             gc.SetBrush(wx.Brush(background_color))
             gc.SetPen(wx.NullGraphicsPen)
@@ -96,8 +119,15 @@ class TopicWidget(wx.Panel):
 
             # Border color (changes on focus)
             border_color = self.HOVER_BORDER_COLOR if self.hovering else self.BORDER_COLOR
+            border_color = self.SELECTED_BORDER_COLOR if self.selected else border_color
 
             gc.SetBrush(wx.TRANSPARENT_BRUSH)
             gc.SetPen(wx.Pen(border_color, 2))
             gc.DrawRoundedRectangle(1, 1, w - 2, h - 2, settings.SLIGHTLY_ROUND_BORDER_RADIUS)
+
+
+            #todo find a way to make only one panel bigger everytime
+            # and then make the text also drawed, or just make the icon and the text grow
+            # if self.icon != wx.NullBitmap:
+            #     gc.DrawBitmap(self.icon, (w-48)//2,1, 48, 48)
 
