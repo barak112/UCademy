@@ -84,8 +84,10 @@ EMAIL_VERIFICATION_ERRORS = {
 }
 
 #currently 10 topics
-TOPICS = ["Computer Science", "Math", "Physics", "Cooking", "Baking", "Music", "Wild", "Views", "Art", "History"]
-
+TOPICS = ["Technology", "Design", "Business", "Science", "Health & Fitness", "Travel", "Food & Cooking", "Music",
+          "Sports", "Photography", "Fashion", "Gaming"]
+# TOPICS = ["Technology", "Math", "Physics", "Cooking", "Baking", "Music", "Wild", "Views", "Art", "History"]
+#Computer Science
 VIDEO_EXTENSION = "mp4"
 
 # graphics constants
@@ -93,6 +95,7 @@ THEME_COLOR = (56, 65, 237)
 OFF_WHITE = (249, 250, 251)
 SUBTITLE_COLOR = (125, 120, 124)
 BORDER_COLOR = (180, 180, 180)
+BRIGHT_BORDER_COLOR = (220, 220, 220)
 BRIGHT_PINK = (238, 242, 255)
 UNACTIVE_BUTTON = (120, 120, 120)
 BRIGHT_BLUE = (238, 242, 255)
@@ -102,4 +105,5 @@ BUTTON_SIZE_Y = 55
 BUTTON_TEXT_FONT_SIZE = 14
 VERIFICATION_CODE_FONT_SIZE = 25
 ROUND_BORDER_RADIUS = 15
+SLIGHTLY_ROUND_BORDER_RADIUS = 10
 #prev: 50, 11

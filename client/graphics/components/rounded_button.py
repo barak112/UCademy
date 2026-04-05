@@ -17,6 +17,7 @@ class RoundedButton(wx.Panel):
         self.SetDoubleBuffered(True)
         self.SetWindowStyleFlag(wx.WANTS_CHARS)
         self.SetMinSize((0, settings.BUTTON_SIZE_Y))
+        self.SetBackgroundColour(settings.OFF_WHITE)
 
         self.label = label
         self.base_color = wx.Colour(color)

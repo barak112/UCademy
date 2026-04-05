@@ -26,7 +26,8 @@ class RoundedInputField(wx.Panel):
         self.text_shown = True # used for password show and hide
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT) # gets control of screen paint from OS
-        
+        self.SetBackgroundColour(settings.OFF_WHITE)
+
         # visible text input widget
         self.text_visible = wx.TextCtrl(self, style=wx.BORDER_NONE)
         self.text_visible.SetBackgroundColour(wx.Colour((249, 250, 251)))

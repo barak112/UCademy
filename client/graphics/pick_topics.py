@@ -1,5 +1,6 @@
 import wx
 import clientProtocol
+import rounded_button
 import settings
 import topic_widget
 
@@ -14,25 +15,43 @@ class PickTopicsPanel(wx.Panel):
         self.background_bitmap = wx.Bitmap("assets\\topic_pick_background.png")
 
         vbox = wx.BoxSizer(wx.VERTICAL)
-        self.SetSizer(vbox)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        grid = wx.GridSizer(4,4,5,5)
+        self.SetSizer(hbox)
 
-        hbox.AddStretchSpacer()
-        hbox.Add(grid, 1, wx.EXPAND)
-        hbox.AddStretchSpacer()
+        #title
+        title = wx.StaticText(self, label="What are you interested in?")
+        font = title.GetFont()
+        font = font.Scale(4).Bold()
+        title.SetFont(font)
 
-        vbox.AddStretchSpacer()
-        vbox.Add(hbox, 1, wx.EXPAND)
-        vbox.AddStretchSpacer()
+        # subtitle
+        subtitle = wx.StaticText(self, label="Choose topics to personalise your experience. Select at least 3 topics.")
+        font = subtitle.GetFont()
+        font = font.Scale(2)
+        subtitle.SetFont(font)
 
+        # grid
+        grid = wx.GridSizer(4, 4, 5, 5)
         for topic_name in settings.TOPICS:
-            # topics_widget = create_topic_widget(topics)
-            topic = topic_widget.TopicWidget(self,topic_name)
-            # topic = wx.StaticText(self, label=topic_name)
+            topic = topic_widget.TopicWidget(self, topic_name)
             grid.Add(topic, 1, wx.EXPAND)
-            #todo remove expand and set min side to topic widget
+
+        # topics selected
+
+        # continue button
+
+        # vbox.AddStretchSpacer()
+        vbox.Add(title,0, wx.ALIGN_CENTER_HORIZONTAL)
+        vbox.Add(subtitle, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        #todo add the text to the paint so it would be transparent
+        vbox.Add(grid, 1, wx.EXPAND)
+        # vbox.AddStretchSpacer()
+
+        hbox.AddStretchSpacer()
+        hbox.Add(vbox, 1, wx.EXPAND)
+        hbox.AddStretchSpacer()
+
 
         # handles key press
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key)
