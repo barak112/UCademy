@@ -22,39 +22,31 @@ class PickTopicsPanel(wx.Panel):
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(hbox)
 
-        #title
-        # title = wx.StaticText(self, label="What are you interested in?")
-        # font = title.GetFont()
-        # font = font.Scale(4).Bold()
-        # title.SetFont(font)
-        # self.title = title
-        # title.Hide()
-
-
-        # subtitle
-        # subtitle = wx.StaticText(self, label="Choose topics to personalise your experience. Select at least 3 topics.")
-        # font = subtitle.GetFont()
-        # font = font.Scale(2)
-        # subtitle.SetFont(font)
+        self.topic_spacers = {} # [topic_name] = (hspacer1, hspacer2, vspacer1, vspacer2)
+        self.selected_topics = []
 
         # grid
-        grid = wx.GridSizer(4, 4, 5, 5)
-        self.grid = grid
+        self.grid = wx.GridSizer(3, 4, 5, 5)
         for topic_name in settings.TOPICS:
             topic = topic_widget.TopicWidget(self, topic_name)
-            grid.Add(topic, 1, wx.EXPAND)
 
-        # topics selected
+            topic_hbox = wx.BoxSizer(wx.HORIZONTAL)
+            topic_vbox = wx.BoxSizer(wx.VERTICAL)
 
-        # continue button
+            self.topic_spacers[topic_name] = []
 
-        # vbox.AddStretchSpacer()
-        # vbox.Add(title,0, wx.ALIGN_CENTER_HORIZONTAL)
+            self.topic_spacers[topic_name].append(topic_hbox.Add((settings.TOPIC_WIDGET_GROWTH, settings.TOPIC_WIDGET_GROWTH)))
+            topic_hbox.Add(topic, 1, wx.EXPAND)
+            self.topic_spacers[topic_name].append(topic_hbox.Add((settings.TOPIC_WIDGET_GROWTH, settings.TOPIC_WIDGET_GROWTH)))
+
+            self.topic_spacers[topic_name].append(topic_vbox.Add((settings.TOPIC_WIDGET_GROWTH, settings.TOPIC_WIDGET_GROWTH)))
+            topic_vbox.Add(topic_hbox, 1, wx.EXPAND)
+            self.topic_spacers[topic_name].append(topic_vbox.Add((settings.TOPIC_WIDGET_GROWTH, settings.TOPIC_WIDGET_GROWTH)))
+
+            self.grid.Add(topic_vbox, 1, wx.EXPAND)
+
         self.spacer = vbox.Add((0, 100))
-        # vbox.Add(subtitle, 0, wx.ALIGN_CENTER_HORIZONTAL)
-        # vbox.AddStretchSpacer()
-        vbox.Add(grid, 1, wx.EXPAND)
-        # vbox.AddStretchSpacer()
+        vbox.Add(self.grid, 0, wx.EXPAND)
 
         hbox.AddStretchSpacer()
         hbox.Add(vbox, 1, wx.EXPAND)
@@ -69,6 +61,23 @@ class PickTopicsPanel(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.on_paint)
 
         self.Hide()
+
+    def topic_selected(self, topic_name):
+        spacers = self.topic_spacers[topic_name]
+        if topic_name in self.selected_topics:
+            self.selected_topics.remove(topic_name)
+            for i in range(1, settings.TOPIC_WIDGET_GROWTH + 1):
+                for spacer in spacers:
+                    spacer.SetMinSize((i, i))
+                    self.Layout()
+
+        else:
+            self.selected_topics.append(topic_name)
+            for i in range(1, settings.TOPIC_WIDGET_GROWTH + 1):
+                for spacer in spacers:
+                    spacer.SetMinSize((settings.TOPIC_WIDGET_GROWTH - i, settings.TOPIC_WIDGET_GROWTH - i))
+                    self.Layout()
+
 
     def on_resize(self, event):
         self.Refresh()
@@ -96,12 +105,15 @@ class PickTopicsPanel(wx.Panel):
             tw2, th2 = gc.GetTextExtent(self.SUBTITLE)
             gc.DrawText(self.SUBTITLE, (w - tw2) / 2, th+20)
             if not self.grid_start_pos:
-                self.spacer.SetMinSize((100, int(th+th2+60)))
-                # self.spacer.SetMinSize((100, 200))
+                self.grid_start_pos = int(th2+th+ 60)
+                self.spacer.SetMinSize((100, self.grid_start_pos))
                 self.Layout()
-                self.grid_start_pos = th2+th+30
-                # self.Layout()
-                pass
+
+            gc.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL), wx.BLACK)
+            topics_selected_text = f"{len(self.selected_topics)} topics selected"
+            tw, th = gc.GetTextExtent(topics_selected_text)
+            gc.DrawText(topics_selected_text, (w - tw) / 2, self.grid_start_pos+self.grid.GetSize().GetHeight()+50)
+
     def on_key(self, event):
         """checks for keys pressed, exists on Escape, log in on Enter"""
         keycode = event.GetKeyCode()
