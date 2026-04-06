@@ -705,6 +705,7 @@ class ServerLogic:
         msg["To"] = receiver
         msg.set_content(email_msg)
 
+        #todo put inside a try and except, crushes when i dont have wifi
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(sender, password)
             server.send_message(msg)

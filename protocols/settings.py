@@ -85,7 +85,7 @@ EMAIL_VERIFICATION_ERRORS = {
 
 #currently 10 topics
 TOPICS = ["Technology", "Design", "Business", "Science", "Health & Fitness", "Travel", "Food & Cooking", "Music",
-          "Sports", "Photography", "Fashion", "Gaming"]
+          "Sports", "Photography", "Fashion", "Gaming", "Books & Literature", "Movies $ TV", "Art", "Nature"]
 # TOPICS = ["Technology", "Math", "Physics", "Cooking", "Baking", "Music", "Wild", "Views", "Art", "History"]
 #Computer Science
 VIDEO_EXTENSION = "mp4"
@@ -99,6 +99,7 @@ BRIGHT_BORDER_COLOR = (220, 220, 220)
 BRIGHT_PINK = (135, 140, 255)
 # BRIGHT_PINK = (238, 242, 255)
 UNACTIVE_BUTTON = (120, 120, 120)
+BRIGHT_UNACTIVE_BUTTON = (200, 200, 200)
 BRIGHT_BLUE = (238, 242, 255)
 
 
@@ -109,3 +110,4 @@ ROUND_BORDER_RADIUS = 15
 SLIGHTLY_ROUND_BORDER_RADIUS = 10
 #prev: 50, 11
 TOPIC_WIDGET_GROWTH = 3
+MIN_TOPICS = 3

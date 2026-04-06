@@ -163,12 +163,12 @@ class LoginPanel(wx.Panel):
     def field_is_filled(self, field_name):
         self.filled_fields[field_name] = 1
         if all(self.filled_fields.values()):
-            self.login_button.set_background_color(self.LEFT_COLOR)
+            self.login_button.set_active(True)
         self.login_button.Refresh()
 
     def field_is_unfilled(self, field_name):
         self.filled_fields[field_name] = 0
-        self.login_button.set_background_color(settings.UNACTIVE_BUTTON)
+        self.login_button.set_active(False)
         self.login_button.Refresh()
 
     def entering_text(self, event):

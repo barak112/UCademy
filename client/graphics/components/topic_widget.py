@@ -35,25 +35,6 @@ class TopicWidget(wx.Panel):
             #todo get emojies from https://github.com/microsoft/fluentui-emoji/blob/main/assets using the 3d png version
 
 
-        # icon = wx.StaticBitmap(self, bitmap=icon)
-        # icon.SetBackgroundColour(self.BG_COLOR)
-        # self.icon = icon
-        # topic_label = wx.StaticText(self, label=topic_name)
-        # topic_label.SetBackgroundColour(self.BG_COLOR)
-        # self.topic_label = topic_label
-
-        # label_and_icon_vbox = wx.BoxSizer(wx.VERTICAL)
-        # label_and_icon_vbox.Add(icon, 0, wx.ALIGN_CENTER_HORIZONTAL)
-        # label_and_icon_vbox.Add(topic_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
-
-        #
-        # vbox = wx.BoxSizer(wx.VERTICAL)
-        # self.SetSizer(vbox)
-
-        # vbox.AddStretchSpacer()
-        # vbox.Add(label_and_icon_vbox, 0, wx.ALIGN_CENTER_HORIZONTAL)
-        # vbox.AddStretchSpacer()
-
         self.Bind(wx.EVT_SIZE, self.on_resize)
 
         self.Bind(wx.EVT_PAINT, self.on_paint)

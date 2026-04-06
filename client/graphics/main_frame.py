@@ -40,10 +40,10 @@ class MainFrame(wx.Frame):
 
         self.container.SetSizer(self.sizer)
 
-        # self.login_panel.Show()
+        self.login_panel.Show()
         # self.signup_panel.Show()
         # self.email_verification_panel.Show()
-        self.pick_topics_panel.Show()
+        # self.pick_topics_panel.Show()
 
     def switch_panel(self, new_panel, old_panel):
         old_panel.Hide()
