@@ -1,6 +1,8 @@
 import math
 
 import wx
+from pubsub import pub
+
 import clientProtocol
 import rounded_button
 import settings
@@ -32,7 +34,6 @@ class PickTopicsPanel(wx.ScrolledWindow):
         self.grid_columns = 4
         self.grid_rows = math.ceil(len(settings.TOPICS)/self.grid_columns)
 
-
         self.grid = wx.GridSizer(self.grid_rows, self.grid_columns, 5, 5)
         for topic_name in settings.TOPICS:
             topic = topic_widget.TopicWidget(self, topic_name)
@@ -44,6 +45,7 @@ class PickTopicsPanel(wx.ScrolledWindow):
 
         self.continue_btn = rounded_button.RoundedButton(self, "Continue", settings.BRIGHT_UNACTIVE_BUTTON, (204, 223, 252), 25, 13)
         self.continue_btn.SetMinSize((140, 60))
+        self.continue_btn.Bind(wx.EVT_LEFT_UP, self.on_set_topics)
         vbox.Add(self.continue_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 40)
 
         # handles key press
@@ -61,7 +63,21 @@ class PickTopicsPanel(wx.ScrolledWindow):
         self.Layout()
         self.FitInside()  # calculates virtual size
 
+        pub.subscribe(self.on_set_topics_ans, "set_topics_ans")
+
         self.Hide()
+
+    def on_set_topics(self, event):
+        topics = [settings.TOPICS.index(topic) for topic in self.selected_topics]
+        print(topics)
+        msg = clientProtocol.build_set_topics(topics)
+        self.frame.comm.send_msg(msg)
+        event.Skip()
+
+    def on_set_topics_ans(self, topics):
+        self.frame.user.topics = topics
+        self.frame.switch_panel(self.frame.feed_panel, self)
+        print("switching to feed panel")
 
     def topic_selected(self, topic_name):
         if topic_name in self.selected_topics:

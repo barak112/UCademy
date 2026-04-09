@@ -125,7 +125,8 @@ class ClientLogic:
 
     def handle_topics_confirmation(self, data):  # command 3
         topics = data[0]
-        self.user.topics = topics
+        topics = [int(topic) for topic in topics]
+        wx.CallAfter(pub.sendMessage, "set_topics_ans", topics = topics)
 
     def handle_filter_confirmation(self, data):  # command 4
         filter = data[0]

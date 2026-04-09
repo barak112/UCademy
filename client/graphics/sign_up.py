@@ -261,6 +261,7 @@ class SignupPanel(wx.Panel):
                 # set fields to the temporary credentials set at the sign up, those are the credentials that were actually sent to the server
                 self.set_fields(self.temp_username, self.temp_password, self.temp_email)
                 self.frame.switch_panel(self.frame.email_verification_panel, self) # move to email verification panel
+                self.frame.email_verification_panel.set_email(self.temp_email)
         else:
             if self.frame.email_verification_panel.IsShown(): # if an error response from a resent code
                 self.frame.switch_panel(self, self.frame.email_verification_panel) # return to sign up panel

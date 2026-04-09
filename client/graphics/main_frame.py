@@ -43,7 +43,8 @@ class MainFrame(wx.Frame):
         # self.login_panel.Show()
         # self.signup_panel.Show()
         # self.email_verification_panel.Show()
-        self.pick_topics_panel.Show()
+        # self.pick_topics_panel.Show()
+        self.feed_panel.Show()
 
     def switch_panel(self, new_panel, old_panel):
         old_panel.Hide()

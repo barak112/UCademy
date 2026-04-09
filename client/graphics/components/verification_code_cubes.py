@@ -38,6 +38,34 @@ class VerificationCodeCubes(wx.Panel):
         self.start_end_spacing /= 2
 
         self.Bind(wx.EVT_CHAR, self.on_char_down)
+        self.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.text = ""
+
+    def on_key_down(self, event):
+        key = event.GetKeyCode()
+        ctrl = event.ControlDown()
+        shift = event.ShiftDown()
+
+        # Detect Ctrl+V or Shift+Insert
+        if (ctrl and key == ord('V')) or (shift and key == wx.WXK_INSERT):
+            pasted_text = ""
+            if wx.TheClipboard.Open():
+                if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_TEXT)):
+                    data = wx.TextDataObject()
+                    wx.TheClipboard.GetData(data)
+                    pasted_text = data.GetText()
+                wx.TheClipboard.Close()
+
+            if pasted_text.isdigit():
+                self.code = pasted_text
+                if len(self.code) == self.BOXES_AMOUNT:
+                    self.code_ver_panel.verification_code_full()
+                else:
+                    self.code_ver_panel.verification_code_not_full()
+
+            self.Refresh()
+        else:
+            event.Skip()
 
     def on_char_down(self, event):
         key = event.GetKeyCode()

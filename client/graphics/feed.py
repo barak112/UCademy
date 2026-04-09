@@ -1,45 +1,44 @@
+import math
+
 import wx
+import wx.media
 import clientProtocol
+import settings
+
 
 class Feed(wx.Panel):
+    BG_COLOR = (232, 239, 255)
     def __init__(self, frame, parent):
         super().__init__(parent)
 
         self.frame = frame
         self.parent = parent
 
-        self.movies = [
-            ("Inception", "Great sci-fi movie"),
-            ("Titanic", "Classic romance"),
-            ("Matrix", "Mind-blowing action"),
-        ]
+        main_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.index = 0
+        self.SetBackgroundColour(self.BG_COLOR)
 
-        vbox = wx.BoxSizer(wx.VERTICAL)
+        # video
+        video_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.movie_title = wx.StaticText(self, label="")
-        self.comment = wx.StaticText(self, label="")
+        self.video = wx.media.MediaCtrl(self, style=wx.SIMPLE_BORDER)
+        self.video.Load("media\\2.mp4")  # local video file
+        self.video.Play()
+        # video_size = (int(self.GetClientSize()[0]), int(self.GetClientSize()[0] * (9 / 16)))
+        # video_size = (int(self.GetClientSize()[1] * (9 / 16)), self.GetClientSize()[1])
+        # self.video.SetInitialSize(video_size)
+        self.video.SetInitialSize((90, 160))
+        # self.video.SetMinSize(video_size)
 
-        next_btn = wx.Button(self, label="Next")
+        video_sizer.Add(self.video, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
-        vbox.Add(self.movie_title, 0, wx.ALL, 10)
-        vbox.Add(self.comment, 0, wx.ALL, 10)
-        vbox.Add(next_btn, 0, wx.ALL, 10)
+        # comments
+        comments_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.SetSizer(vbox)
 
-        next_btn.Bind(wx.EVT_BUTTON, self.on_next)
-
-        self.update_movie()
+        # main_sizer.Add(comments_sizer, 1, wx.EXPAND)
+        # main_sizer.Add(video_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.Left | wx.Right, 20)
+        main_sizer.Add(video_sizer, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.SetSizer(main_sizer)
 
         self.Hide()
-
-    def update_movie(self):
-        title, comment = self.movies[self.index]
-        self.movie_title.SetLabel(f"Movie: {title}")
-        self.comment.SetLabel(f"Comment: {comment}")
-
-    def on_next(self, event):
-        self.index = (self.index + 1) % len(self.movies)
-        self.update_movie()

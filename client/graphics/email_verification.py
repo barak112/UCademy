@@ -208,10 +208,11 @@ class EmailVerification(wx.Panel):
 
     def set_email(self, email):
         self.email_label.SetLabel(email)
+        self.Layout()
 
     def on_email_verification(self, event):
-        print("entered ver code")
         self.status_message.SetLabel("Sending verification code...")
+        self.Layout()
         if not self.waiting_for_server_response:
             msg = clientProtocol.build_email_verification_code(self.ver_code_cubes.get_value())
             self.frame.comm.send_msg(msg)
@@ -220,14 +221,11 @@ class EmailVerification(wx.Panel):
             event.Skip()
 
     def on_email_verification_ans(self, status, video_comm = None, user = None):
-        print("email ver status:", status)
         if status == settings.EMAIL_VERIFICATION_SUCCESSFUL:
             print("moving to next screen")
             self.frame.video_comm = video_comm
             self.frame.user = user
-            print("videocomm:",video_comm)
-            print("user:",user)
-            # self.frame.switch_panel(self.frame.pick_topics_panel, self)
+            self.frame.switch_panel(self.frame.pick_topics_panel, self)
         else:
             self.status_message.SetLabel(settings.EMAIL_VERIFICATION_ERRORS[status])
             if status in [settings.EMAIL_VERIFICATION_CODE_EXPIRED, settings.EMAIL_VERIFICATION_CREDENTIALS_TAKEN]:
@@ -239,3 +237,4 @@ class EmailVerification(wx.Panel):
     def on_resend_code(self, event):
         self.status_message.SetLabel("Resending code...")
         self.frame.signup_panel.on_signup(None)
+
