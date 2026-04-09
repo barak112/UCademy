@@ -158,7 +158,7 @@ class EmailVerification(wx.Panel):
 
         # add both left and self.right panels to the screen
         ucademy_icon = wx.Bitmap("assets\\ucademy_log_in_logo_with_Text.png")
-        # ucademy_icon = wx.Bitmap("assets\\try1.png")
+        # ucademy_icon = wx.Bitmap("assets\\selected_topic_icon.png")
         #todo get a new icon here.
         # or change it totally to drawing the icon and writing the text instead of displaying a picture featuring both
 

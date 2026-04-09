@@ -19,7 +19,10 @@ class TopicWidget(wx.Panel):
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
         self.SetBackgroundColour((204, 223, 252))
-        self.SetMinSize((250, 250//2))
+        self.SetMinSize((settings.TOPIC_WIDGET_WIDTH, settings.TOPIC_WIDGET_WIDTH//2))
+
+        self.selected_icon = wx.Image("assets\\selected_topic_icon.png", wx.BITMAP_TYPE_PNG)
+        self.selected_icon = wx.Bitmap(self.selected_icon.Scale(60,60))
 
         self.SetDoubleBuffered(True)
 
@@ -53,11 +56,16 @@ class TopicWidget(wx.Panel):
 
     def on_hover(self, event):
         self.hovering = True
+        # self.selected_icon = wx.Image("assets\\selected_topic_icon2.png", wx.BITMAP_TYPE_PNG)
+        # self.selected_icon = wx.Bitmap(self.selected_icon)
         self.Refresh()
+
         event.Skip()
 
     def on_hover_stop(self, event):
         self.hovering = False
+        # self.selected_icon = wx.Image("assets\\selected_topic_icon.png", wx.BITMAP_TYPE_PNG)
+        # self.selected_icon = wx.Bitmap(self.selected_icon)
         self.Refresh()
         event.Skip()
 
@@ -107,6 +115,9 @@ class TopicWidget(wx.Panel):
 
             if self.icon != wx.NullBitmap:
                 gc.DrawBitmap(self.icon, (w-48)//2,start_pos, iw, ih)
+
+            if self.selected:
+                gc.DrawBitmap(self.selected_icon, (w-40),10, 30, 30)
 
 
             gc.DrawText(self.topic_name, (w - tw) / 2, ih+space+start_pos)

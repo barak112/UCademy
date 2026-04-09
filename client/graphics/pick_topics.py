@@ -12,13 +12,12 @@ class PickTopicsPanel(wx.ScrolledWindow):
     SUBTITLE = "Choose topics to personalise your experience. Select at least 3 topics."
     def __init__(self, frame, parent):
         super().__init__(parent)
-        #todo add a custom scrollbar
         self.frame = frame
         self.parent = parent
 
         # scroll attributes
-        self.SetScrollRate(0, 50)
-        # self.SetVirtualSize(1000, 1000)
+        self.SetScrollRate(0, 7)
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
 
         self.background_bitmap = wx.Bitmap("assets\\topic_pick_background.png")
         self.grid_start_pos = 0
@@ -27,7 +26,6 @@ class PickTopicsPanel(wx.ScrolledWindow):
 
         self.SetSizer(vbox)
 
-        self.topic_spacers = {} # [topic_name] = (hspacer1, hspacer2, vspacer1, vspacer2)
         self.selected_topics = [] # [topic1, topic2]
         self.topics = {}  # [topic_name] = topic widget object
 
@@ -39,27 +37,14 @@ class PickTopicsPanel(wx.ScrolledWindow):
         for topic_name in settings.TOPICS:
             topic = topic_widget.TopicWidget(self, topic_name)
             self.topics[topic_name] = topic
-            topic_hbox = wx.BoxSizer(wx.HORIZONTAL)
-            topic_vbox = wx.BoxSizer(wx.VERTICAL)
-
-            self.topic_spacers[topic_name] = []
-
-            self.topic_spacers[topic_name].append(topic_hbox.Add((settings.TOPIC_WIDGET_GROWTH, settings.TOPIC_WIDGET_GROWTH)))
-            topic_hbox.Add(topic, 1, wx.EXPAND)
-            self.topic_spacers[topic_name].append(topic_hbox.Add((settings.TOPIC_WIDGET_GROWTH, settings.TOPIC_WIDGET_GROWTH)))
-
-            self.topic_spacers[topic_name].append(topic_vbox.Add((settings.TOPIC_WIDGET_GROWTH, settings.TOPIC_WIDGET_GROWTH)))
-            topic_vbox.Add(topic_hbox, 1, wx.EXPAND)
-            self.topic_spacers[topic_name].append(topic_vbox.Add((settings.TOPIC_WIDGET_GROWTH, settings.TOPIC_WIDGET_GROWTH)))
-
-            self.grid.Add(topic_vbox, 1, wx.EXPAND)
+            self.grid.Add(topic, 1, wx.EXPAND | wx.ALL, 5)
 
         self.spacer = vbox.Add((0, 100))
         vbox.Add(self.grid, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
         self.continue_btn = rounded_button.RoundedButton(self, "Continue", settings.BRIGHT_UNACTIVE_BUTTON, (204, 223, 252), 25, 13)
         self.continue_btn.SetMinSize((140, 60))
-        vbox.Add(self.continue_btn, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        vbox.Add(self.continue_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 40)
 
         # handles key press
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key)
@@ -68,63 +53,90 @@ class PickTopicsPanel(wx.ScrolledWindow):
 
         self.Bind(wx.EVT_PAINT, self.on_paint)
 
+        self.Bind(wx.EVT_SCROLLWIN, self.on_scroll)
+        self.scrolls = 0
+        self._scroll_timer = None
+        self.a_scroll = False
+
         self.Layout()
         self.FitInside()  # calculates virtual size
 
         self.Hide()
 
     def topic_selected(self, topic_name):
-        spacers = self.topic_spacers[topic_name]
         if topic_name in self.selected_topics:
             self.selected_topics.remove(topic_name)
             for i in range(1, settings.TOPIC_WIDGET_GROWTH + 1):
-                for spacer in spacers:
-                    spacer.SetMinSize((i, i))
-                    self.Layout()
+                self.grid.GetItem(self.topics[topic_name]).SetBorder(i)
+                self.Layout()
         else:
             self.selected_topics.append(topic_name)
             for i in range(1, settings.TOPIC_WIDGET_GROWTH + 1):
-                for spacer in spacers:
-                    spacer.SetMinSize((settings.TOPIC_WIDGET_GROWTH - i, settings.TOPIC_WIDGET_GROWTH - i))
-                    self.Layout()
+                self.grid.GetItem(self.topics[topic_name]).SetBorder(settings.TOPIC_WIDGET_GROWTH - i)
+                self.Layout()
 
+        self.Refresh()
         self.continue_btn.set_active(len(self.selected_topics) >= settings.MIN_TOPICS)
 
     def on_resize(self, event):
+        if event.GetSize()[0] < self.grid.GetSize()[0] + 40 and self.grid.GetCols() > 1:
+            self.grid_columns = self.grid.GetCols() - 1
+            self.grid.SetCols(self.grid_columns)
+            self.grid.SetRows(math.ceil(len(settings.TOPICS) / self.grid_columns))
+            self.Layout()
+
+        if event.GetSize()[0] > self.grid.GetSize()[0] + settings.TOPIC_WIDGET_WIDTH + 40 and self.grid.GetCols() < 4:
+            self.grid_columns = self.grid.GetCols() + 1
+            self.grid.SetCols(self.grid_columns)
+            self.grid.SetRows(math.ceil(len(settings.TOPICS) / self.grid_columns))
+            self.Layout()
+
         self.Refresh()
+        event.Skip()
+
+    def on_scroll(self, event):
+        self.scrolls += 1
+        if self.scrolls > 20:
+            self.a_scroll = True
+            self.Refresh()
+            self.a_scroll = False
+            self.scrolls = 0
+
         event.Skip()
 
     def on_paint(self, event):
         dc = wx.BufferedPaintDC(self)
-        self.DoPrepareDC(dc)
-        dc.DrawBitmap(self.background_bitmap, 0, 0)
+        dc.DrawBitmap(self.background_bitmap, 0, 0, True)
+        if not self.a_scroll:
+            self.PrepareDC(dc)
 
-        gc = wx.GraphicsContext.Create(dc)
-        if gc:
-            w, h = self.GetClientSize()
-            # draw title
-            gc.SetFont(
-                wx.Font(20, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD),
-                wx.BLACK)
-            tw, th = gc.GetTextExtent(self.TITLE)
-            gc.DrawText(self.TITLE, (w - tw) / 2, 10)
+            gc = wx.GraphicsContext.Create(dc)
+            if gc:
+                w, h = self.GetClientSize()
+                # draw title
+                gc.SetFont(
+                    wx.Font(25, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD),
+                    wx.BLACK)
+                tw, th = gc.GetTextExtent(self.TITLE)
+                gc.DrawText(self.TITLE, (w - tw) / 2, 10)
 
-            #draw subtitle
-            gc.SetFont(
-                wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD),wx.BLACK
-            )
+                #draw subtitle
+                gc.SetFont(
+                    wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL),wx.BLACK
+                )
 
-            tw2, th2 = gc.GetTextExtent(self.SUBTITLE)
-            gc.DrawText(self.SUBTITLE, (w - tw2) / 2, th+20)
-            if not self.grid_start_pos:
-                self.grid_start_pos = int(th2+th+ 60)
-                self.spacer.SetMinSize((0, self.grid_start_pos))
-                self.Layout()
+                tw2, th2 = gc.GetTextExtent(self.SUBTITLE)
+                gc.DrawText(self.SUBTITLE, (w - tw2) / 2, th+20)
+                if not self.grid_start_pos:
+                    self.grid_start_pos = int(th2+th+ 40)
+                    self.spacer.SetMinSize((0, self.grid_start_pos))
+                    self.Layout()
 
-            gc.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL), wx.BLACK)
-            topics_selected_text = f"{len(self.selected_topics)} topics selected"
-            tw, th = gc.GetTextExtent(topics_selected_text)
-            gc.DrawText(topics_selected_text, (w - tw) / 2, self.grid_start_pos+self.grid.GetSize().GetHeight()+10)
+                #topics selected text
+                gc.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL), wx.BLACK)
+                topics_selected_text = f"{len(self.selected_topics)} topics selected"
+                tw, th = gc.GetTextExtent(topics_selected_text)
+                gc.DrawText(topics_selected_text, (w - tw) // 2, self.grid_start_pos+self.grid.GetSize().GetHeight()+20)
 
     def on_key(self, event):
         """checks for keys pressed, exists on Escape, log in on Enter"""
