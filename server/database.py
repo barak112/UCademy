@@ -1175,8 +1175,8 @@ if __name__ == "__main__":
 
 
     # # --- users ---
-    # db.cur.execute("DROP TABLE IF EXISTS users")
-    # db._create_users_table()
+    db.cur.execute("DROP TABLE IF EXISTS users")
+    db._create_users_table()
     # db.add_user("Barak", "barak@gmail.com", "482c811da5d5b4bc6d497ffa98491e38")
     # db.add_user("Alon", "alon@gmail.com",   "482c811da5d5b4bc6d497ffa98491e38")
     # db.add_user("Ella", "ella@gmail.com",   "482c811da5d5b4bc6d497ffa98491e38")
