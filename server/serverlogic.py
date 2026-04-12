@@ -206,7 +206,6 @@ class ServerLogic:
 
                 else: # credentials are taken
                     status = settings.EMAIL_VERIFICATION_CREDENTIALS_TAKEN
-
         msg = serverProtocol.build_email_verification_confirmation(status, username, email, port)
         self.comm.send_msg(client_ip, msg)
 
@@ -586,13 +585,16 @@ class ServerLogic:
             self.comm.send_msg(client_ip, msg_to_send)
 
     def handle_video_req(self, client_ip, data):  # command 15
-        video_id = data[0]
+        video_id = int(data[0])
+        username = self.clients[client_ip][0]
         if not video_id:
-            video_id = self.db.get_video_for_user(self.clients[client_ip][0], self.clients[client_ip][2])
+            video_id = self.db.get_video_for_user(username, self.clients[client_ip][2])
 
         if video_id:
             self.send_video_and_details(client_ip, video_id)
+            self.db.add_watched_video(username, video_id)
         else:
+            self.db.remove_watched_videos_for_user(username)
             msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
 
@@ -706,6 +708,7 @@ class ServerLogic:
         msg["To"] = receiver
         msg.set_content(email_msg)
 
+        #todo put inside a try and except, crushes when i dont have wifi
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(sender, password)
             server.send_message(msg)

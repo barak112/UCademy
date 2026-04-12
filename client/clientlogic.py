@@ -30,7 +30,7 @@ class ClientLogic:
         self.filter = []
 
         self.videos = {}  # [video_id] = video_object
-        self.users = {}  # [username] - user_object
+        self.users = {}  # [username] = user_object
         self.current_video = None
 
         self.commands = {
@@ -89,22 +89,14 @@ class ClientLogic:
     def handle_email_verification_confirmation(self, data):  # command 1
         status = data[0]
         status = int(status)
-        if status:
-            if status == settings.EMAIL_VERIFICATION_CODE_EXPIRED:
-                print("Code has expired, please request a new one")
-            else:
-                username, email, video_port = data[1:]
-                video_port = int(video_port)
-                self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
-                self.video_comm.connect()
-                self.user = user.User(username, 0, 0, 0, email)
-                print("email verification successful")
-                wx.CallAfter(pub.sendMessage,"email_verification", status = status, video_comm = video_comm, user = user)
-        else:
-            print("email verification failed, not a valid code")
-            verification_code = input("Enter verification code: ")
-            msg_to_send = clientProtocol.build_email_verification_code(verification_code)
-            self.comm.send_msg(msg_to_send)
+        if status == settings.EMAIL_VERIFICATION_SUCCESSFUL:
+            username, email, video_port = data[1:]
+            video_port = int(video_port)
+            self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
+            self.video_comm.connect()
+            self.user = user.User(username, 0, 0, 0, email)
+
+        wx.CallAfter(pub.sendMessage,"email_verification_ans", status = status, video_comm = self.video_comm, user = self.user)
 
     def handle_sign_in_confirmation(self, data):  # command 2
         status = int(data[0])
@@ -133,7 +125,8 @@ class ClientLogic:
 
     def handle_topics_confirmation(self, data):  # command 3
         topics = data[0]
-        self.user.topics = topics
+        topics = [int(topic) for topic in topics]
+        wx.CallAfter(pub.sendMessage, "set_topics_ans", topics = topics)
 
     def handle_filter_confirmation(self, data):  # command 4
         filter = data[0]
@@ -154,19 +147,20 @@ class ClientLogic:
             print("NO MORE USERS TO SEND")
 
     def handle_video_details(self, data):  # command 6
-        video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked, arrived_with_video = data
+        video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked, *arrived_with_video = data
+        arrived_with_video = False
+        if arrived_with_video:
+            print(arrived_with_video, "arrived with")
+            arrived_with_video = arrived_with_video[0]
 
         video_id = int(video_id)
-        if video_id:  # video_id = 0 means that there are no more videos to send
-            liked = bool(int(liked))
-            self.videos[video_id] = video.Video(video_id, creator, video_name, video_desc, created_at, likes_amount,
-                                                comments_amount, liked)
-            print(
-                f"added video: video_id={video_id}, creator={creator}, video_name={video_name}, video_desc={video_desc}, created_at = {created_at}, likes_amount={likes_amount}, comments_amount={comments_amount}, liked={liked}")
-            if arrived_with_video:
-                self.current_video = video_id
-        else:
-            print("NO MORE VIDEOS TO SEND")
+        self.videos[video_id] = video.Video(video_id, creator, video_name, video_desc, created_at, likes_amount,
+                                            comments_amount, liked)
+        print(f"added video: video_id={video_id}, creator={creator}, video_name={video_name}, video_desc={video_desc}, created_at = {created_at}, likes_amount={likes_amount}, comments_amount={comments_amount}, liked={liked}")
+        if arrived_with_video:
+            self.current_video = video_id
+
+        wx.CallAfter(pub.sendMessage, "load_video", video = self.videos[video_id])
 
     def handle_video_comment_confirmation(self, data):  # command 7
         comment_id, video_id, added_comment = data

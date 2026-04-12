@@ -15,3 +15,5 @@ class Comment:
         self.comment = comment
         self.commenter = commenter
         self.created_at = created_at
+
+        #todo add liked by user attribute

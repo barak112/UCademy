@@ -9,7 +9,7 @@ class RoundedInputField(wx.Panel):
     BG_COLOR = settings.OFF_WHITE
 
 
-    def __init__(self, panel, parent, field_name, placeholder, field_icon_bitmap, is_password = False):
+    def __init__(self, panel, parent, field_name, placeholder, field_icon_bitmap = None, is_password = False):
         """
            Rounded input field init, the rounded field contains
         :param parent: parent to add this widget to
@@ -26,7 +26,8 @@ class RoundedInputField(wx.Panel):
         self.text_shown = True # used for password show and hide
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT) # gets control of screen paint from OS
-        
+        self.SetBackgroundColour(settings.OFF_WHITE)
+
         # visible text input widget
         self.text_visible = wx.TextCtrl(self, style=wx.BORDER_NONE)
         self.text_visible.SetBackgroundColour(wx.Colour((249, 250, 251)))
@@ -45,12 +46,14 @@ class RoundedInputField(wx.Panel):
 
         # Layout
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
-        field_icon_bitmap = wx.StaticBitmap(self, bitmap=field_icon_bitmap)
+        if field_icon_bitmap:
+            field_icon_bitmap = wx.StaticBitmap(self, bitmap=field_icon_bitmap)
+            self.sizer.Add(field_icon_bitmap, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 20)
 
-        self.sizer.Add(field_icon_bitmap, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 20)
+        self.SetMinSize((0,70))
 
-        self.sizer.Add(self.text_visible, 1, wx.ALL | wx.EXPAND, 20)
-        self.sizer.Add(self.text_hidden, 1, wx.ALL | wx.EXPAND, 20)
+        self.sizer.Add(self.text_visible, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 20)
+        self.sizer.Add(self.text_hidden, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 20)
 
         self.text_hidden.Hide()
 
@@ -148,7 +151,7 @@ class RoundedInputField(wx.Panel):
             # Background
             gc.SetBrush(wx.Brush(self.BG_COLOR))
             gc.SetPen(wx.NullGraphicsPen)
-            gc.DrawRoundedRectangle(0, 0, w, h, 10)
+            gc.DrawRoundedRectangle(0, 0, w, h, settings.ROUND_BORDER_RADIUS)
 
             # Border color (changes on focus)
             border_color = self.FOCUS_COLOR if self.has_focus else self.BORDER_COLOR
@@ -173,3 +176,10 @@ class RoundedInputField(wx.Panel):
     def get_text_hidden(self):
         """returns the hidden text textCtrl widget"""
         return self.text_hidden
+
+    def set_value(self, value):
+        """sets the value of the field"""
+        if self.text_shown:
+            self.text_visible.SetValue(value)
+        else:
+            self.text_hidden.SetValue(value)

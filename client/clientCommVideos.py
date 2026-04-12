@@ -73,8 +73,10 @@ class ClientCommVideos (clientComm.ClientComm):
         file_content = self._recv_file_content(file_size)
 
         if len(file_content) == file_size:
-            with open(f"media\\{file_name}", 'wb') as f:
-                f.write(self.cipher.decrypt_file(file_content))
+            store_path = f"media\\{file_name}"
+            if not os.path.isfile(store_path):
+                with open(store_path, 'wb') as f:
+                    f.write(self.cipher.decrypt_file(file_content))
 
             if video_details:
                 arrived_with_video = False

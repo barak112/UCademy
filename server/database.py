@@ -508,7 +508,6 @@ class DataBase:
         res = self.cur.fetchone()
         if res:
             res = res[0]
-
         return res
 
     def add_comment(self, video_id, commenter_name, comment):
@@ -837,6 +836,8 @@ class DataBase:
 
         if not res:  # if no video matches filter or topics
             res = self.get_most_viewed_video_for_user(username)
+
+        print("res im db:", res)
         return res
 
     # ===== user topics =====
@@ -967,6 +968,11 @@ class DataBase:
             result_ids = [x[0] for x in result_ids]
 
         return result_ids
+
+    def remove_watched_videos_for_user(self, username):
+        self.cur.execute("DELETE FROM watched_videos WHERE username = ?", (username, ))
+
+    # ===== video hashes =====
 
     def add_video_hash(self, video_id, video_hash):
         """
@@ -1202,10 +1208,10 @@ if __name__ == "__main__":
     # db.add_video_like(2, "Alon")
 
     # # --- following ---
-    db.cur.execute("DROP TABLE IF EXISTS following")
-    db._create_following_table()
-    db.add_following("Barak", "Alon")
-    db.add_following("Alon", "Barak")
+    # db.cur.execute("DROP TABLE IF EXISTS following")
+    # db._create_following_table()
+    # db.add_following("Barak", "Alon")
+    # db.add_following("Alon", "Barak")
 
     # # --- video_topics ---
     # db.cur.execute("DROP TABLE IF EXISTS video_topics")

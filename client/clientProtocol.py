@@ -79,7 +79,7 @@ def build_req_user_follow_list(username, follow_type, send_next: bool = False): 
     return build_command(14, [username, follow_type, int(send_next)])
 
 
-def build_req_video(video_id):
+def build_req_video(video_id = 0):
     return build_command(15, [video_id])
 
 

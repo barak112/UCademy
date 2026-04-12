@@ -22,6 +22,8 @@ class LoginPanel(wx.Panel):
         self.frame = frame
         self.parent = parent
 
+        self.waiting_for_server_response = False
+
         # distributes the screen to left and right
         two_sides = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(two_sides)
@@ -154,15 +156,19 @@ class LoginPanel(wx.Panel):
 
         self.Hide()
 
+    def set_fields(self, username_or_email, password):
+        self.username_or_email_input_obj.set_value(username_or_email)
+        self.password_input_obj.set_value(password)
+
     def field_is_filled(self, field_name):
         self.filled_fields[field_name] = 1
         if all(self.filled_fields.values()):
-            self.login_button.set_background_color(self.LEFT_COLOR)
+            self.login_button.set_active(True)
         self.login_button.Refresh()
 
     def field_is_unfilled(self, field_name):
         self.filled_fields[field_name] = 0
-        self.login_button.set_background_color(settings.UNACTIVE_BUTTON)
+        self.login_button.set_active(False)
         self.login_button.Refresh()
 
     def entering_text(self, event):
@@ -222,11 +228,14 @@ class LoginPanel(wx.Panel):
 
             print("credentials at login", username_or_email, password)
             if username_or_email and password:
-                msg2send = clientProtocol.build_sign_in(username_or_email, password)
-                self.frame.comm.send_msg(msg2send)
+                if not self.waiting_for_server_response:
+                    msg2send = clientProtocol.build_sign_in(username_or_email, password)
+                    self.frame.comm.send_msg(msg2send)
+                    self.status_message.SetLabel("sending credentials to the server...")
+                    self.waiting_for_server_response = True
             else:
                 self.status_message.SetLabel("you must enter both username/email and password to log in")
-                self.Layout()
+        self.Layout()
         if event:
             event.Skip()
 
@@ -239,8 +248,13 @@ class LoginPanel(wx.Panel):
         :param user: user object
         """
         if status:
-            self.frame.video = video_comm
+            self.frame.video_ctrl = video_comm
             self.frame.user = user
+            # send video req
+            msg = clientProtocol.build_req_video()
+            print("send req in log in")
+            self.frame.comm.send_msg(msg)
+
             self.frame.switch_panel(self.frame.feed_panel, self)
 
             print("in login resp,", self.frame.user)
@@ -248,7 +262,9 @@ class LoginPanel(wx.Panel):
         else:
             self.status_message.SetLabel("username or password incorrect")
             self.Layout()
+        self.waiting_for_server_response = False
 
     def on_move_to_sign_up(self, event):
         """triggered on sign up button, changes screen to sign up"""
         self.frame.switch_panel(self.frame.signup_panel, self)
+        self.frame.signup_panel.set_fields(self.username_or_email_input_obj.get_value(), self.password_input_obj.get_value())
