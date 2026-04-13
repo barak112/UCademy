@@ -48,7 +48,8 @@ class ClientLogic:
             "11": self.handle_vid_del_confirmation,
             "12": self.handle_comment_del_confirmation,
             "16": self.handle_video_upload_confirmation,
-            "17": self.handle_follow_status
+            "17": self.handle_follow_status,
+            "18": self.handle_like_video
         }
         self.video_commands = {
             "00": self.handle_video_details,
@@ -262,6 +263,10 @@ class ClientLogic:
             self.user.followings.append(following)
         else:
             print("user trying to follow doesnt exists")
+
+    def handle_like_video(self, data):
+        #todo implement
+
 
     # called by the video_comm
     def handle_confirm_file_upload(self, data):  # command 01

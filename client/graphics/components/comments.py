@@ -64,7 +64,8 @@ class Comments(wx.Panel):
         self.add_comment_field.SetMinSize((0,50))
 
         add_comment_img_path = "assets\\send.png"
-        self.add_comment_button = rounded_button.RoundedButton(self, add_comment_img_path, settings.UNACTIVE_BUTTON, self.BG_COLOR, circle=True, use_image=True)
+        self.add_comment_button = rounded_button.RoundedButton(self, add_comment_img_path,
+                        settings.UNACTIVE_BUTTON, self.BG_COLOR, circle=True, use_image=True)
         self.add_comment_button.SetMinSize((50,50))
         self.add_comment_button.Bind(wx.EVT_LEFT_UP, self.on_add_comment)
 
@@ -88,7 +89,7 @@ class Comments(wx.Panel):
 
         self.call_date_to_ago_timer = wx.Timer()
         self.Bind(wx.EVT_TIMER, self.call_date_to_ago, self.call_date_to_ago_timer)
-        self.call_date_to_ago_timer.Start(1000*60*60) # every minute
+        self.call_date_to_ago_timer.Start(1000*60) # every minute
 
     def call_date_to_ago(self, event):
         for a_comment in self.comments_sizer.GetChildren():

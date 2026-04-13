@@ -90,6 +90,8 @@ def build_video_details(video_name, video_desc, test_link):
 def build_follow_req(username):
     return build_command(17, [username])
 
+def build_like_video(video_id):
+    return build_command(18, [video_id])
 
 # ----- Video transfer protocol -----
 

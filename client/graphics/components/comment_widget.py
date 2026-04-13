@@ -96,12 +96,14 @@ class CommentWidget(wx.Panel):
 
     def date_to_ago(self):
         created_at = self.comment.created_at
+        print("created at:", created_at)
         created_at = datetime.strptime(created_at, "%d/%m/%Y %H:%M")
 
         now = datetime.now()
         diff = now - created_at
 
         seconds = diff.total_seconds()
+
         minutes = seconds / 60
         hours = minutes / 60
         days = hours / 24

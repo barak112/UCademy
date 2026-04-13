@@ -93,6 +93,8 @@ class ServerLogic:
             '15': self.handle_video_req,
             '16': self.handle_video_upload,
             '17': self.handle_follow_user,
+            "18": self.handle_like_video_confirmation
+
 
             '97':self.handle_client_disconnected,
 
@@ -497,7 +499,6 @@ class ServerLogic:
         else:
             comments = self.db.get_comments(video_id, self.clients[client_ip][0])
 
-
         comments_to_send = comments[:settings.AMOUNT_OF_COMMENTS_TO_SEND]
         self.comments_to_send[client_ip] = comments[settings.AMOUNT_OF_COMMENTS_TO_SEND:]
 
@@ -631,6 +632,10 @@ class ServerLogic:
             followed = "" # indicates user doesnt exist
         msg = serverProtocol.build_follow_user_status(followed)
         self.comm.send_msg(client_ip, msg)
+
+    def handle_like_video_confirmation(self, client_ip, data):
+        #todo implement
+
 
     #called by video comm
 

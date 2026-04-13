@@ -83,10 +83,12 @@ class RoundedButton(wx.Panel):
         self.mouse_clicked = True
         self.Refresh()
         self.Update()
+        event.Skip()
 
     def on_mouse_release(self, event):
         # Delay resetting the state (e.g. 100ms)
         wx.CallLater(100, self.reset_click_state)
+        event.Skip()
 
     def reset_click_state(self):
         self.mouse_clicked = False
@@ -132,7 +134,9 @@ class RoundedButton(wx.Panel):
             if self.use_image:
                 if self.label_or_path:
                     iw, ih = 24, 24
-                    gc.DrawBitmap(wx.Bitmap(wx.Image(self.label_or_path).Scale(24,24, wx.IMAGE_QUALITY_HIGH)) , (w - iw) / 2, (h - ih) / 2,24,24)
+                    # iw, ih = 48, 48
+                    gc.DrawBitmap(wx.Bitmap(wx.Image(self.label_or_path).Scale(iw, ih, wx.IMAGE_QUALITY_HIGH)) , (w - iw) / 2, (h - ih) / 2,
+                                  iw, ih)
             else:
                 gc.SetFont(wx.Font(self.font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD), wx.WHITE)
                 tw, th = gc.GetTextExtent(self.label_or_path)

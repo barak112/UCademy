@@ -102,7 +102,7 @@ class DataBase:
                 video_id INTEGER,
                 commenter TEXT,
                 comment TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT (datetime('now','localtime')),
                 deleted INTEGER DEFAULT 0
             )
         """)
@@ -511,6 +511,8 @@ class DataBase:
         if res:
             res = res[0]
         return res
+
+    # ===== comments =====
 
     def add_comment(self, video_id, commenter_name, comment):
         """
@@ -1195,7 +1197,6 @@ if __name__ == "__main__":
     # db.add_video("Ella", "Ella's video 2", "Video about Ella 2 ", "test link4")
     # db.add_video("Ella", "Ella's video 2", "Video about Ella 2", "test link5")
 
-    # db.delete_video(5)
     # # --- comments ---
     # db.cur.execute("DROP TABLE IF EXISTS comments")
     # db._create_comments_table()
