@@ -55,8 +55,8 @@ def build_video_details(video_id, creator_name, video_name, video_desc, created_
     )
 
 
-def build_comment_status(comment_id, video_id, comment):
-    return build_command(7, [comment_id, video_id, comment])
+def build_comment_status(comment_id, video_id, commenter, comment, created_at):
+    return build_command(7, [comment_id, video_id, commenter, comment, created_at])
 
 
 def build_send_test(video_id, link):

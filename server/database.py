@@ -1,5 +1,7 @@
 import os
 import sqlite3
+from datetime import datetime
+
 
 class DataBase:
 
@@ -518,10 +520,14 @@ class DataBase:
         :param comment: the content of the comment
         :return: ID of the newly inserted comment
         """
-        self.cur.execute("INSERT INTO comments (video_id, commenter, comment) VALUES (?,?,?)",
+        self.cur.execute("INSERT INTO comments (video_id, commenter, comment) VALUES (?,?,?) RETURNING comment_id, created_at",
                          (video_id, commenter_name, comment))
+        comment_id, created_at = self.cur.fetchone()
         self.conn.commit()
-        return self.cur.lastrowid
+        created_at = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S")
+        created_at = created_at.strftime("%d/%m/%Y %H:%M")
+
+        return comment_id, created_at
 
     def get_specific_comment(self, comment_id, matter_deleted=True):
         """
@@ -837,7 +843,6 @@ class DataBase:
         if not res:  # if no video matches filter or topics
             res = self.get_most_viewed_video_for_user(username)
 
-        print("res im db:", res)
         return res
 
     # ===== user topics =====
@@ -1175,8 +1180,8 @@ if __name__ == "__main__":
 
 
     # # --- users ---
-    db.cur.execute("DROP TABLE IF EXISTS users")
-    db._create_users_table()
+    # db.cur.execute("DROP TABLE IF EXISTS users")
+    # db._create_users_table()
     # db.add_user("Barak", "barak@gmail.com", "482c811da5d5b4bc6d497ffa98491e38")
     # db.add_user("Alon", "alon@gmail.com",   "482c811da5d5b4bc6d497ffa98491e38")
     # db.add_user("Ella", "ella@gmail.com",   "482c811da5d5b4bc6d497ffa98491e38")

@@ -22,6 +22,11 @@ class Feed(wx.Panel):
         self.is_playing = False
         self.is_muted = False
 
+        self.scroll_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.on_scroll_timer, self.scroll_timer)
+
+        self.can_scroll = True
+
         self.current_video_id = None  # video_id
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -32,7 +37,7 @@ class Feed(wx.Panel):
         video_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.video_ctrl = wx.media.MediaCtrl(self, style=wx.SIMPLE_BORDER, szBackend=wx.media.MEDIABACKEND_WMP10)
-        self.video_ctrl.Bind(wx.media.EVT_MEDIA_LOADED, self.on_play)
+        self.video_ctrl.Bind(wx.media.EVT_MEDIA_LOADED, self.on_load)
         self.video_ctrl.SetVolume(0)
 
         # self.video.Play()
@@ -51,14 +56,14 @@ class Feed(wx.Panel):
 
         # comments
         # comments_sizer = wx.BoxSizer(wx.VERTICAL)
-        comments_panel = comments.Comments(frame, self)
-        comments_panel.SetMinSize((400, 0))
+        self.comments_panel = comments.Comments(frame, self)
+        self.comments_panel.SetMinSize((400, 0))
 
         padding_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         padding_sizer.AddStretchSpacer()
         padding_sizer.AddSpacer(10)
-        padding_sizer.Add(comments_panel, 10, wx.EXPAND | wx.RIGHT, 50) # top, right, bottom, left borders
+        padding_sizer.Add(self.comments_panel, 10, wx.EXPAND | wx.RIGHT, 50) # top, right, bottom, left borders
 
         padding_sizer.Add(video_sizer, 10, wx.EXPAND)
         padding_sizer.AddSpacer(10)
@@ -73,24 +78,47 @@ class Feed(wx.Panel):
         # btn.Bind(wx.EVT_BUTTON, self.on_play)
         self.SetSizer(main_sizer)
 
-        pub.subscribe(self.load_video, "load_video")
+        pub.subscribe(self.load_new_video, "load_video")
+
+        pub.subscribe(self.load_new_comments, "load_new_comments")
+
         self.Bind(wx.EVT_MOUSEWHEEL, self.on_scroll)
+
         self.Hide()
+
+    def on_scroll_timer(self, event):
+        self.can_scroll = True
+        self.scroll_timer.Stop()
 
     def on_scroll(self, event):
         rotation = event.GetWheelRotation()
+        print(self.can_scroll)
+        if self.can_scroll:
+            self.can_scroll = False
+            self.scroll_timer.Start(300)
 
-        if rotation > 0:
-            # return to last video
-            if self.frame.video_index > 0:
-                self.frame.video_index -=1
-                self.load_video(self.frame.videos_ids_with_file[self.frame.video_index])
-        else:
-            msg = clientProtocol.build_req_video()
-            self.frame.comm.send_msg(msg)
-            print("req")
-        #todo add a timer so it would scroll so much from a single scroll
+            if rotation > 0:
+                # return to last video
+                if self.frame.video_index > 0:
+                    self.frame.video_index -=1
+                    #loads previous video, find the id of the last video using its index and than gets its video object
+                    self.load_video(self.frame.videos_details[self.frame.videos_ids_with_file[self.frame.video_index]])
+                    # print(self.frame.video_index, self.frame.videos_ids_with_file)
+            else:
+
+                if len(self.frame.videos_ids_with_file)>self.frame.video_index + 1:
+                    self.frame.video_index += 1
+                    print("going back", self.frame.video_index)
+                    self.load_video(self.frame.videos_details[self.frame.videos_ids_with_file[self.frame.video_index]])
+                else:
+                    msg = clientProtocol.build_req_video()
+                    self.frame.comm.send_msg(msg)
+                    print("req")
+
         event.Skip()
+
+    def on_load(self, event):
+        self.video_ctrl.Play()
 
     def on_play(self, event):
         self.is_playing = not self.is_playing
@@ -106,26 +134,37 @@ class Feed(wx.Panel):
         else:
             self.video_ctrl.SetVolume(1)
 
+    def load_new_video(self, video):
+        video_id = video.video_id
+
+        if video_id:
+            self.frame.videos_details[video_id] = video
+
+            self.frame.videos_ids_with_file.append(video_id)
+
+            self.frame.video_index += 1
+            self.load_video(video)
+        else:
+            self.frame.change_text_status("watched all videos")
+            print("watched all videos")
+
     def load_video(self, video):
         video_id = video.video_id
         if video_id:
             self.current_video_id = video_id
 
-            if video_id not in self.frame.videos_details.keys():
-                self.frame.videos_details[video_id] = video
-
-            if video_id not in self.frame.videos_ids_with_file:
-                self.frame.videos_ids_with_file.append(video_id)
-
-            self.frame.video_index +=1
-
             self.video_ctrl.Load(f"media\\{video_id}.mp4")
             self.video_ctrl.SetInitialSize((500, 500))
-            print("video arrived:", video)
+            print("video playing:", video)
+            self.comments_panel.set_video(video)
+            self.frame.change_text_status("")
             self.Layout()
-        else:
-            self.frame.change_text_status("watched all videos")
-            print("watched all videos")
+
+    def load_new_comments(self, video_id, comments):
+        self.frame.videos_details[video_id].add_comments(comments)
+        self.comments_panel.add_comments(comments)
+
+
 
 # three parts: comments, video, video desc + video name.
 

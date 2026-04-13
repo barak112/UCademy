@@ -1,4 +1,5 @@
 import os.path
+from datetime import datetime
 
 import wx
 
@@ -18,7 +19,6 @@ class CommentWidget(wx.Panel):
         separator_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.comment = comment
-
         # pfp_path = f"..\\..\\media\\{comment.commenter}.png"
         # if not os.path.isfile(pfp_path):
         #     pfp_path = "\\..\\assets\\null_pfp.png"
@@ -37,17 +37,19 @@ class CommentWidget(wx.Panel):
 
         # username label
         username_label = wx.StaticText(self, label=comment.commenter)
-        font = username_label.GetFont().Scale(1.5).Bold()
+        font = username_label.GetFont().Scale(2).Bold()
         username_label.SetFont(font)
 
         # commented ago label
-        commented_ago_label = wx.StaticText(self, label=comment.created_at)
-        commented_ago_label.SetForegroundColour((100, 100, 100))
+        self.commented_ago_label = wx.StaticText(self)
+        self.date_to_ago()
+
+        self.commented_ago_label.SetForegroundColour((100, 100, 100))
 
         # username and date
         username_date_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        username_date_sizer.Add(username_label)
-        username_date_sizer.Add(commented_ago_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        username_date_sizer.Add(username_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        username_date_sizer.Add(self.commented_ago_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP | wx.LEFT, 5)
 
         # comment label
         comment_label = wx.StaticText(self, label=comment.comment)
@@ -91,3 +93,41 @@ class CommentWidget(wx.Panel):
             self.is_hovered = False
             self.SetBackgroundColour(self.BG_COLOR)
             self.Refresh()
+
+    def date_to_ago(self):
+        created_at = self.comment.created_at
+        created_at = datetime.strptime(created_at, "%d/%m/%Y %H:%M")
+
+        now = datetime.now()
+        diff = now - created_at
+
+        seconds = diff.total_seconds()
+        minutes = seconds / 60
+        hours = minutes / 60
+        days = hours / 24
+        weeks = days / 7
+        months = days / 30
+        years = days / 365
+
+
+        if seconds < 60:
+            ago_str =  "just now"
+
+        elif minutes < 60:
+            ago_str = f"{int(minutes)} minute(s) ago"
+
+        elif hours < 24:
+            ago_str = f"{int(hours)} hour(s) ago"
+
+        elif days < 7:
+            ago_str = f"{int(days)} day(s) ago"
+
+        elif weeks < 4:
+            ago_str = f"{int(weeks)} week(s) ago"
+
+        elif months < 12:
+            ago_str = f"{int(months)} month(s) ago"
+        else:
+            ago_str = f"{int(years)} year(s) ago"
+
+        self.commented_ago_label.SetLabel(ago_str)

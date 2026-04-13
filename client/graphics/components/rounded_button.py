@@ -64,18 +64,27 @@ class RoundedButton(wx.Panel):
             min(255, int(b * (1 - percent / 100)))
         )
 
+    # def on_mouse_click(self, event):
+    #     """handles button mouse click, indicates to change the button's color"""
+    #     self.mouse_clicked = True
+    #     self.CaptureMouse()
+    #     self.Refresh()
+    #     self.Update()
+    #
+    # def on_mouse_release(self, event):
+    #     """handles button mouse release, indicates to change the button's color"""
+    #     if self.HasCapture():
+    #         self.ReleaseMouse()
+    #
+    #     # Delay resetting the state (e.g. 100ms)
+    #     wx.CallLater(100, self.reset_click_state)
+
     def on_mouse_click(self, event):
-        """handles button mouse click, indicates to change the button's color"""
         self.mouse_clicked = True
-        self.CaptureMouse()
         self.Refresh()
         self.Update()
 
     def on_mouse_release(self, event):
-        """handles button mouse release, indicates to change the button's color"""
-        if self.HasCapture():
-            self.ReleaseMouse()
-
         # Delay resetting the state (e.g. 100ms)
         wx.CallLater(100, self.reset_click_state)
 
@@ -89,6 +98,7 @@ class RoundedButton(wx.Panel):
         self.Refresh()  # Redraw with hover color
 
     def on_mouse_leave(self, event):
+        self.mouse_clicked = False
         self.mouse_over = False
         self.Refresh()  # Redraw with base color
 

@@ -59,12 +59,12 @@ class MainFrame(wx.Frame):
         msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password123")
         self.comm.send_msg(msg)
 
-        time.sleep(5)
+        # time.sleep(5)
         # msg = clientProtocol.build_req_video()
         # demo_video = video.Video(4, "", "", "", "", 5, 10, False)
         # self.feed_panel.load_video(demo_video)
         # self.comm.send_msg(msg)
-        self.feed_panel.Show()
+        # self.feed_panel.Show()
 
     def switch_panel(self, new_panel, old_panel):
         old_panel.Hide()

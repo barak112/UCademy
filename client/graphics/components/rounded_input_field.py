@@ -29,7 +29,7 @@ class RoundedInputField(wx.Panel):
         self.SetBackgroundColour(settings.OFF_WHITE)
 
         # visible text input widget
-        self.text_visible = wx.TextCtrl(self, style=wx.BORDER_NONE)
+        self.text_visible = wx.TextCtrl(self, style=wx.BORDER_NONE | wx.TE_PROCESS_ENTER)
         self.text_visible.SetBackgroundColour(wx.Colour((249, 250, 251)))
         
         font = self.text_visible.GetFont()
@@ -38,7 +38,7 @@ class RoundedInputField(wx.Panel):
         self.text_visible.SetHint(placeholder)
 
         # hidden text input widget
-        self.text_hidden = wx.TextCtrl(self, style=wx.TE_PASSWORD | wx.BORDER_NONE)
+        self.text_hidden = wx.TextCtrl(self, style=wx.TE_PASSWORD | wx.BORDER_NONE | wx.TE_PROCESS_ENTER)
         self.text_hidden.SetBackgroundColour(wx.Colour((249, 250, 251)))
         self.text_hidden.SetFont(font)
         self.text_hidden.SetHint(placeholder)
@@ -183,3 +183,9 @@ class RoundedInputField(wx.Panel):
             self.text_visible.SetValue(value)
         else:
             self.text_hidden.SetValue(value)
+
+        if value == "":
+            self.panel.field_is_unfilled(self.field_name)
+
+        else:
+            self.panel.field_is_filled(self.field_name)

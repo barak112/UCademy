@@ -163,8 +163,16 @@ class ClientLogic:
         wx.CallAfter(pub.sendMessage, "load_video", video = self.videos[video_id])
 
     def handle_video_comment_confirmation(self, data):  # command 7
-        comment_id, video_id, added_comment = data
-        self.videos[video_id].comments.append(comment.Comment(comment_id, added_comment, self.user.username_or_email_input_obj))
+        print('data:', data)
+        comment_id, video_id, commenter, added_comment, created_at = data
+        comment_id = int(comment_id)
+        video_id = int(video_id)
+        comment_obj = comment.Comment(comment_id, added_comment, commenter, created_at)
+
+        wx.CallAfter(pub.sendMessage, "added_comment", video_id = video_id, comment = comment_obj)
+
+
+
 
     def handle_test(self, data):  # command 8
         video_id, test_link = data
@@ -207,14 +215,20 @@ class ClientLogic:
 
     def handle_comments(self, data):  # command 10
         # data = [[comment_info], [comment_info]]
-        if data:
+        comments = []
+        video_id = 0
+        print("comments data:",data)
+        if data[0]:
             for comment_info in data:
                 comment_id, video_id, commenter, comment_content, created_at = comment_info
                 video_id = int(video_id)
                 comment_id = int(comment_id)
-                self.videos[video_id].add_comment(comment.Comment(comment_id, comment_content, commenter, created_at))
+                comments.append(comment.Comment(comment_id, comment_content, commenter, created_at))
                 print(
                     f"comment added: comment_id: {comment_id} content: {comment_content} by {commenter} created at {created_at}")
+            print("video id:", video_id)
+            wx.CallAfter(pub.sendMessage, "load_new_comments", video_id = video_id, comments = comments)
+            #todo maybe change so that comments are sent as video_id@#[...]@#[...]@#[...] so the video id wouldnt be sent with each comment
         else:
             print("no more comments")
 

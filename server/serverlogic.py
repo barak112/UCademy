@@ -428,8 +428,9 @@ class ServerLogic:
         commenter_name = self.clients[client_ip][0]
 
         if self.db.video_exists(video_id):
-            comment_id = self.db.add_comment(video_id, commenter_name, comment)
-            msg = serverProtocol.build_comment_status(comment_id,video_id, comment)
+            comment_id, created_at = self.db.add_comment(video_id, commenter_name, comment)
+            print("id, created:",comment_id, created_at)
+            msg = serverProtocol.build_comment_status(comment_id,video_id, commenter_name, comment, created_at)
             self.comm.send_msg(client_ip, msg)
 
     def handle_test_req(self, client_ip, data):  # command 8
@@ -592,6 +593,7 @@ class ServerLogic:
 
         if video_id:
             self.send_video_and_details(client_ip, video_id)
+            self.handle_comments_req(client_ip, [video_id, 0])
             self.db.add_watched_video(username, video_id)
         else:
             self.db.remove_watched_videos_for_user(username)
