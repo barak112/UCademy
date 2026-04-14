@@ -92,8 +92,8 @@ def build_video_upload_confirmation(status):
 def build_follow_user_status(status):
     return build_command(17, [status])
 
-def build_like_video_confirmation(status):
-    return build_command(18, [status])
+def build_like_video_confirmation(status, video_id):
+    return build_command(18, [status, video_id])
 
 # ----- Video transfer protocol -----
 

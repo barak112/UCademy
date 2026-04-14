@@ -93,7 +93,7 @@ class ServerLogic:
             '15': self.handle_video_req,
             '16': self.handle_video_upload,
             '17': self.handle_follow_user,
-            "18": self.handle_like_video_confirmation
+            "18": self.handle_like_video_confirmation,
 
 
             '97':self.handle_client_disconnected,
@@ -634,8 +634,16 @@ class ServerLogic:
         self.comm.send_msg(client_ip, msg)
 
     def handle_like_video_confirmation(self, client_ip, data):
-        #todo implement
-
+        video_id = data[0]
+        username = self.clients[client_ip][0]
+        status = 0
+        if self.db.is_liked_by_user(video_id, username):
+            self.db.remove_video_like(video_id, username)
+        else:
+            status = 1
+            self.db.add_video_like(video_id, username)
+        msg = serverProtocol.build_like_video_confirmation(status, video_id)
+        self.comm.send_msg(client_ip, msg)
 
     #called by video comm
 

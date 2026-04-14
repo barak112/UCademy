@@ -98,15 +98,26 @@ class PickTopicsPanel(wx.ScrolledWindow):
         self.Refresh()
         self.continue_btn.set_active(len(self.selected_topics) >= settings.MIN_TOPICS)
 
+    @staticmethod
+    def calc_columns(event):
+        w,h = event.GetSize()
+
+        size_of_each_column = settings.TOPIC_WIDGET_WIDTH + 40
+        possible_amount_of_columns = w//size_of_each_column
+
+        return max(min(4, possible_amount_of_columns), 2)
+
+
     def on_resize(self, event):
+
         if event.GetSize()[0] < self.grid.GetSize()[0] + 40 and self.grid.GetCols() > 1:
-            self.grid_columns = self.grid.GetCols() - 1
+            self.grid_columns = self.calc_columns(event)
             self.grid.SetCols(self.grid_columns)
             self.grid.SetRows(math.ceil(len(settings.TOPICS) / self.grid_columns))
             self.Layout()
 
         if event.GetSize()[0] > self.grid.GetSize()[0] + settings.TOPIC_WIDGET_WIDTH + 40 and self.grid.GetCols() < 4:
-            self.grid_columns = self.grid.GetCols() + 1
+            self.grid_columns = self.calc_columns(event)
             self.grid.SetCols(self.grid_columns)
             self.grid.SetRows(math.ceil(len(settings.TOPICS) / self.grid_columns))
             self.Layout()
@@ -126,13 +137,15 @@ class PickTopicsPanel(wx.ScrolledWindow):
 
     def on_paint(self, event):
         dc = wx.BufferedPaintDC(self)
-        dc.DrawBitmap(self.background_bitmap, 0, 0, True)
-        if not self.a_scroll:
-            self.PrepareDC(dc)
+        gc = wx.GraphicsContext.Create(dc)
+        if gc:
+            w, h = self.GetClientSize()
+            gc.DrawBitmap(self.background_bitmap, 0,0, w, h)
 
-            gc = wx.GraphicsContext.Create(dc)
-            if gc:
-                w, h = self.GetClientSize()
+            if not self.a_scroll:
+                dc = wx.GCDC(gc) # so that the bg wont scroll
+                self.PrepareDC(dc)
+
                 # draw title
                 gc.SetFont(
                     wx.Font(25, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD),

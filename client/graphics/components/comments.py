@@ -18,6 +18,7 @@ class Comments(wx.Panel):
     def __init__(self, frame, parent):
         super().__init__(parent)
 
+        self.parent = parent
         self.frame = frame
 
         self.video = None
@@ -34,10 +35,10 @@ class Comments(wx.Panel):
         comments_label.SetFont(font)
 
         # comments amount label
-        comments_amount_label = wx.StaticText(self, label=f"{len(self.comments)} comments")
-        comments_amount_label.SetForegroundColour((100, 100, 100))
-        font = comments_amount_label.GetFont().Scale(1.3)
-        comments_amount_label.SetFont(font)
+        self.comments_amount_label = wx.StaticText(self)
+        self.comments_amount_label.SetForegroundColour((100, 100, 100))
+        font = self.comments_amount_label.GetFont().Scale(1.3)
+        self.comments_amount_label.SetFont(font)
 
         #comments
         self.comments_panel = wx.ScrolledWindow(self)
@@ -48,10 +49,6 @@ class Comments(wx.Panel):
 
         # add comment
         add_comment_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # pfp_path = f"..\\media\\{self.frame.user.username}.png"
-        # pfp_path = f"..\\..\\media\\user1.png"
-        # if not os.path.isfile(pfp_path):
-        #     pfp_path = "..\\..\\assets\\null_pfp.png"
 
         pfp_path = f"media/Barak.png"
         if not os.path.isfile(pfp_path):
@@ -76,7 +73,7 @@ class Comments(wx.Panel):
 
         main_sizer.Add(comments_label, 0, wx.LEFT, 20)
         main_sizer.Add((0, 5))
-        main_sizer.Add(comments_amount_label, 0, wx.LEFT, 20)
+        main_sizer.Add(self.comments_amount_label, 0, wx.LEFT, 20)
         main_sizer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
         main_sizer.Add(self.comments_panel, 1, wx.EXPAND)
         main_sizer.Add(wx.StaticLine(self), 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 10)
@@ -85,11 +82,14 @@ class Comments(wx.Panel):
         self.SetSizer(main_sizer)
 
         pub.subscribe(self.on_add_comment_ans, "added_comment")
+
         self.add_comment_field.get_text_visible().Bind(wx.EVT_TEXT_ENTER, self.on_enter)
 
         self.call_date_to_ago_timer = wx.Timer()
         self.Bind(wx.EVT_TIMER, self.call_date_to_ago, self.call_date_to_ago_timer)
         self.call_date_to_ago_timer.Start(1000*60) # every minute
+
+
 
     def call_date_to_ago(self, event):
         for a_comment in self.comments_sizer.GetChildren():
@@ -122,6 +122,9 @@ class Comments(wx.Panel):
             # add comment visually
             comment_panel = comment_widget.CommentWidget(self.comments_panel, comment)
             self.comments_sizer.Insert(0, comment_panel, 0, wx.EXPAND)
+            self.comments_amount_label.SetLabel(f"{self.video.amount_of_comments} comments")
+            print("amount of comments:", self.video.amount_of_comments)
+            self.parent.update_comments_label(video_id)
             self.Layout()
             print("added comment ")
 
@@ -136,7 +139,11 @@ class Comments(wx.Panel):
         self.comments_sizer.Clear(True) # clears prev comments
         self.add_comments(video.get_comments()) # if comments already exist with the video (the video already existed)
         self.Layout()
-    
+
+    def update_comments_label(self):
+        self.comments_amount_label.SetLabel(f"{self.video.amount_of_comments} comments")
+
+
 if __name__ == "__main__":
     app = wx.App()
     frame = wx.Frame(None)

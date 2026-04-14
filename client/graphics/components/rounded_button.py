@@ -133,8 +133,8 @@ class RoundedButton(wx.Panel):
 
             if self.use_image:
                 if self.label_or_path:
-                    iw, ih = 24, 24
-                    # iw, ih = 48, 48
+                    # iw, ih = 24, 24
+                    iw, ih = 32, 32
                     gc.DrawBitmap(wx.Bitmap(wx.Image(self.label_or_path).Scale(iw, ih, wx.IMAGE_QUALITY_HIGH)) , (w - iw) / 2, (h - ih) / 2,
                                   iw, ih)
             else:

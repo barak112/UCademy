@@ -390,17 +390,13 @@ class DataBase:
                                     videos.name,
                                     videos.description,
                                     strftime('%d/%m/%Y %H:%M', videos.created_at),
-                                    COUNT(DISTINCT likes.username)     AS likes_count,
-                                    COUNT(DISTINCT comments.commenter) AS comments_count
+                                   (SELECT COUNT(*) FROM likes WHERE video_id = videos.video_id) AS likes_count,
+                                   (SELECT COUNT(*) FROM comments WHERE video_id = videos.video_id) AS comments_count
                              FROM videos
-                                      LEFT JOIN likes ON videos.video_id = likes.video_id
-                                      LEFT JOIN comments ON videos.video_id = comments.video_id
 
                              WHERE videos.video_id = ?
-                             GROUP BY videos.video_id
                              """, (video_id,))
             ret_val = self.cur.fetchone()
-
         return ret_val
 
     def video_deleted(self, video_id):

@@ -152,9 +152,13 @@ class ClientLogic:
         arrived_with_video = False
         if arrived_with_video:
             print(arrived_with_video, "arrived with")
-            arrived_with_video = arrived_with_video[0]
+            arrived_with_video = bool(int(arrived_with_video[0]))
 
         video_id = int(video_id)
+        comments_amount = int(comments_amount)
+        likes_amount = int(comments_amount)
+        liked = bool(int(liked))
+
         self.videos[video_id] = video.Video(video_id, creator, video_name, video_desc, created_at, likes_amount,
                                             comments_amount, liked)
         print(f"added video: video_id={video_id}, creator={creator}, video_name={video_name}, video_desc={video_desc}, created_at = {created_at}, likes_amount={likes_amount}, comments_amount={comments_amount}, liked={liked}")
@@ -170,6 +174,7 @@ class ClientLogic:
         video_id = int(video_id)
         comment_obj = comment.Comment(comment_id, added_comment, commenter, created_at)
 
+        print("calling after")
         wx.CallAfter(pub.sendMessage, "added_comment", video_id = video_id, comment = comment_obj)
 
 
@@ -265,7 +270,12 @@ class ClientLogic:
             print("user trying to follow doesnt exists")
 
     def handle_like_video(self, data):
-        #todo implement
+        status, video_id = data
+        status = int(status)
+        video_id = int(video_id)
+
+        wx.CallAfter(pub.sendMessage, "video_like_ans", status = status, video_id = video_id)
+
 
 
     # called by the video_comm

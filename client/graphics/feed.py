@@ -18,8 +18,8 @@ class Feed(wx.Panel):
 
         self.frame = frame
         self.parent = parent
-        self.is_playing = False
-        self.is_muted = False
+        self.is_playing = True
+        self.volume = 0
 
         self.scroll_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_scroll_timer, self.scroll_timer)
@@ -37,7 +37,6 @@ class Feed(wx.Panel):
 
         self.video_ctrl = wx.media.MediaCtrl(self, style=wx.SIMPLE_BORDER, szBackend=wx.media.MEDIABACKEND_WMP10)
         self.video_ctrl.Bind(wx.media.EVT_MEDIA_LOADED, self.on_load)
-        self.video_ctrl.SetVolume(0)
 
         # self.video.Play()
         # video_size = (int(self.GetClientSize()[0]), int(self.GetClientSize()[0] * (9 / 16)))
@@ -51,7 +50,30 @@ class Feed(wx.Panel):
 
         # actions
         actions_sizer = wx.BoxSizer(wx.VERTICAL)
-        video_sizer.Add(actions_sizer, 0, wx.ALIGN_CENTER_VERTICAL)
+        video_sizer.Add(actions_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 20)
+
+        # play/pause
+        play_sizer = wx.BoxSizer(wx.VERTICAL)
+        img_path = "assets\\pause.png"
+        self.play_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
+                                                      self.BG_COLOR, circle=True, use_image=True)
+        self.play_btn.SetMinSize((50, 50))
+        self.play_label = wx.StaticText(self, label="pause")
+
+        play_sizer.Add(self.play_btn)
+        play_sizer.Add(self.play_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        # sound/mute
+        sound_sizer = wx.BoxSizer(wx.VERTICAL)
+        img_path = "assets\\sound_off.png"
+        self.sound_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
+                                                     self.BG_COLOR, circle=True, use_image=True)
+        self.sound_btn.SetMinSize((50, 50))
+        self.sound_label = wx.StaticText(self, label = "sound off")
+
+        sound_sizer.Add(self.sound_btn)
+        sound_sizer.Add(self.sound_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
 
         # like
         like_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -100,17 +122,28 @@ class Feed(wx.Panel):
         account_sizer.Add(self.account_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
         # add to actions sizer
-        actions_sizer.Add(like_sizer)
-        actions_sizer.Add(open_comments_sizer)
-        actions_sizer.Add(report_sizer)
-        actions_sizer.Add(account_sizer)
-
+        actions_sizer.Add(play_sizer)
+        actions_sizer.Add(sound_sizer, 0, wx.TOP, 10)
+        actions_sizer.Add(like_sizer, 0, wx.TOP, 10)
+        actions_sizer.Add(open_comments_sizer, 0, wx.TOP, 10)
+        actions_sizer.Add(report_sizer, 0, wx.TOP, 10)
+        actions_sizer.Add(account_sizer, 0, wx.TOP, 10)
+        #todo add req test
 
         # comments
         # comments_sizer = wx.BoxSizer(wx.VERTICAL)
         self.comments_panel = comments.Comments(frame, self)
         self.comments_panel.SetMinSize((400, 0))
 
+
+        # video description
+        # desc_panel = wx.Panel(self)
+        #
+        # self.video_name_label = wx.StaticText(desc_panel)
+        # self.desc_label = wx.StaticText(desc_panel)
+
+
+        #padding sizer
         padding_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         padding_sizer.AddStretchSpacer()
@@ -125,9 +158,6 @@ class Feed(wx.Panel):
         main_sizer.Add(padding_sizer, 1 , wx.EXPAND)
         main_sizer.AddSpacer(50)
 
-        # btn = wx.Button(self, label="Play/Pause")
-        # main_sizer.Add(btn, 0, wx.ALIGN_CENTER_VERTICAL)
-        # btn.Bind(wx.EVT_BUTTON, self.on_play)
         self.SetSizer(main_sizer)
 
         pub.subscribe(self.load_new_video, "load_video")
@@ -136,11 +166,26 @@ class Feed(wx.Panel):
 
         pub.subscribe(self.on_like_video_ans, "video_like_ans")
 
+
         self.Bind(wx.EVT_MOUSEWHEEL, self.on_scroll)
-        self.like_btn.Bind(wx.EVT_KEY_DOWN, self.on_like_video)
+        self.like_btn.Bind(wx.EVT_LEFT_DOWN, self.on_like_video)
         self.open_comments_btn.Bind(wx.EVT_LEFT_DOWN, self.on_open_comments)
+        self.sound_btn.Bind(wx.EVT_LEFT_DOWN, self.on_toggle_sound)
+        self.play_btn.Bind(wx.EVT_LEFT_DOWN, self.on_toggle_play)
 
         self.Hide()
+
+    def on_toggle_sound(self, event):
+        if self.volume:
+            self.volume = 0
+            self.sound_btn.label_or_path = "assets/sound_off.png"
+            self.sound_label.SetLabel("sound off")
+        else:
+            self.volume = 1
+            self.sound_btn.label_or_path = "assets\\sound_on.png"
+            self.sound_label.SetLabel("sound on")
+
+        self.video_ctrl.SetVolume(self.volume)
 
     def on_open_comments(self, event):
         if self.comments_panel.IsShown():
@@ -153,16 +198,34 @@ class Feed(wx.Panel):
         event.Skip()
 
     def on_like_video(self, event):
-        #todo send to comm and wait for response
         print("liking video")
+        if self.current_video_id:
+            msg = clientProtocol.build_like_video(self.current_video_id)
+            self.frame.comm.send_msg(msg)
 
-        msg = clientProtocol.build_
+    def on_like_video_ans(self, status, video_id):
+        video = self.frame.videos_details[video_id]
+        video.amount_of_likes += 1 if status else -1 # either + 1 or - 1
+        video.liked = bool(status) # update liked
 
-    def on_like_video_ans(self):
-        if self.frame.videos_details[self.current_video_id].liked:
-            self.likes_amount_label -= 1
+        if video_id == self.current_video_id:
+            self.update_like_button(status)
+            self.update_likes_amount_label(video_id)
+
+        self.like_btn.Refresh()
+
+    def update_like_button(self, is_liked):
+        # btn_color = wx.RED if is_liked else wx.WHITE
+        # self.like_btn.set_background_color(btn_color)
+        if is_liked:
+            self.like_btn.label_or_path = "assets\\liked_icon.png"
         else:
-            self.likes_amount_label += 1
+            self.like_btn.label_or_path = "assets\\like_icon.png"
+
+        self.like_btn.Refresh()
+
+    def update_likes_amount_label(self, video_id):
+        self.likes_amount_label.SetLabel(str(self.frame.videos_details[video_id].amount_of_likes))
 
     def on_scroll_timer(self, event):
         self.can_scroll = True
@@ -173,7 +236,7 @@ class Feed(wx.Panel):
         print(self.can_scroll)
         if self.can_scroll:
             self.can_scroll = False
-            self.scroll_timer.Start(300)
+            self.scroll_timer.Start(200)
 
             if rotation > 0:
                 # return to last video
@@ -197,24 +260,20 @@ class Feed(wx.Panel):
 
     def on_load(self, event):
         self.video_ctrl.Play()
+        self.video_ctrl.SetVolume(self.volume)
 
-    def on_play(self, event):
+    def on_toggle_play(self, event):
         self.is_playing = not self.is_playing
         if self.is_playing:
             self.video_ctrl.Play()
+            self.play_btn.label_or_path = "assets\\pause.png"
         else:
             self.video_ctrl.Pause()
-
-    def mute(self, event):
-        self.is_muted = not self.is_muted
-        if self.is_muted:
-            self.video_ctrl.SetVolume(0)
-        else:
-            self.video_ctrl.SetVolume(1)
+            self.play_btn.label_or_path = "assets\\play2.png"
 
     def load_new_video(self, video):
         video_id = video.video_id
-
+        #todo req ~6 videos and then each timer req another one, so never stuck
         if video_id:
             self.frame.videos_details[video_id] = video
 
@@ -231,13 +290,20 @@ class Feed(wx.Panel):
         if video_id:
             self.current_video_id = video_id
 
+            self.Layout()
+            self.Refresh()
+            self.Update()
+
             self.video_ctrl.Load(f"media\\{video_id}.mp4")
             self.video_ctrl.SetInitialSize((500, 500)) #todo do i really need?
             self.comments_panel.set_video(video)
             self.frame.change_text_status("")
             #load actions
-            self.likes_amount_label.SetLabel(video.amount_of_likes)
-            self.comments_amount_label.SetLabel(video.amount_of_comments)
+
+            self.update_like_button(video.liked)
+            self.update_likes_amount_label(video_id)
+            self.update_comments_label(video_id)
+            self.comments_panel.update_comments_label()
 
             pfp_path = f"media\\{video.creator}.png"
             null_pfp_path = f"assets\\null_pfp.png"
@@ -253,8 +319,11 @@ class Feed(wx.Panel):
     def load_new_comments(self, video_id, comments):
         self.frame.videos_details[video_id].add_comments(comments)
         self.comments_panel.add_comments(comments)
+        self.update_comments_label(video_id)
 
-
+    def update_comments_label(self, video_id):
+        self.comments_amount_label.SetLabel(str(self.frame.videos_details[video_id].amount_of_comments))
+        print("set label to", self.frame.videos_details[video_id].amount_of_comments)
 
 # three parts: comments, video, video desc + video name.
 
