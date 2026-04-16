@@ -137,11 +137,14 @@ class Feed(wx.Panel):
 
 
         # video description
-        # desc_panel = wx.Panel(self)
-        #
-        # self.video_name_label = wx.StaticText(desc_panel)
-        # self.desc_label = wx.StaticText(desc_panel)
+        self.desc_panel = wx.Panel(self)
 
+        self.video_name_label = wx.StaticText(self.desc_panel)
+        font = self.video_name_label.GetFont()
+        font = font.Scale(2).Bold()
+        self.video_name_label.SetFont(font)
+
+        self.desc_label = wx.StaticText(self.desc_panel)
 
         #padding sizer
         padding_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -173,7 +176,16 @@ class Feed(wx.Panel):
         self.sound_btn.Bind(wx.EVT_LEFT_DOWN, self.on_toggle_sound)
         self.play_btn.Bind(wx.EVT_LEFT_DOWN, self.on_toggle_play)
 
+        self.Bind(wx.EVT_SIZE, self.on_resize)
+
         self.Hide()
+
+    def on_resize(self, event):
+        self.Layout()
+        self.video_name_label.Wrap(self.desc_panel.GetSize()[0])
+        self.Refresh()
+        event.Skip()
+
 
     def on_toggle_sound(self, event):
         if self.volume:
@@ -215,8 +227,6 @@ class Feed(wx.Panel):
         self.like_btn.Refresh()
 
     def update_like_button(self, is_liked):
-        # btn_color = wx.RED if is_liked else wx.WHITE
-        # self.like_btn.set_background_color(btn_color)
         if is_liked:
             self.like_btn.label_or_path = "assets\\liked_icon.png"
         else:
@@ -274,6 +284,7 @@ class Feed(wx.Panel):
     def load_new_video(self, video):
         video_id = video.video_id
         #todo req ~6 videos and then each timer req another one, so never stuck
+        #todo send pfps together with the video and in signup
         if video_id:
             self.frame.videos_details[video_id] = video
 
