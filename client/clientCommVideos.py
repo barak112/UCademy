@@ -27,7 +27,6 @@ class ClientCommVideos (clientComm.ClientComm):
                 self._close_client()
             else:
                 msg = self.cipher.decrypt(data)
-                print(data_len, msg)
                 if clientProtocol.is_video(msg):
                     self._recv_file(msg)
                 else:

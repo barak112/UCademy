@@ -35,8 +35,8 @@ def build_set_topics_confirmation(topics):
     return build_command(3, [topics])
 
 
-def build_set_filter_confirmation(status, filter):
-    return build_command(4, [status, filter])
+def build_set_filter_confirmation(filter):
+    return build_command(4, [filter])
 
 
 def build_user_details(username, followers_amount, followings_amount, videos_amount):
@@ -65,8 +65,8 @@ def build_send_test(video_id, link):
     return build_command(8, [video_id, link])
 
 
-def build_report_status(status, id, type, content, content_publisher, date = "", time = ""):
-    return build_command(9, [status, id, type, content, content_publisher, date, time])
+def build_report_status(status, id, type, content, content_publisher, created_at = ""):
+    return build_command(9, [status, id, type, content, content_publisher, created_at])
 
 
 def build_send_comments(comments):
@@ -89,8 +89,8 @@ def build_video_upload_confirmation(status):
     return build_command(16, [status])
 
 
-def build_follow_user_status(status):
-    return build_command(17, [status])
+def build_follow_user_status(status, followed):
+    return build_command(17, [status, followed])
 
 def build_like_video_confirmation(status, video_id):
     return build_command(18, [status, video_id])
@@ -118,7 +118,7 @@ def unpack(data):
     :return: Tuple of (opcode, parameters list).
     """
     opcode = data[:2]
-    params = [""]
+    params = []
     if len(data) > 2:
         params = data[2:].split("@#")
 

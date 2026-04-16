@@ -40,7 +40,7 @@ class ServerCommVideos (serverComm.ServerComm):
         """
         self.server_socket.bind(("0.0.0.0", self.port))
         self.server_socket.listen(3)
-
+        #todo make for only one client
         while True:
             rlist = select.select([self.server_socket] + list(self.open_clients.keys()), [], [], 0.01)[0]
             for current_socket in rlist:
@@ -95,6 +95,8 @@ class ServerCommVideos (serverComm.ServerComm):
         :param comments_amount: The number of comments on the video
         :param liked: Whether the video is liked by the user
         """
+
+
 
         if os.path.isfile(file_path):
             with open(file_path, 'rb') as f:

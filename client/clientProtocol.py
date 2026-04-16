@@ -121,7 +121,7 @@ def unpack(data):
     :return: Tuple of (opcode, parameters list).
     """
     opcode = data[:2]
-    params = [""]
+    params = []
     if len(data) > 2:
         params = data[2:].split("@#")
 

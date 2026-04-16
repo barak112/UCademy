@@ -22,16 +22,8 @@ class ClientLogic:
 
         """
         self.recvQ = queue.Queue()
-        self.recvVQ = queue.Queue()  # currently not in use
         self.comm = clientComm.ClientComm(self, settings.SERVER_IP, settings.PORT, self.recvQ)
         self.comm.connect()
-        self.video_comm = None
-        self.user = None
-        self.filter = []
-
-        self.videos = {}  # [video_id] = video_object
-        self.users = {}  # [username] = user_object
-        self.current_video = None
 
         self.commands = {
             "00": self.handle_reg_confirmation,
@@ -47,6 +39,7 @@ class ClientLogic:
             "10": self.handle_comments,
             "11": self.handle_vid_del_confirmation,
             "12": self.handle_comment_del_confirmation,
+
             "16": self.handle_video_upload_confirmation,
             "17": self.handle_follow_status,
             "18": self.handle_like_video
@@ -93,11 +86,11 @@ class ClientLogic:
         if status == settings.EMAIL_VERIFICATION_SUCCESSFUL:
             username, email, video_port = data[1:]
             video_port = int(video_port)
-            self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
-            self.video_comm.connect()
+            video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
+            video_comm.connect()
             self.user = user.User(username, 0, 0, 0, email)
 
-        wx.CallAfter(pub.sendMessage,"email_verification_ans", status = status, video_comm = self.video_comm, user = self.user)
+        wx.CallAfter(pub.sendMessage,"email_verification_ans", status = status, video_comm = video_comm, user = self.user)
 
     def handle_sign_in_confirmation(self, data):  # command 2
         status = int(data[0])
@@ -131,41 +124,42 @@ class ClientLogic:
 
     def handle_filter_confirmation(self, data):  # command 4
         filter = data[0]
-        self.filter = filter
         print("setting filter:", filter)
+        wx.CallAfter(pub.sendMessage, "set_filter_ans", filter=filter)
 
     def handle_user_details(self, data):  # command 5
         username, followers_amount, followings_amount, videos_amount = data
+        user_details = None
 
         if username:
             followers_amount = int(followers_amount)
             followings_amount = int(followings_amount)
             videos_amount = int(videos_amount)
-            self.users[username] = user.User(username, followers_amount, followings_amount, videos_amount)
+            user_details = user.User(username, followers_amount, followings_amount, videos_amount)
             print(
                 f"added user: username: {username}, followers_amount: {followers_amount}, followings_amount: {followings_amount}, videos_amount: {videos_amount}")
         else:
             print("NO MORE USERS TO SEND")
 
+        wx.CallAfter(pub.sendMessage, "user_details_ans", user=user_details)
+
     def handle_video_details(self, data):  # command 6
         video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked, *arrived_with_video = data
-        arrived_with_video = False
         if arrived_with_video:
             print(arrived_with_video, "arrived with")
             arrived_with_video = bool(int(arrived_with_video[0]))
+
+        #TODO Understand what to do with arrived_with_video
 
         video_id = int(video_id)
         comments_amount = int(comments_amount)
         likes_amount = int(comments_amount)
         liked = bool(int(liked))
 
-        self.videos[video_id] = video.Video(video_id, creator, video_name, video_desc, created_at, likes_amount,
-                                            comments_amount, liked)
+        video_details = video.Video(video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked)
         print(f"added video: video_id={video_id}, creator={creator}, video_name={video_name}, video_desc={video_desc}, created_at = {created_at}, likes_amount={likes_amount}, comments_amount={comments_amount}, liked={liked}")
-        if arrived_with_video:
-            self.current_video = video_id
 
-        wx.CallAfter(pub.sendMessage, "load_video", video = self.videos[video_id])
+        wx.CallAfter(pub.sendMessage, "load_video", video =video_details)
 
     def handle_video_comment_confirmation(self, data):  # command 7
         print('data:', data)
@@ -178,20 +172,17 @@ class ClientLogic:
         wx.CallAfter(pub.sendMessage, "added_comment", video_id = video_id, comment = comment_obj)
 
 
-
-
     def handle_test(self, data):  # command 8
         video_id, test_link = data
 
         if test_link:
             print(f"video {video_id} has test: {test_link}")
 
-        if video_id in self.videos:
-            self.videos[video_id].test_link = test_link  # if no test link, test_link = ""
+        wx.CallAfter(pub.sendMessage, "test_ans", video_id = video_id, test_link = test_link)
 
     def handle_report_status(self, data):  # command 9
         print(data, "1")
-        status, id, type, content, content_publisher, date, time = data
+        status, id, type, content, content_publisher, created_at = data
         status = int(status)
         type = int(type)
         # id will be future used to view the reported content if it is decided to not be removed
@@ -209,8 +200,8 @@ class ClientLogic:
 
         # Determine the message based on status
         status_messages = {
-            settings.REPORT_DENIED: f"{msg1} you issued on {date} at {time} {msg2} {type_str} will not be removed",
-            settings.REPORT_ACCEPTED: f"{msg1} you issued on {date} at {time} {msg2} {type_str} will be removed",
+            settings.REPORT_DENIED: f"{msg1} you issued on {created_at} {msg2} {type_str} will not be removed",
+            settings.REPORT_ACCEPTED: f"{msg1} you issued on {created_at} {msg2} {type_str} will be removed",
             settings.REPORT_CONTENT_DOESNT_EXISTS: f"{type_str} reported does not exist!",
             settings.REPORT_ALREADY_ISSUED: f"{msg1} has already been issued by you!",
             settings.REPORT_RECEIVED: f"{msg1} has been received at the server and will be examined",
@@ -242,9 +233,11 @@ class ClientLogic:
         video_id = int(data[0])
         if video_id:
             print(f"video {video_id} is deleted")
-            self.videos.pop(video_id, None)
+            # self.videos.pop(video_id, None)
         else:
             print("video deletion failed")
+
+        wx.CallAfter(pub.sendMessage, "video_del_ans", video_id = video_id)
 
     def handle_comment_del_confirmation(self, data):  # command 12
         video_id, comment_id = data
@@ -252,22 +245,30 @@ class ClientLogic:
         comment_id = int(comment_id)
         if video_id:
             print(f"comment {comment_id} deleted from video {video_id}")
-            video = self.videos.get(video_id)
-            if video:
-                video.comments.pop(comment_id, None)
+            # video = self.videos.get(video_id)
+            # if video:
+            #     video.comments.pop(comment_id, None)
         else:
             print("comment deletion failed")
+
+        wx.CallAfter(pub.sendMessage, "video_del_ans", video_id=video_id)
+
 
     def handle_video_upload_confirmation(self, data):  # command 13
         status = data[0]
         print("video upload status:", status)
+        wx.CallAfter(pub.sendMessage, "video_upload_ans", video_id=video_id)
 
     def handle_follow_status(self, data):  # command 14
-        following = data[0]
+        status, following = data
+
         if following:
-            self.user.followings.append(following)
+            # self.user.followings.append(following)
+            pass
         else:
             print("user trying to follow doesnt exists")
+
+        wx.CallAfter(pub.sendMessage, "follow_ans", status=status, following = following)
 
     def handle_like_video(self, data):
         status, video_id = data
@@ -277,8 +278,10 @@ class ClientLogic:
         wx.CallAfter(pub.sendMessage, "video_like_ans", status = status, video_id = video_id)
 
 
-
     # called by the video_comm
+
+    # command 0 is command 6 in the regular commands
+
     def handle_confirm_file_upload(self, data):  # command 01
         status = data[0]
         print(status)

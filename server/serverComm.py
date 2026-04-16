@@ -135,18 +135,5 @@ class ServerComm:
                 print(f"Error sending message: {e}")
                 self._close_client(client_soc)
 
-    def send_multiple_clients(self, msg, clients_ips, except_clients=None):
-        """Send an encrypted message to multiple clients.
-
-        :param msg: Message to send.
-        :param clients_ips: List of client ips to send the message to.
-        :param except_clients: List of client ips to exclude from sending (default: None).
-        """
-        if except_clients is None:
-            except_clients = []
-        send_list = list(set(clients_ips) - set(except_clients))
-        for ip in send_list:
-            self.send(ip, msg)
-
 
 

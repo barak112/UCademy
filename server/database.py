@@ -1,4 +1,3 @@
-import os
 import sqlite3
 from datetime import datetime
 
@@ -33,24 +32,16 @@ class DataBase:
         """
         self.conn.close()
 
-    def delete_database(self):
-        """
-        Close the database connection and delete the database file.
-        """
-        self.conn.close()
-        if os.path.isfile("ucademy.db"):
-            os.remove("ucademy.db")
-
     def print_tables(self):
         """
-        Print the first 15 rows of every table in the database for debugging purposes.
+        Print the first 40 rows of every table in the database for debugging purposes.
         """
         self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = [t[0] for t in self.cur.fetchall()]
 
         for table in tables:
             print(f"\nTable: {table}")
-            self.cur.execute(f"SELECT * FROM {table} LIMIT 15;")
+            self.cur.execute(f"SELECT * FROM {table} LIMIT 40;")
             rows = self.cur.fetchall()
             for row in rows:
                 print(row)
@@ -257,7 +248,7 @@ class DataBase:
         self.cur.execute("SELECT 1 FROM users WHERE email = ? COLLATE NOCASE", (email,))
         return self.cur.fetchone() is not None
 
-    def log_in(self, username, password_hash):
+    def is_correct_username_and_password_hash(self, username, password_hash):
         """
         Validates user login credentials.
         :param username: Username of the user
@@ -283,33 +274,16 @@ class DataBase:
             added = True
         return added
 
-    def get_all_usernames(self):
-        """
-        Retrieves all users.
-        :return: List of all usernames from the users table
-        """
-        self.cur.execute("SELECT username FROM users")
-        return [row[0] for row in self.cur.fetchall()]
-
     def get_similar_usernames(self, username):
         """
-        Retrieves users whose usernames start with a prefix.
-        :param username: Username prefix
+        Retrieves users whose usernames contain the username inputted
+        :param username: Username to check
         :return: List of matching usernames
         """
         self.cur.execute("SELECT username FROM users WHERE username LIKE ? COLLATE NOCASE", ("%" + username + "%",))
-        return self.cur.fetchall()
-
-    def get_password_hash(self, username):
-        """
-        Retrieves the password hash of a user.
-        :param username: Username of the user
-        :return: Password hash if found, otherwise None
-        """
-        self.cur.execute("SELECT password_hash FROM users WHERE username = ?", (username,))
-        res = self.cur.fetchone()
+        res = self.cur.fetchall()
         if res:
-            res = res[0]
+            res = [i[0] for i in res]
         return res
 
     def get_user_email(self, username):
@@ -381,32 +355,27 @@ class DataBase:
         Retrieves a video by ID.
         :param video_id: ID of the video
         :param matter_deleted: A boolean indicating whether deleted videos should be excluded from the results.
-        :return: video details: creator, name, desc, created_at, likes_amount, comments_amount
+        :return: video details: creator, name, description, created_at, likes_amount, comments_amount
         """
-        ret_val = None
-        if self.video_exists(video_id) and not (matter_deleted and self.video_deleted(video_id)):
-            self.cur.execute("""
-                             SELECT videos.creator,
-                                    videos.name,
-                                    videos.description,
-                                    strftime('%d/%m/%Y %H:%M', videos.created_at),
-                                   (SELECT COUNT(*) FROM likes WHERE video_id = videos.video_id) AS likes_count,
-                                   (SELECT COUNT(*) FROM comments WHERE video_id = videos.video_id) AS comments_count
-                             FROM videos
+        query = """
+                         SELECT videos.creator,
+                                videos.name,
+                                videos.description,
+                                strftime('%d/%m/%Y %H:%M', videos.created_at),
+                               (SELECT COUNT(*) FROM likes WHERE video_id = videos.video_id) AS likes_count,
+                               (SELECT COUNT(*) FROM comments WHERE video_id = videos.video_id) AS comments_count
+                         FROM videos
 
-                             WHERE videos.video_id = ?
-                             """, (video_id,))
-            ret_val = self.cur.fetchone()
+                         WHERE videos.video_id = ?
+                         """
+        if matter_deleted:
+            query += "AND videos.deleted = 0"
+
+        self.cur.execute(query, (video_id,))
+
+        ret_val = self.cur.fetchone()
         return ret_val
 
-    def video_deleted(self, video_id):
-        """
-        Checks if a video is marked as deleted.
-        :param video_id: ID of the video
-        :return: True if deleted, False otherwise
-        """
-        self.cur.execute("SELECT 1 FROM videos WHERE video_id = ? AND deleted = 1", (video_id,))
-        return self.cur.fetchone() is not None
 
     def add_video(self, creator, name, description, test_link=None):
         """
@@ -453,45 +422,63 @@ class DataBase:
             result = result[0]
         return result
 
-    def get_videos_with_similar_desc(self, desc):
-        """
-        Finds videos with similar descriptions.
-        :param desc: Description keyword
-        :return: List of matching video IDs
-        """
-        self.cur.execute(
-            "SELECT video_id FROM videos WHERE description LIKE ? COLLATE NOCASE",
-            ('%' + desc + '%',)
-        )
+    def search_videos(self, name_or_desc, topics):
+        query = """SELECT videos.video_id,
+            
+            (
+            CASE WHEN videos.name LIKE ? THEN 2 ELSE 0 END +
+            CASE WHEN videos.description LIKE ? THEN 1 ELSE 0 END
+            ) AS score,
+            
+            COUNT(DISTINCT watched_videos.username) AS views
+            
+            FROM videos
+            LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id
+            """
 
-        results = self.cur.fetchall()
-        results = [i[0] for i in results]
-        return results
+        if topics:
+            placeholders = ("?," * len(topics))[:-1]
+            query+= f"""
+            JOIN video_topics ON videos.video_id = video_topics.video_id 
+             AND video_topics.topic IN ({placeholders})
+            """
 
-    def get_videos_with_similar_name(self, name):
-        """
-        Finds videos with similar names.
-        :param name: Name keyword
-        :return: List of matching video IDs
-        """
-        self.cur.execute(
-            "SELECT video_id FROM videos WHERE name LIKE ? COLLATE NOCASE",
-            ('%' + name + '%',)
-        )
-        results = self.cur.fetchall()
-        results = [i[0] for i in results]
-        return results
+        query += """
+            WHERE videos.deleted = 0
+            GROUP BY videos.video_id
+            HAVING score > 0
+            ORDER BY score DESC, views DESC
+            """
+        params = [f"%{name_or_desc}%", f"%{name_or_desc}%"]
+        if topics:
+            params.extend(topics)
 
-    def get_most_viewed_video_for_user(self, username):
+        self.cur.execute(query, params)
+
+        res = self.cur.fetchall()
+        res = [i[0] for i in res]
+        return res
+
+
+    def get_best_like_views_ratio_video_for_user(self, username):
         """
         Retrieves the most viewed video the user has not watched yet.
         :param username: Username of the viewer
         :return: Video ID of the most viewed unseen video or None
         """
         self.cur.execute("""
-                         SELECT videos.video_id, COUNT(watched_videos.video_id) AS views
+                         SELECT videos.video_id,
+                         
+                         CASE 
+                            WHEN COUNT(DISTINCT watched_videos.username) < 10 THEN 0.5
+                            ELSE CAST(COUNT(DISTINCT likes.username) AS FLOAT) /
+                            NULLIF(COUNT(DISTINCT watched_videos.username), 0)
+                         END AS likes_views_ratio
+                   
                          FROM videos
                                   LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id
+                                  LEFT JOIN likes ON videos.video_id = likes.video_id
+
                          WHERE videos.deleted = 0
                            AND NOT EXISTS (SELECT 1
                                            FROM watched_videos
@@ -499,7 +486,7 @@ class DataBase:
                                              AND watched_videos.username = ?)
 
                          GROUP BY videos.video_id
-                         ORDER BY views DESC
+                         ORDER BY likes_views_ratio DESC
 
                          """, (username,))
 
@@ -537,14 +524,14 @@ class DataBase:
         :return: Tuple representing the comment: video_id, comment_id, commenter, comment, created_at
         """
         res = None
-        if self.comment_exists(comment_id) and not (matter_deleted and self.comment_deleted(comment_id)):
+        if self.comment_exists(comment_id) and not (matter_deleted and self.is_comment_deleted(comment_id)):
             self.cur.execute(
                 "SELECT comment_id, video_id, commenter, comment, strftime('%d/%m/%Y %H:%M', created_at) FROM comments WHERE comment_id = ?",
                 (comment_id,))
             res = self.cur.fetchone()
         return res
 
-    def comment_deleted(self, comment_id):
+    def is_comment_deleted(self, comment_id):
         """
         Checks if a comment is marked as deleted
         :param comment_id: ID of the comment to check
@@ -650,6 +637,7 @@ class DataBase:
         return self.cur.fetchone() is not None
 
     # ===== following =====
+
     def add_following(self, following, followed):
         """
         Adds a following relationship between two users
@@ -754,20 +742,26 @@ class DataBase:
 
     def get_video_for_user_topics(self, username):
         """
-        Retrieves a recommended video for a user based on shared topics and popularity
+        Retrieves a recommended video for a user based on shared topics and likes to views ratio
         :param username: Username of the user
         :return: Video ID if found, otherwise None
         """
         self.cur.execute("""
                          SELECT video_topics.video_id,
-                                COUNT(watched_videos.username) AS views,
-                                COUNT(video_topics.topic)      AS shared_topics
+                                COUNT(DISTINCT video_topics.topic)      AS shared_topics,
+                                
+                               CASE 
+                                   WHEN COUNT(DISTINCT watched_videos.username) < 10 THEN 0.5
+                                   ELSE CAST(COUNT(DISTINCT likes.username) AS FLOAT) /
+                                        NULLIF(COUNT(DISTINCT watched_videos.username), 0)
+                               END AS likes_views_ratio
 
                          FROM user_topics
                                   LEFT JOIN video_topics ON user_topics.topic = video_topics.topic
                                   LEFT JOIN watched_videos ON video_topics.video_id = watched_videos.video_id
-
-                         WHERE EXISTS(SELECT 1
+                                  LEFT JOIN likes ON video_topics.video_id = likes.video_id
+                                
+                         WHERE EXISTS(SELECT 1 
                                       FROM videos
                                       WHERE videos.video_id = video_topics.video_id
                                         AND deleted = 0)
@@ -778,8 +772,9 @@ class DataBase:
                                              AND watched_videos.username = ?)
 
                          GROUP BY video_topics.video_id
-                         ORDER BY shared_topics DESC, views DESC
+                         ORDER BY shared_topics + likes_views_ratio*5 DESC
                          """, (username, username))
+
 
         res = self.cur.fetchone()
         if res:
@@ -795,51 +790,59 @@ class DataBase:
         """
         res = None
         if filter:
-            place_holders = ("?," * len(filter))[:-1]
+            placeholders = ("?," * len(filter))[:-1]
             self.cur.execute(
                 f"""
                 SELECT video_topics.video_id, 
-                    COUNT(watched_videos.username) AS views, 
-                    COUNT(video_topics.topic) AS shared_topics
+                   COUNT(video_topics.topic) AS shared_topics,
+                   
+                   CASE 
+                       WHEN COUNT(DISTINCT watched_videos.username) < 10 THEN 0.5
+                       ELSE CAST(COUNT(DISTINCT likes.username) AS FLOAT) /
+                            NULLIF(COUNT(DISTINCT watched_videos.username), 0)
+                   END AS likes_views_ratio
+                
+                    
                 FROM video_topics
-                    LEFT JOIN watched_videos ON video_topics.video_id = watched_videos.video_id
-
+                  LEFT JOIN watched_videos ON video_topics.video_id = watched_videos.video_id
+                  LEFT JOIN likes ON video_topics.video_id = likes.video_id
+                                
                 WHERE EXISTS(
                     SELECT 1 FROM videos
                     WHERE videos.video_id = video_topics.video_id AND deleted = 0
                 )
-                AND video_topics.topic IN ({place_holders})
+                AND video_topics.topic IN ({placeholders})
                 AND NOT EXISTS (
                     SELECT 1 FROM watched_videos 
                     WHERE watched_videos.video_id = video_topics.video_id AND watched_videos.username = ?
                 )
                 GROUP BY video_topics.video_id
-                ORDER BY shared_topics, views
+                ORDER BY shared_topics + likes_views_ratio*5 DESC
             """, (*filter, username))
 
-            res = self.cur.fetchone()
+            res = self.cur.fetchall()
             if res:
                 res = res[0]
         return res
 
     def get_video_for_user(self, username, filter=None):
         """
-        Retrieves a recommended video for a user based on filters, topics, or popularity
+        Retrieves video_id of a recommended video for a user based on filters, topics, or popularity
         :param username: Username of the user
         :param filter: optional list of topics to filter videos
         :return: Video ID of the recommended video
         """
         # returns the most viewed video that the user has not seen and is included in his topics
 
+        res = []
         if filter:
             res = self.get_video_for_user_filter(username, filter)
-            if not res:  # if not videos matching filter
-                res = self.get_video_for_user_topics(username)  # use video matching topics
-        else:
+
+        if not res: # if not filter or no videos matching filter
             res = self.get_video_for_user_topics(username)
 
         if not res:  # if no video matches filter or topics
-            res = self.get_most_viewed_video_for_user(username)
+            res = self.get_best_like_views_ratio_video_for_user(username)
 
         return res
 
@@ -926,51 +929,6 @@ class DataBase:
         """
         self.cur.execute("SELECT 1 FROM watched_videos WHERE username = ? AND video_id = ?", (username, video_id))
         return self.cur.fetchone() is not None
-
-    def order_ids_by_views(self, video_ids):
-        """
-        Orders a list of video IDs by their view count in descending order
-        :param video_ids: iterable of video IDs to sort
-        :return: List of video IDs sorted by views
-        """
-        video_ids = list(video_ids)
-        results = []
-        if video_ids:
-            ids_query_insert_placeholder = ",".join("?" * len(video_ids))
-            self.cur.execute(f"""
-
-            SELECT videos.video_id, COUNT(watched_videos.username) AS views
-            FROM videos LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id
-            WHERE videos.video_id IN ({ids_query_insert_placeholder})
-            GROUP BY videos.video_id
-            ORDER BY views DESC
-
-            """, (*video_ids,))
-
-            results = self.cur.fetchall()
-            results = [i[0] for i in results]
-
-        return results
-
-    def videos_user_has_not_watched(self, username, video_ids):
-        """
-        Filters out videos that a user has already watched
-        :param username: Username of the user
-        :param video_ids: iterable of video IDs to check
-        :return: a list of video IDs the user has not watched
-        """
-        result_ids = []
-        if video_ids:
-            potential_videos_ids_placeholder = ",".join("?" * len(video_ids))
-            self.cur.execute(f"""SELECT videos.video_id FROM videos
-             LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id AND watched_videos.username = ?
-              WHERE videos.video_id IN ({potential_videos_ids_placeholder}) AND watched_videos.video_id IS NULL""",
-                             (username, *video_ids))
-
-            result_ids = self.cur.fetchall()
-            result_ids = [x[0] for x in result_ids]
-
-        return result_ids
 
     def remove_watched_videos_for_user(self, username):
         self.cur.execute("DELETE FROM watched_videos WHERE username = ?", (username, ))
@@ -1066,19 +1024,6 @@ class DataBase:
                             GROUP BY target_id, target_type
                             ORDER BY reports_amount DESC""")
 
-        # self.cur.execute("SELECT * FROM reports")
-        return self.cur.fetchall()
-
-    def get_report_usernames_and_times(self, target_id, target_type):
-        """
-        Retrieves all reporters and report times for a specific target
-        :param target_id: ID of the reported target
-        :param target_type: Type of the target
-        :return: List of tuples containing reporter usernames and times
-        """
-        self.cur.execute(
-            "SELECT reporter_name, strftime('%d/%m/%Y %H:%M', created_at) FROM reports WHERE (target_id, target_type) = (?,?)",
-            (target_id, target_type))
         return self.cur.fetchall()
 
     def get_reporters(self, target_id, target_type):
@@ -1118,17 +1063,6 @@ class DataBase:
             (username,))
         return self.cur.fetchall()
 
-    def delete_report(self, username, id, type):
-        """
-        Deletes a report from the database.
-        :param username: The username of the reporter.
-        :param id: The ID of the target
-        :param type: The type of the target (0 for comment or 1 for video).
-        :return: Deletes a report from the reports table
-        """
-        self.cur.execute("DELETE FROM reports WHERE reporter_name = ? AND target_id = ? AND target_type  = ?", (username, id, type))
-        self.conn.commit()
-
     def is_report_concluded(self, id, type):
         """
         Checks if a report has been concluded (has a status)
@@ -1141,6 +1075,7 @@ class DataBase:
         return self.cur.fetchone() is not None
 
     # ===== system_managers =====
+
     def add_system_manager(self, username):
         """
         Adds a user as a system manager
@@ -1175,7 +1110,7 @@ if __name__ == "__main__":
 
     # --- testing ---
 
-
+    # print(db.search_videos("ella", []))
 
     # # --- users ---
     # db.cur.execute("DROP TABLE IF EXISTS users")
@@ -1222,9 +1157,8 @@ if __name__ == "__main__":
     # db.add_video_topics(2, [2,5,4])
     # db.add_video_topics(3,[2,3])
     # db.add_video_topics(4,[2,5])
-    # db.add_video_topics(5,[15])
-    # print("video_id: ",db.get_video_for_user("Barak", [7]))
-    # print("video_id:", db.get_most_viewed_video_for_user("Barak"))
+    # db.add_video_topics(4,[15])
+
     # # --- user_topics ---
     # db.cur.execute("DROP TABLE IF EXISTS user_topics")
     # db._create_user_topics_table()
@@ -1266,6 +1200,7 @@ if __name__ == "__main__":
     # db.add_system_manager("Barak")
 
     # print(db.get_system_managers())
+
 
     db.print_tables()
     db.close()

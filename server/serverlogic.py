@@ -72,8 +72,7 @@ class ServerLogic:
         """Initialize the server object and starts handle msgs"""
 
         self.recvQ = queue.Queue()
-        comm = serverComm.ServerComm(settings.PORT, self.recvQ)
-        self.comm = comm
+        self.comm = serverComm.ServerComm(settings.PORT, self.recvQ)
         self.commands = {
             '00': self.handle_registration,
             '01': self.handle_email_verification,
@@ -97,7 +96,6 @@ class ServerLogic:
 
 
             '97':self.handle_client_disconnected,
-
             '98': self.handle_comment_or_video_status,
             '99': self.handle_user_kick,
         }
@@ -284,7 +282,7 @@ class ServerLogic:
         username = self.db.get_username(username_or_email)
         print(f"trying to sign in user: {username} ")
 
-        if self.db.log_in(username, self.hash_password(password)):
+        if self.db.is_correct_username_and_password_hash(username, self.hash_password(password)):
             status = 1
 
             followers_amount = self.db.get_followers_amount(username)
@@ -315,7 +313,6 @@ class ServerLogic:
             self.db.set_report_notified(username, id, type)
 
             status, created_at = self.db.get_report_status_and_created_at(username, id, type)
-            date, time = created_at.split(" ")
 
             if type == settings.COMMENT_DIGIT_REPR:
 
@@ -328,7 +325,7 @@ class ServerLogic:
             else:
                 content, content_publisher = self.db.get_specific_video(id, False)[:2]
 
-            msg = serverProtocol.build_report_status(status, id, type, content, content_publisher, date, time)
+            msg = serverProtocol.build_report_status(status, id, type, content, content_publisher, created_at)
             self.comm.send_msg(client_ip, msg)
 
     def handle_set_user_topics(self, client_ip, data):  # command 3
@@ -342,7 +339,7 @@ class ServerLogic:
     def handle_filter_user_topics(self, client_ip, data):  # command 4
         topic_filter = [int(t) for t in data]
         self.clients[client_ip][2] = topic_filter
-        msg = serverProtocol.build_set_filter_confirmation(1, topic_filter)
+        msg = serverProtocol.build_set_filter_confirmation(topic_filter)
         self.comm.send_msg(client_ip, msg)
 
         print("set filter:", topic_filter)
@@ -384,27 +381,19 @@ class ServerLogic:
                     user_pfp_image_path = f"media\\pfps\\{username}.png"
                     if os.path.isfile(user_pfp_image_path):
                         self.pfps_sent[client_ip].append(username)
-                        self.clients[client_ip][1].send_file(user_pfp_image_path)
+                        self.clients[client_ip][1].send_file(client_ip, user_pfp_image_path)
 
     def handle_videos_search(self, client_ip, data):  # command 6
         video_name_or_desc, topics, is_next_send = data
+
+        print("topics in videos_search: ",topics)
 
         is_next_send = int(is_next_send)
         if is_next_send:
             videos_ids = self.videos_to_send[client_ip]
 
         else:
-            topics = ast.literal_eval(topics)
-
-            video_ids_by_name = set(self.db.get_videos_with_similar_name(video_name_or_desc))
-            video_ids_by_desc = set(self.db.get_videos_with_similar_desc(video_name_or_desc))
-            videos_ids = video_ids_by_name | video_ids_by_desc
-
-            if topics:
-                video_ids_by_topics = set(self.db.get_videos_ids_by_topics(topics))
-                videos_ids = list(set(video_ids_by_topics) & set(videos_ids))
-
-            videos_ids = self.db.order_ids_by_views(videos_ids)
+            videos_ids = self.db.search_videos(video_name_or_desc, topics)
 
         videos_to_send = videos_ids[:settings.AMOUNT_OF_VIDEOS_TO_SEND]
         self.videos_to_send[client_ip] = videos_ids[settings.AMOUNT_OF_VIDEOS_TO_SEND:]
@@ -601,7 +590,7 @@ class ServerLogic:
             msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
 
-    def send_video_and_details(self, client_ip, video_id):
+    def send_video_and_details(self, client_ip, video_id):  # helper function
         video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = self.get_video_details(
             client_ip, video_id)
         file_path = f"media\\videos\\{video_id}.{settings.VIDEO_EXTENSION}"
@@ -622,15 +611,16 @@ class ServerLogic:
     def handle_follow_user(self, client_ip, data):  # command 17
         followed = data[0]
         follower = self.clients[client_ip][0]
-
+        status = 0
         if self.db.user_exists(followed):
             if self.db.is_following(follower, followed):
                 self.db.remove_following(follower, followed)
             else:
                 self.db.add_following(follower, followed)
+                status = 1
         else:
             followed = "" # indicates user doesnt exist
-        msg = serverProtocol.build_follow_user_status(followed)
+        msg = serverProtocol.build_follow_user_status(status, followed)
         self.comm.send_msg(client_ip, msg)
 
     def handle_like_video_confirmation(self, client_ip, data):
@@ -666,6 +656,7 @@ class ServerLogic:
             self.clients[client_ip][1].idsQ.put(0)
             print("video already exists")
 
+        #todo make sure that the client gets feedback if the video has been uploaded or has this video already existed
 
     # Called by System Manager
 
@@ -723,10 +714,14 @@ class ServerLogic:
         msg["To"] = receiver
         msg.set_content(email_msg)
 
-        #todo put inside a try and except, crushes when i dont have wifi
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(sender, password)
-            server.send_message(msg)
+        #TODO crushes when i dont have wifi, do tests
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(sender, password)
+                server.send_message(msg)
+        except Exception as e:
+            print("error when trying to send email:",e)
+
 
 
     @staticmethod
