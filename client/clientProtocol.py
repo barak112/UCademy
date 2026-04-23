@@ -37,14 +37,14 @@ def build_set_filter(topics):
     return build_command(4, topics)
 
 
-def build_search_creators(creator_name, last_username = ""):
-    return build_command(5, [creator_name, last_username])
+def build_search_creators(creator_name, send_next: bool = False):
+    return build_command(5, [creator_name, int(send_next)])
 
 
-def build_search_videos(video_name_or_desc, topics = None, last_id=0):
+def build_search_videos(video_name_or_desc, topics = None, send_next:bool = False):
     if not topics:
         topics = []
-    return build_command(6, [video_name_or_desc, topics, last_id])
+    return build_command(6, [video_name_or_desc, topics, int(send_next)])
 
 
 def build_comment(video_id, comment):

@@ -135,7 +135,6 @@ class Feed(wx.Panel):
         self.comments_panel = comments.Comments(frame, self)
         self.comments_panel.SetMinSize((400, 0))
 
-
         # video description
         self.desc_panel = wx.Panel(self)
 
@@ -179,6 +178,10 @@ class Feed(wx.Panel):
         self.Bind(wx.EVT_SIZE, self.on_resize)
 
         self.Hide()
+
+    def Show(self, show = True):
+        super().Show()
+        self.comments_panel.update_pfp_bitmap()
 
     def on_resize(self, event):
         self.Layout()

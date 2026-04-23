@@ -50,12 +50,9 @@ class Comments(wx.Panel):
         # add comment
         add_comment_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        pfp_path = f"media/Barak.png"
-        if not os.path.isfile(pfp_path):
-            pfp_path = "assets\\null_pfp.png"
-
+        pfp_path = "assets\\null_pfp.png"
         pfp = wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE))
-        pfp = wx.StaticBitmap(self, bitmap=pfp)
+        self.pfp = wx.StaticBitmap(self, bitmap=pfp)
 
         self.add_comment_field = rounded_input_field.RoundedInputField(self, self, "Add a comment", "Add a comment...")
         self.add_comment_field.SetMinSize((0,50))
@@ -66,7 +63,7 @@ class Comments(wx.Panel):
         self.add_comment_button.SetMinSize((50,50))
         self.add_comment_button.Bind(wx.EVT_LEFT_UP, self.on_add_comment)
 
-        add_comment_sizer.Add(pfp, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
+        add_comment_sizer.Add(self.pfp, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
         add_comment_sizer.Add(self.add_comment_field, 1, wx.ALIGN_CENTER_VERTICAL)
         add_comment_sizer.Add(self.add_comment_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 10)
 
@@ -89,7 +86,16 @@ class Comments(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.call_date_to_ago, self.call_date_to_ago_timer)
         self.call_date_to_ago_timer.Start(1000*60) # every minute
 
+    def update_pfp_bitmap(self):
+        user = self.frame.user
+        if user:
+            pfp_path = f"media\\{user.username}.png"
+            if not os.path.isfile(pfp_path):
+                pfp_path = "assets\\null_pfp.png"
 
+            pfp = wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE))
+            self.pfp.SetBitmap(pfp)
+        print("updated pfp")
 
     def call_date_to_ago(self, event):
         for a_comment in self.comments_sizer.GetChildren():

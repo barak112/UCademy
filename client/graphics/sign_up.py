@@ -280,6 +280,5 @@ class SignupPanel(wx.Panel):
         self.Layout()
 
     def on_move_to_log_in(self, event):
-        self.frame.switch_panel(self.frame.email_verification_panel, self)
-        # self.frame.switch_panel(self.frame.login_panel, self)
-        # self.frame.login_panel.set_fields(self.username_input_obj.get_value(), self.password_input_obj.get_value())
+        self.frame.switch_panel(self.frame.login_panel, self)
+        self.frame.login_panel.set_fields(self.username_input_obj.get_value(), self.password_input_obj.get_value())

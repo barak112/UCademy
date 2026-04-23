@@ -40,7 +40,6 @@ class ServerComm:
         """
         self.server_socket.bind(("0.0.0.0", self.port))
         self.server_socket.listen(3)
-
         while True:
             rlist = select.select([self.server_socket] + list(self.open_clients.keys()), [], [], 0.01)[0]
             for current_socket in rlist:

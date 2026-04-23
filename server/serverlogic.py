@@ -1,4 +1,3 @@
-import ast
 import os
 import hashlib
 import queue
@@ -8,8 +7,6 @@ import smtplib
 import string
 import time
 from email.message import EmailMessage
-
-#from email_validator import validate_email, EmailNotValidError
 
 import database
 import serverComm
@@ -294,9 +291,9 @@ class ServerLogic:
             followings_names = self.db.get_followings(username)
             msg = serverProtocol.build_sign_in_status(1,self.current_video_port,username, followers_amount,
                                                       followings_amount, videos_amount, email, topics, followings_names)
-            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), topics]
+            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), []]
             self.pfps_sent[client_ip] = []
-            self.current_video_port+=1
+            self.current_video_port += 1
 
         self.comm.send_msg(client_ip, msg)
         if status:
@@ -345,6 +342,13 @@ class ServerLogic:
         print("set filter:", topic_filter)
 
     def handle_creators_search(self, client_ip, data):  # command 5
+        """
+        Handles the search for creators based on the provided username
+
+        :param client_ip: The ip of the client making the request.
+        :param data: A tuple containing the search username and a flag indicating if the
+                     next batch of usernames should be sent.
+        """
         username, is_next_send = data[0]
 
         is_next_send = int(is_next_send)
@@ -365,10 +369,15 @@ class ServerLogic:
             self.comm.send_msg(client_ip,msg_to_send)
 
 
-    def send_users_details(self, client_ip, usernames): # Not a Command!
+    def send_users_details(self, client_ip, usernames): # helper func
+        """
+        Send the user details of the users in usernames to the client.
+
+        :param client_ip: The ip of the client to which the data will be sent.
+        :param usernames: A list of usernames of the users to send their details.
+        """
         for username in usernames:
             if self.db.user_exists(username):
-                print("username in send_users_details:", username)
                 followers_amount = self.db.get_followers_amount(username)
                 followings_amount = self.db.get_following_amount(username)
                 videos_amount = self.db.get_videos_amount(username)
@@ -376,14 +385,32 @@ class ServerLogic:
                 self.comm.send_msg(client_ip, msg)
 
                 #sends the user's pfp if the client doesnt already have it
+                self.send_pfp(client_ip, username)
 
-                if username not in self.pfps_sent[client_ip]:
-                    user_pfp_image_path = f"media\\pfps\\{username}.png"
-                    if os.path.isfile(user_pfp_image_path):
-                        self.pfps_sent[client_ip].append(username)
-                        self.clients[client_ip][1].send_file(client_ip, user_pfp_image_path)
+    def send_pfp(self, client_ip, username):
+        """
+            sends the profile picture of a user to a client if it hasn't already been sent to him.
+
+        :param client_ip: The ip of the client requesting the profile picture.
+        :param username: The username associated with the profile picture to be sent.
+        """
+        if username not in self.pfps_sent[client_ip]:
+            user_pfp_image_path = f"media\\pfps\\{username}.png"
+            if os.path.isfile(user_pfp_image_path):
+                self.pfps_sent[client_ip].append(username)
+                self.clients[client_ip][1].send_file(client_ip, user_pfp_image_path)
 
     def handle_videos_search(self, client_ip, data):  # command 6
+        """
+        Handles the search of videos based on name and desc similarity.
+        sends videos details and thumbnails to the client.
+
+        :param client_ip: The IP address of the client initiating the request.
+        :param data: A tuple containing the search parameters:
+                     - video_name_or_desc: The name or description of the video to search for.
+                     - topics: A list of topics to filter the search.
+                     - is_next_send: Indicates if the next set of results should be sent.
+        """
         video_name_or_desc, topics, is_next_send = data
 
         print("topics in videos_search: ",topics)
@@ -408,6 +435,12 @@ class ServerLogic:
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
 
     def send_videos_details_and_thumbnail(self, client_ip, video_ids): # Helper function
+        """
+        sends video details and thumbnail to the client.
+
+        :param client_ip: The ip of the client.
+        :param video_ids: A list of video ids of videos to send details and thumbnails.
+        """
         for video_id in video_ids:
             if self.db.video_exists(video_id):
                 video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
@@ -494,19 +527,17 @@ class ServerLogic:
         print("comments_to_send:",comments_to_send)
 
 
+        commenters = {i[2] for i in comments_to_send}
+        # send pfps
+        for commenter_name in commenters:
+            self.send_pfp(client_ip, commenter_name)
+            print("sending pfp of user:",commenter_name)
+
+
         msg = serverProtocol.build_send_comments(comments_to_send)
         print("msg of comments:",msg)
         self.clients[client_ip][1].send_msg(client_ip, msg)
 
-        commenters = {i[2] for i in comments_to_send}
-        # send pfps
-        for commenter_name in commenters:
-            if not commenter_name in self.pfps_sent[client_ip]:
-                pfp_path = f"media\\pfps\\{commenter_name}.png"
-                if os.path.isfile(pfp_path):
-                    self.pfps_sent[client_ip].append(commenter_name)
-                    self.clients[client_ip][1].send_file(client_ip,pfp_path)
-                    print("sending pfp of user:",commenter_name)
 
     def handle_video_del(self, client_ip, data):  # command 11
         video_id = data[0]
@@ -579,6 +610,7 @@ class ServerLogic:
         video_id = int(data[0])
         username = self.clients[client_ip][0]
         if not video_id:
+            print("user's filter:", self.clients[client_ip][2])
             video_id = self.db.get_video_for_user(username, self.clients[client_ip][2])
 
         if video_id:
@@ -590,9 +622,18 @@ class ServerLogic:
             msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
 
+
     def send_video_and_details(self, client_ip, video_id):  # helper function
+        """
+        sends a video and its details to the client, including the creator's pfp.
+
+        :param client_ip: The ip of the client requesting the video.
+        :param video_id: The unique identifier of the video to be sent to the client.
+        """
         video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = self.get_video_details(
             client_ip, video_id)
+
+        self.send_pfp(client_ip, creator)  # sends creator's pfp if the clients doesnt already have it
         file_path = f"media\\videos\\{video_id}.{settings.VIDEO_EXTENSION}"
         self.clients[client_ip][1].send_file(client_ip, file_path, video_id, creator, video_name, video_desc,
                                              created_at, likes_amount, comments_amount, liked)
@@ -714,7 +755,6 @@ class ServerLogic:
         msg["To"] = receiver
         msg.set_content(email_msg)
 
-        #TODO crushes when i dont have wifi, do tests
         try:
             with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
                 server.login(sender, password)

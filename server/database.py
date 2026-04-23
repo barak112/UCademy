@@ -371,6 +371,7 @@ class DataBase:
         if matter_deleted:
             query += "AND videos.deleted = 0"
 
+        print("video id in get specific video: ", video_id)
         self.cur.execute(query, (video_id,))
 
         ret_val = self.cur.fetchone()
@@ -820,7 +821,7 @@ class DataBase:
                 ORDER BY shared_topics + likes_views_ratio*5 DESC
             """, (*filter, username))
 
-            res = self.cur.fetchall()
+            res = self.cur.fetchone()
             if res:
                 res = res[0]
         return res
@@ -832,9 +833,10 @@ class DataBase:
         :param filter: optional list of topics to filter videos
         :return: Video ID of the recommended video
         """
-        # returns the most viewed video that the user has not seen and is included in his topics
+        # returns the best video for the user that he has not seen
 
-        res = []
+        res = None
+        print(filter, bool(filter))
         if filter:
             res = self.get_video_for_user_filter(username, filter)
 
