@@ -21,7 +21,11 @@ class MainFrame(wx.Frame):
         super().__init__(None, title="Ucademy", size=(1366,768))
         super().Maximize()
         # super().ShowFullScreen(True)
-        #todo create a icon for the program
+
+        icon_path = "assets\\ucademy_logo.ico"
+        icon = wx.Icon(icon_path, wx.BITMAP_TYPE_ICO)
+        self.SetIcon(icon)
+
         self.comm = comm
         self.video_comm = None
         self.user = None
@@ -58,16 +62,17 @@ class MainFrame(wx.Frame):
         # self.signup_panel.Show()
         # self.email_verification_panel.Show()
         # self.pick_topics_panel.Show()
+        self.user_profile_panel.Show()
 
-        msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password!")
-        self.comm.send_msg(msg)
+        # msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password!")
+        # self.comm.send_msg(msg)
+        # self.feed_panel.Show()
 
         # time.sleep(5)
         # msg = clientProtocol.build_req_video()
         # demo_video = video.Video(4, "", "", "", "", 5, 10, False)
         # self.feed_panel.load_video(demo_video)
         # self.comm.send_msg(msg)
-        self.feed_panel.Show()
 
     def switch_panel(self, new_panel, old_panel):
         old_panel.Hide()
@@ -81,7 +86,6 @@ class MainFrame(wx.Frame):
     def change_text_status(self, text):
         """Event handler to update the status bar text."""
         self.SetStatusText(text, 0)
-
 
 
 

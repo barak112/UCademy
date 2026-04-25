@@ -5,13 +5,12 @@ import wx.media
 from pubsub import pub
 
 import clientProtocol
-import profile_widget
 import rounded_button
 import settings
 import comments
 
 
-class UserProfilePanel(wx.Panel):
+class ProfileWidget(wx.Panel):
     BG_COLOR = (232, 239, 255)
 
     def __init__(self, frame, parent):
@@ -20,17 +19,26 @@ class UserProfilePanel(wx.Panel):
         self.frame = frame
         self.parent = parent
         main_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.SetSizer(main_sizer)
+
         self.SetBackgroundColour(self.BG_COLOR)
 
         self.current_user = None
 
         # profile info
         profile_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        profile_info = profile_widget.ProfileWidget(self.frame, self)
 
-        profile_info_sizer.AddStretchSpacer()
+        pfp = wx.Bitmap(wx.Image("assets\\null_pfp.png").Scale(settings.PFP_SIZE, settings.PFP_SIZE))
+        pfp = wx.StaticBitmap(self, bitmap=pfp)
+
+        info_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        profile_info_sizer.Add(pfp, 0, wx.ALIGN_CENTER_VERTICAL)
+        profile_info_sizer.Add(info_sizer, 1, wx.EXPAND)
 
 
+        # add to main sizer
+        main_sizer.Add(profile_info_sizer, 0, wx.EXPAND)
 
         self.Bind(wx.EVT_SIZE, self.on_resize)
 
@@ -62,6 +70,6 @@ if __name__ == "__main__":
     app = wx.App()
     frame = wx.Frame(None)
     frame.SetSize((800, 600))
-    panel = UserProfilePanel(frame, frame)
+    panel = ProfileWidget(frame, frame)
     frame.Show()
     app.MainLoop()
