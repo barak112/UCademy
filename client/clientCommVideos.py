@@ -2,8 +2,7 @@ import os.path
 
 import clientComm
 import clientProtocol
-
-
+import settings
 class ClientCommVideos (clientComm.ClientComm):
 
     def _mainLoop(self):
@@ -16,7 +15,8 @@ class ClientCommVideos (clientComm.ClientComm):
             data = ""
             try:
 
-                data_len = int(self.my_socket.recv(3).decode())
+                data_len = int(self.my_socket.recv(settings.MESSAGE_LENGTH_LENGTH).decode())
+                print("data_len:",data_len)
                 data = self.my_socket.recv(data_len).decode()
 
             except Exception as e:
@@ -26,6 +26,7 @@ class ClientCommVideos (clientComm.ClientComm):
             if not data:
                 self._close_client()
             else:
+                print("Data:",data)
                 msg = self.cipher.decrypt(data)
                 if clientProtocol.is_video(msg):
                     self._recv_file(msg)
@@ -52,7 +53,7 @@ class ClientCommVideos (clientComm.ClientComm):
             #  0100.png@#1000000000@#name@#desc@#link
             # max size: max(usename, video_id) + video_size : 15+10 = 25 bytes
             try:
-                self.my_socket.send(str(len(encrypted_message)).zfill(3).encode() + encrypted_message) # sends len and content of len and filename
+                self.my_socket.send(str(len(encrypted_message)).zfill(settings.MESSAGE_LENGTH_LENGTH).encode() + encrypted_message) # sends len and content of len and filename
                 self.my_socket.send(data)
             except Exception as e:
                 print(f"Error sending message: {e}")

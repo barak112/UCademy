@@ -9,6 +9,7 @@ from feed import Feed
 from log_in import LoginPanel
 from pick_topics import PickTopicsPanel
 from sign_up import SignupPanel
+from user_profile import UserProfilePanel
 
 
 # ----------------------------
@@ -40,6 +41,7 @@ class MainFrame(wx.Frame):
         self.email_verification_panel = EmailVerification(self, self.container)
         self.pick_topics_panel = PickTopicsPanel(self, self.container)
         self.feed_panel = Feed(self, self.container)
+        self.user_profile_panel = UserProfilePanel(self, self.container)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -48,23 +50,24 @@ class MainFrame(wx.Frame):
         self.sizer.Add(self.email_verification_panel, 1, wx.EXPAND)
         self.sizer.Add(self.pick_topics_panel, 1, wx.EXPAND)
         self.sizer.Add(self.feed_panel, 1, wx.EXPAND)
+        self.sizer.Add(self.user_profile_panel, 1, wx.EXPAND)
 
         self.container.SetSizer(self.sizer)
 
-        self.login_panel.Show()
+        # self.login_panel.Show()
         # self.signup_panel.Show()
         # self.email_verification_panel.Show()
         # self.pick_topics_panel.Show()
 
-        # msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
-        # self.comm.send_msg(msg)
+        msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password!")
+        self.comm.send_msg(msg)
 
         # time.sleep(5)
         # msg = clientProtocol.build_req_video()
         # demo_video = video.Video(4, "", "", "", "", 5, 10, False)
         # self.feed_panel.load_video(demo_video)
         # self.comm.send_msg(msg)
-        # self.feed_panel.Show()
+        self.feed_panel.Show()
 
     def switch_panel(self, new_panel, old_panel):
         old_panel.Hide()

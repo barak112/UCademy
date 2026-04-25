@@ -128,6 +128,7 @@ class PickTopicsPanel(wx.ScrolledWindow):
     def on_scroll(self, event):
         self.scrolls += 1
         if self.scrolls > 20:
+            #repaint the bg every 20 scrolls
             self.a_scroll = True
             self.Refresh()
             self.a_scroll = False

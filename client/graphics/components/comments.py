@@ -90,11 +90,9 @@ class Comments(wx.Panel):
         user = self.frame.user
         if user:
             pfp_path = f"media\\{user.username}.png"
-            if not os.path.isfile(pfp_path):
-                pfp_path = "assets\\null_pfp.png"
-
-            pfp = wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE))
-            self.pfp.SetBitmap(pfp)
+            if os.path.isfile(pfp_path):
+                pfp = wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE))
+                self.pfp.SetBitmap(pfp)
         print("updated pfp")
 
     def call_date_to_ago(self, event):

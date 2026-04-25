@@ -1,6 +1,7 @@
 import select
 import socket
 import threading
+
 import aesCipher
 import diffieHellman
 import settings
@@ -56,7 +57,7 @@ class ServerComm:
 
                 else:
                     try:
-                        data_len = current_socket.recv(3).decode()
+                        data_len = current_socket.recv(settings.MESSAGE_LENGTH_LENGTH).decode()
                         data = current_socket.recv(int(data_len))
                     except Exception as e:
                         print("error in comm mainloop -", e)
@@ -127,7 +128,7 @@ class ServerComm:
         client_soc = self._find_socket_by_ip(client_ip)
         if client_soc:
             encrypted_message = self.open_clients[client_soc][1].encrypt(msg)
-            msg = str(len(encrypted_message)).zfill(3).encode() + encrypted_message
+            msg = str(len(encrypted_message)).zfill(settings.MESSAGE_LENGTH_LENGTH).encode() + encrypted_message
             try:
                 client_soc.send(msg)
             except Exception as e:

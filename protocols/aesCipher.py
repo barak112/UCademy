@@ -7,8 +7,8 @@ from Cryptodome.Cipher import AES
 class AESCipher:
     """Provides AES encryption and decryption using CBC mode.
 
-    Uses a SHA-256 hashed key for encryption and decryption, with padding to ensure
-    compatibility with AES block size requirements.
+    Uses a SHA-256 hashed key for encryption and decryption, with PKCS#7 padding
+    applied at the byte level to correctly handle all Unicode characters.
 
     :ivar bs: AES block size (typically 16 bytes).
     :ivar key: SHA-256 hashed key derived from the input key.
@@ -25,21 +25,27 @@ class AESCipher:
     def encrypt(self, raw):
         """Encrypt a message using AES-CBC.
 
-        Pads the input, generates a random IV, and returns the IV concatenated with
-        the encrypted message, encoded in base64.
+        Encodes the input to UTF-8 bytes first, then applies PKCS#7 padding,
+        generates a random IV, and returns the IV concatenated with the encrypted
+        message, encoded in base64.
 
-        :param raw: The plaintext message to encrypt.
+        :param raw: The plaintext message to encrypt (supports all Unicode).
         :return: Base64-encoded encrypted message (IV + ciphertext).
         """
-        raw = self._pad(raw)
+        raw_bytes = raw.encode('utf-8')
+        padding_length = self.bs - (len(raw_bytes) % self.bs)
+        padded = raw_bytes + bytes([padding_length]) * padding_length
+
         iv = Random.new().read(AES.block_size)
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return base64.b64encode(iv + cipher.encrypt(raw.encode()))
+        return base64.b64encode(iv + cipher.encrypt(padded))
+
 
     def decrypt(self, enc):
         """Decrypt a base64-encoded message using AES-CBC.
 
-        Extracts the IV, decrypts the ciphertext, and removes padding.
+        Extracts the IV, decrypts the ciphertext, removes PKCS#7 padding,
+        and decodes the result as UTF-8.
 
         :param enc: Base64-encoded encrypted message (IV + ciphertext).
         :return: Decrypted plaintext message.
@@ -47,29 +53,10 @@ class AESCipher:
         enc = base64.b64decode(enc)
         iv = enc[:AES.block_size]
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return self._unpad(cipher.decrypt(enc[AES.block_size:])).decode('utf-8')
 
-    def _pad(self, s):
-        """Pad a string to match the AES block size.
-
-        Adds padding characters based on the required padding length.
-
-        :param s: The string to pad.
-        :return: Padded string.
-        """
-        padding_length = self.bs - len(s) % self.bs
-        return s + (padding_length * chr(padding_length))
-
-    @staticmethod
-    def _unpad(s):
-        """Remove padding from a decrypted string.
-
-        Removes the padding characters based on the last byte's value.
-
-        :param s: The padded string.
-        :return: Unpadded string.
-        """
-        return s[:-ord(s[len(s) - 1:])]
+        padded = cipher.decrypt(enc[AES.block_size:])
+        padding_length = padded[-1]
+        return padded[:-padding_length].decode('utf-8')
 
     def encrypt_file(self, raw_bytes):
         """Encrypt file content bytes using AES-CBC.
@@ -124,10 +111,19 @@ class AESCipher:
             raise ValueError("Invalid PKCS#7 padding")
 
         return padded_data[:-padding_length]
-    
+
+
 if __name__ == '__main__':
     cry = AESCipher("BARAK")
+
+    # ASCII
     msg = cry.encrypt("My name is Barak")
-    print(msg)
     print(cry.decrypt(msg))
 
+    # Hebrew
+    msg2 = cry.encrypt("שלום עולם")
+    print(cry.decrypt(msg2))
+
+    # Emoji
+    msg3 = cry.encrypt("Hello 🌍!")
+    print(cry.decrypt(msg3))

@@ -52,6 +52,27 @@ class Feed(wx.Panel):
         actions_sizer = wx.BoxSizer(wx.VERTICAL)
         video_sizer.Add(actions_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 20)
 
+        # personal account
+        personal_account_sizer = wx.BoxSizer(wx.VERTICAL)
+        img_path = "assets\\null_pfp.png"
+        self.personal_account_btn = wx.StaticBitmap(self, bitmap=wx.Bitmap(img_path))
+        self.personal_account_btn.Bind(wx.EVT_LEFT_UP, self.on_personal_account)
+        self.personal_account_label = wx.StaticText(self, label="Profile")
+
+        personal_account_sizer.Add(self.personal_account_btn)
+        personal_account_sizer.Add(self.personal_account_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        # search
+        search_sizer = wx.BoxSizer(wx.VERTICAL)
+        img_path = "assets\\search.png"
+        self.search_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
+                                                     self.BG_COLOR, circle=True, use_image=True)
+        self.search_btn.SetMinSize((50, 50))
+        self.search_label = wx.StaticText(self, label="search")
+
+        search_sizer.Add(self.search_btn)
+        search_sizer.Add(self.search_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
         # play/pause
         play_sizer = wx.BoxSizer(wx.VERTICAL)
         img_path = "assets\\pause.png"
@@ -98,6 +119,18 @@ class Feed(wx.Panel):
         open_comments_sizer.Add(self.open_comments_btn)
         open_comments_sizer.Add(self.comments_amount_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
+        # open test
+        test_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        img_path = "assets\\test.png"
+        self.test_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
+                                                              self.BG_COLOR, circle=True, use_image=True)
+        self.test_btn.SetMinSize((50, 50))
+        self.test_label = wx.StaticText(self, label="test")
+
+        test_sizer.Add(self.test_btn)
+        test_sizer.Add(self.test_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
         # report
         report_sizer = wx.BoxSizer(wx.VERTICAL)
         img_path = "assets\\report_icon.png"
@@ -109,7 +142,7 @@ class Feed(wx.Panel):
         report_sizer.Add(self.report_btn)
         report_sizer.Add(report_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
-        # account
+        # creator account
         account_sizer = wx.BoxSizer(wx.VERTICAL)
 
         img_path = "assets\\null_pfp.png"
@@ -122,37 +155,69 @@ class Feed(wx.Panel):
         account_sizer.Add(self.account_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
         # add to actions sizer
-        actions_sizer.Add(play_sizer)
+        actions_sizer.Add(personal_account_sizer)
+        actions_sizer.Add(search_sizer, 0, wx.TOP, 10)
+
+        actions_sizer.AddSpacer(150)
+
+        actions_sizer.Add(play_sizer, 0, wx.TOP, 10)
         actions_sizer.Add(sound_sizer, 0, wx.TOP, 10)
         actions_sizer.Add(like_sizer, 0, wx.TOP, 10)
         actions_sizer.Add(open_comments_sizer, 0, wx.TOP, 10)
+        actions_sizer.Add(test_sizer, 0, wx.TOP, 10)
         actions_sizer.Add(report_sizer, 0, wx.TOP, 10)
         actions_sizer.Add(account_sizer, 0, wx.TOP, 10)
-        #todo add req test
 
         # comments
         # comments_sizer = wx.BoxSizer(wx.VERTICAL)
         self.comments_panel = comments.Comments(frame, self)
         self.comments_panel.SetMinSize((400, 0))
 
-        # video description
-        self.desc_panel = wx.Panel(self)
+        # video description and name
+        self.desc_and_name_panel = wx.Panel(self)
+        self.desc_and_name_panel.SetBackgroundColour(self.BG_COLOR)
+        desc_and_name_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.video_name_label = wx.StaticText(self.desc_panel)
+        self.video_name_label = wx.StaticText(self.desc_and_name_panel)
         font = self.video_name_label.GetFont()
-        font = font.Scale(2).Bold()
+        font = font.Scale(4).Bold()
         self.video_name_label.SetFont(font)
 
-        self.desc_label = wx.StaticText(self.desc_panel)
+        # video description
+        desc_panel = wx.ScrolledWindow(self.desc_and_name_panel, style=wx.NO_BORDER)
+        desc_panel.SetScrollRate(0, 20)
+        desc_sizer = wx.BoxSizer(wx.VERTICAL)
+        desc_panel.SetSizer(desc_sizer)
+
+        self.video_desc_label = wx.StaticText(desc_panel)
+        font = self.video_desc_label.GetFont()
+        font = font.Scale(2)
+        self.video_desc_label.SetFont(font)
+
+        desc_sizer.Add(self.video_desc_label, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.RIGHT | wx.LEFT, 5)
+
+        # add to desc_and_name_sizer
+        desc_and_name_sizer.Add(self.video_name_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        desc_and_name_sizer.Add(desc_panel, 1, wx.EXPAND | wx.TOP, 20)
+
+        self.desc_and_name_panel.SetSizer(desc_and_name_sizer)
 
         #padding sizer
         padding_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         padding_sizer.AddStretchSpacer()
         padding_sizer.AddSpacer(10)
+
+        #adding comments
         padding_sizer.Add(self.comments_panel, 10, wx.EXPAND | wx.RIGHT, 50) # top, right, bottom, left borders
 
+        #adding video
         padding_sizer.Add(video_sizer, 10, wx.EXPAND)
+        padding_sizer.AddSpacer(10)
+
+        #adding video name and description
+        padding_sizer.Add(self.desc_and_name_panel, 10, wx.EXPAND)
+
         padding_sizer.AddSpacer(10)
         padding_sizer.AddStretchSpacer()
 
@@ -170,22 +235,44 @@ class Feed(wx.Panel):
 
 
         self.Bind(wx.EVT_MOUSEWHEEL, self.on_scroll)
-        self.like_btn.Bind(wx.EVT_LEFT_DOWN, self.on_like_video)
-        self.open_comments_btn.Bind(wx.EVT_LEFT_DOWN, self.on_open_comments)
-        self.sound_btn.Bind(wx.EVT_LEFT_DOWN, self.on_toggle_sound)
-        self.play_btn.Bind(wx.EVT_LEFT_DOWN, self.on_toggle_play)
+        self.like_btn.Bind(wx.EVT_LEFT_UP, self.on_like_video)
+        self.open_comments_btn.Bind(wx.EVT_LEFT_UP, self.on_open_comments)
+        self.sound_btn.Bind(wx.EVT_LEFT_UP, self.on_toggle_sound)
+        self.play_btn.Bind(wx.EVT_LEFT_UP, self.on_toggle_play)
 
         self.Bind(wx.EVT_SIZE, self.on_resize)
 
         self.Hide()
 
+    def on_personal_account(self, event):
+        self.frame.switch_panel(self.frame.user_profile_panel, self)
+        event.Skip()
+
+    def update_pfp(self):
+        user = self.frame.user
+        if user:
+            pfp_path = f"media\\{user.username}.png"
+            if os.path.isfile(pfp_path):
+                pfp = wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE))
+                self.personal_account_btn.SetBitmap(pfp)
+        print("updated pfp")
+
     def Show(self, show = True):
         super().Show()
+        self.update_pfp()
         self.comments_panel.update_pfp_bitmap()
 
+    def update_video_desc_and_name(self):
+        if self.current_video_id in self.frame.videos_details:
+            self.video_desc_label.SetLabel(self.frame.videos_details[self.current_video_id].video_desc)
+            self.video_name_label.SetLabel(self.frame.videos_details[self.current_video_id].video_name)
+
+            self.video_name_label.Wrap(self.desc_and_name_panel.GetSize()[0])
+            self.video_desc_label.Wrap(self.desc_and_name_panel.GetSize()[0])
+
     def on_resize(self, event):
+        self.update_video_desc_and_name()
         self.Layout()
-        self.video_name_label.Wrap(self.desc_panel.GetSize()[0])
         self.Refresh()
         event.Skip()
 
@@ -246,8 +333,10 @@ class Feed(wx.Panel):
 
     def on_scroll(self, event):
         rotation = event.GetWheelRotation()
-        print(self.can_scroll)
         if self.can_scroll:
+            self.play_btn.label_or_path = "assets\\pause.png"
+            self.play_label.SetLabel("pause")
+
             self.can_scroll = False
             self.scroll_timer.Start(200)
 
@@ -280,9 +369,12 @@ class Feed(wx.Panel):
         if self.is_playing:
             self.video_ctrl.Play()
             self.play_btn.label_or_path = "assets\\pause.png"
+            self.play_label.SetLabel("pause")
         else:
             self.video_ctrl.Pause()
-            self.play_btn.label_or_path = "assets\\play2.png"
+            self.play_btn.label_or_path = "assets\\play.png"
+            self.play_label.SetLabel("play")
+        self.Layout()
 
     def load_new_video(self, video):
         video_id = video.video_id
@@ -312,12 +404,14 @@ class Feed(wx.Panel):
             self.video_ctrl.SetInitialSize((500, 500)) #todo do i really need?
             self.comments_panel.set_video(video)
             self.frame.change_text_status("")
-            #load actions
 
+            #load actions
             self.update_like_button(video.liked)
             self.update_likes_amount_label(video_id)
             self.update_comments_label(video_id)
             self.comments_panel.update_comments_label()
+
+            self.update_video_desc_and_name()
 
             pfp_path = f"media\\{video.creator}.png"
             null_pfp_path = f"assets\\null_pfp.png"

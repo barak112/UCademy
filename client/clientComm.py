@@ -67,7 +67,7 @@ class ClientComm:
         while not self.closed:
             data = ""
             try:
-                data_len = int(self.my_socket.recv(3).decode())
+                data_len = int(self.my_socket.recv(settings.MESSAGE_LENGTH_LENGTH).decode())
                 data = self.my_socket.recv(data_len).decode()
             except Exception as e:
                 print(f"Error in mainLoop: {e}")
@@ -128,7 +128,7 @@ class ClientComm:
         """
         msg = self.cipher.encrypt(msg)
         try:
-            self.my_socket.send(str(len(msg)).zfill(3).encode() + msg)
+            self.my_socket.send(str(len(msg)).zfill(settings.MESSAGE_LENGTH_LENGTH).encode() + msg)
         except Exception as e:
             print(f"Error sending message: {e}")
 

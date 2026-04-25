@@ -2,10 +2,7 @@ import os
 import queue
 
 import select
-import socket
 import threading
-import aesCipher
-import diffieHellman
 import serverComm
 import serverProtocol
 import settings
@@ -57,7 +54,7 @@ class ServerCommVideos (serverComm.ServerComm):
 
                 else:
                     try:
-                        data_len = current_socket.recv(3).decode()
+                        data_len = current_socket.recv(settings.MESSAGE_LENGTH_LENGTH).decode()
                         data = current_socket.recv(int(data_len)).decode()
                     except Exception as e:
                         print("error in comm mainloop -", e)
@@ -96,8 +93,6 @@ class ServerCommVideos (serverComm.ServerComm):
         :param liked: Whether the video is liked by the user
         """
 
-
-
         if os.path.isfile(file_path):
             with open(file_path, 'rb') as f:
                 data = f.read()
@@ -109,8 +104,9 @@ class ServerCommVideos (serverComm.ServerComm):
             msg = serverProtocol.build_file_details(file_name, file_size, video_id,creator, video_name, video_description,
                                                     created_at, likes_amount, comments_amount, liked)
             encrypted_message = self.open_clients[client_socket][1].encrypt(msg)
+            print(len(encrypted_message), "encrypted message in send_file in serverCommVideo", msg)
             try:
-                client_socket.send(str(len(encrypted_message)).zfill(3).encode() + encrypted_message)
+                client_socket.send(str(len(encrypted_message)).zfill(settings.MESSAGE_LENGTH_LENGTH).encode() + encrypted_message)
                 client_socket.send(data)
                 #need to add encryption to the file
             except Exception as e:
