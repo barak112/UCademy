@@ -51,8 +51,8 @@ def build_comment(video_id, comment):
     return build_command(7, [video_id, comment])
 
 
-def build_req_user_info(video_id):
-    return build_command(8, [video_id])
+def build_req_user_info(username):
+    return build_command(8, [username])
 
 
 def build_report(id, type):

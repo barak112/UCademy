@@ -62,10 +62,10 @@ class MainFrame(wx.Frame):
         # self.signup_panel.Show()
         # self.email_verification_panel.Show()
         # self.pick_topics_panel.Show()
-        self.user_profile_panel.Show()
 
-        # msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password!")
-        # self.comm.send_msg(msg)
+        msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
+        self.comm.send_msg(msg)
+        # # time.sleep(1)
         # self.feed_panel.Show()
 
         # time.sleep(5)

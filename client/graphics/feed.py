@@ -227,7 +227,7 @@ class Feed(wx.Panel):
 
         self.SetSizer(main_sizer)
 
-        pub.subscribe(self.load_new_video, "load_video")
+        pub.subscribe(self.load_new_video, "load_new_video")
 
         pub.subscribe(self.load_new_comments, "load_new_comments")
 

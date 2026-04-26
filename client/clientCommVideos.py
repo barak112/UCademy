@@ -26,7 +26,6 @@ class ClientCommVideos (clientComm.ClientComm):
             if not data:
                 self._close_client()
             else:
-                print("Data:",data)
                 msg = self.cipher.decrypt(data)
                 if clientProtocol.is_video(msg):
                     self._recv_file(msg)
@@ -50,8 +49,6 @@ class ClientCommVideos (clientComm.ClientComm):
             msg = clientProtocol.build_file_details(file_name, file_size, video_name, video_description, test_link)
             encrypted_message = self.cipher.encrypt(msg)
 
-            #  0100.png@#1000000000@#name@#desc@#link
-            # max size: max(usename, video_id) + video_size : 15+10 = 25 bytes
             try:
                 self.my_socket.send(str(len(encrypted_message)).zfill(settings.MESSAGE_LENGTH_LENGTH).encode() + encrypted_message) # sends len and content of len and filename
                 self.my_socket.send(data)
@@ -68,8 +65,7 @@ class ClientCommVideos (clientComm.ClientComm):
         """
         # called by handle_save_file in logic
         opcode, data = clientProtocol.unpack(msg)
-        #todo once integerated with opcode for each file purpose, add opcode to video_details
-        file_name, file_size, *video_details = data
+        file_name, file_size = data
         file_size = int(file_size)
         file_content = self._recv_file_content(file_size)
 
@@ -78,16 +74,6 @@ class ClientCommVideos (clientComm.ClientComm):
             if not os.path.isfile(store_path):
                 with open(store_path, 'wb') as f:
                     f.write(self.cipher.decrypt_file(file_content))
-
-            if video_details:
-                arrived_with_video = False
-                file_extension = file_name.split('.')[1]
-                if file_extension != 'png': # then it is a video
-                    arrived_with_video = True
-                video_details.append(arrived_with_video)
-                print("arrived with a video:",arrived_with_video)
-                # let client proccess video details
-                self.recvQ.put(video_details)
 
         else:
             self._close_client()

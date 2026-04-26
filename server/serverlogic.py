@@ -79,7 +79,7 @@ class ServerLogic:
             '05': self.handle_creators_search,
             '06': self.handle_videos_search,
             '07': self.handle_video_comment,
-            '08': self.handle_test_req,
+            '08': self.handle_user_details_req,
             '09': self.handle_report,
             '10': self.handle_comments_req,
             '11': self.handle_video_del,
@@ -365,7 +365,7 @@ class ServerLogic:
         if users:
             self.send_users_details(client_ip, users)
         else: # no more users to send
-            msg_to_send = serverProtocol.build_user_details("",0,0,0)
+            msg_to_send = serverProtocol.build_user_details_in_search("",0,0,0)
             self.comm.send_msg(client_ip,msg_to_send)
 
 
@@ -381,11 +381,13 @@ class ServerLogic:
                 followers_amount = self.db.get_followers_amount(username)
                 followings_amount = self.db.get_following_amount(username)
                 videos_amount = self.db.get_videos_amount(username)
-                msg = serverProtocol.build_user_details(username, followers_amount, followings_amount, videos_amount)
+                msg = serverProtocol.build_user_details_in_search(username, followers_amount, followings_amount, videos_amount)
                 self.comm.send_msg(client_ip, msg)
 
                 #sends the user's pfp if the client doesnt already have it
                 self.send_pfp(client_ip, username)
+
+
 
     def send_pfp(self, client_ip, username):
         """
@@ -444,8 +446,15 @@ class ServerLogic:
         for video_id in video_ids:
             if self.db.video_exists(video_id):
                 video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
-                self.clients[client_ip][1].send_file(client_ip, f"media\\videos\\{video_id}.png", video_id, creator,
-                                                   video_name, video_desc, created_at, likes_amount, comments_amount, liked)
+                thumbnail_path = f"media\\videos\\{video_id}.png"
+                self.clients[client_ip][1].send_file(client_ip, thumbnail_path)
+
+                msg = serverProtocol.build_video_details_in_profile(video_id, creator, video_name, video_desc, created_at,
+                                                         likes_amount, comments_amount, liked)
+
+                self.clients[client_ip][1].send_msg(client_ip, msg)
+
+
 
     def handle_video_comment(self, client_ip, data):  # command 7
         video_id, comment = data
@@ -457,15 +466,29 @@ class ServerLogic:
             msg = serverProtocol.build_comment_status(comment_id,video_id, commenter_name, comment, created_at)
             self.comm.send_msg(client_ip, msg)
 
-    def handle_test_req(self, client_ip, data):  # command 8
-        video_id = data[0]
-        video_link = self.db.get_video_test_link(video_id)
+    def handle_user_details_req(self, client_ip, data): # command 8
 
-        if video_link:
-            video_link = ""
+        username = data[0]
 
-        msg = serverProtocol.build_send_test(video_id, video_link)
-        self.comm.send_msg(client_ip, msg)
+        user_details = self.get_user_details(username)
+        msg = serverProtocol.build_user_details_in_profile(*user_details)
+
+        # sends the user's pfp if the client doesnt already have it
+        self.send_pfp(client_ip, username)
+
+        self.clients[client_ip][1].send_msg(client_ip, msg)
+
+    def get_user_details(self, username):
+        followers_amount = -1
+        followings_amount = -1
+        videos_amount = -1
+
+        if self.db.user_exists(username):
+            followers_amount = self.db.get_followers_amount(username)
+            followings_amount = self.db.get_following_amount(username)
+            videos_amount = self.db.get_videos_amount(username)
+
+        return username, followers_amount, followings_amount, videos_amount
 
     def handle_report(self, client_ip, data):  # command 9
         id, type = data # 0 - comment, 1 - video
@@ -603,7 +626,7 @@ class ServerLogic:
             users_to_send = users_to_send[starting_index:starting_index+settings.AMOUNT_OF_USERS_TO_SEND]
             self.send_users_details(client_ip, users_to_send)
         else:
-            msg_to_send = serverProtocol.build_user_details("", 0, 0, 0)
+            msg_to_send = serverProtocol.build_user_details_follow_list("", 0, 0, 0)
             self.comm.send_msg(client_ip, msg_to_send)
 
     def handle_video_req(self, client_ip, data):  # command 15
@@ -635,8 +658,17 @@ class ServerLogic:
 
         self.send_pfp(client_ip, creator)  # sends creator's pfp if the clients doesnt already have it
         file_path = f"media\\videos\\{video_id}.{settings.VIDEO_EXTENSION}"
-        self.clients[client_ip][1].send_file(client_ip, file_path, video_id, creator, video_name, video_desc,
-                                             created_at, likes_amount, comments_amount, liked)
+        self.clients[client_ip][1].send_file(client_ip, file_path)
+
+        msg = serverProtocol.build_video_details(video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked)
+        self.clients[client_ip][1].send_msg(client_ip, msg)
+
+
+        #todo maybe change so data is sent like this:
+        # video_metadata, video_file, video_details. 3 different messages.
+        #  and the details will be sent with a normal video_comm.send_msg()
+        # so that when the details arrive, the video will already be there
+        # and then when sending user info, send the pfp and then the user info after with video_comm.send_msg()
 
         print(
             f"sending video {video_id} to {client_ip} with creator {creator}, name {video_name}, desc {video_desc}, likes {likes_amount}, comments {comments_amount}, liked {liked}"

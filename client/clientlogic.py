@@ -31,21 +31,23 @@ class ClientLogic:
             "02": self.handle_sign_in_confirmation,
             "03": self.handle_topics_confirmation,
             "04": self.handle_filter_confirmation,
-            "05": self.handle_user_details,
-            "06": self.handle_video_details,
+            "05": self.handle_user_details_in_search,
+            "06": self.handle_video_details_in_search,
             "07": self.handle_video_comment_confirmation,
-            "08": self.handle_test,
+            "08": self.handle_user_details_in_profile,
             "09": self.handle_report_status,
             "10": self.handle_comments,
             "11": self.handle_vid_del_confirmation,
             "12": self.handle_comment_del_confirmation,
-
+            "13": self.handle_video_details_in_profile,
+            "14":self.handle_user_details_in_follow_list,
+            "15": self.handle_load_new_video,
             "16": self.handle_video_upload_confirmation,
             "17": self.handle_follow_status,
             "18": self.handle_like_video
         }
         self.video_commands = {
-            "00": self.handle_video_details,
+            # "00": self.handle_video_details,
             "01": self.handle_confirm_file_upload
         }
 
@@ -68,12 +70,9 @@ class ClientLogic:
         while True:
             msg = self.recvQ.get()
 
-            if isinstance(msg, list):
-                self.handle_video_details(msg)
-            else:
-                opcode, data = clientProtocol.unpack(msg)
-                if opcode in self.commands:
-                    self.commands[opcode](data)
+            opcode, data = clientProtocol.unpack(msg)
+            if opcode in self.commands:
+                self.commands[opcode](data)
 
     def handle_reg_confirmation(self, data):  # command 0
         status = data[0]
@@ -127,39 +126,34 @@ class ClientLogic:
         print("setting filter:", filter)
         wx.CallAfter(pub.sendMessage, "set_filter_ans", filter=filter)
 
-    def handle_user_details(self, data):  # command 5
+    def handle_user_details_in_search(self, data):  # command 5
+        user_obj = self.get_user_obj(data)
+        wx.CallAfter(pub.sendMessage, "user_details_ans", user=user_obj)
+
+    @staticmethod
+    def get_user_obj(data): # helper function
         username, followers_amount, followings_amount, videos_amount = data
-        user_details = None
+        followers_amount = int(followers_amount)
+        followings_amount = int(followings_amount)
+        videos_amount = int(videos_amount)
+        user_details = user.User(username, followers_amount, followings_amount, videos_amount)
+        return user_details
 
-        if username:
-            followers_amount = int(followers_amount)
-            followings_amount = int(followings_amount)
-            videos_amount = int(videos_amount)
-            user_details = user.User(username, followers_amount, followings_amount, videos_amount)
-            print(
-                f"added user: username: {username}, followers_amount: {followers_amount}, followings_amount: {followings_amount}, videos_amount: {videos_amount}")
-        else:
-            print("NO MORE USERS TO SEND")
+    def handle_video_details_in_search(self, data):  # command 6
+        video_obj = self.get_video_obj(data)
+        wx.CallAfter(pub.sendMessage, "load_video", video =video_obj)
 
-        wx.CallAfter(pub.sendMessage, "user_details_ans", user=user_details)
-
-    def handle_video_details(self, data):  # command 6
-        video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked, *arrived_with_video = data
-        if arrived_with_video:
-            print(arrived_with_video, "arrived with")
-            arrived_with_video = bool(int(arrived_with_video[0]))
-
-        #TODO Understand what to do with arrived_with_video
-
+    @staticmethod
+    def get_video_obj(data): # helper function
+        video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = data
         video_id = int(video_id)
         comments_amount = int(comments_amount)
         likes_amount = int(comments_amount)
         liked = bool(int(liked))
 
-        video_details = video.Video(video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked)
-        print(f"added video: video_id={video_id}, creator={creator}, video_name={video_name}, video_desc={video_desc}, created_at = {created_at}, likes_amount={likes_amount}, comments_amount={comments_amount}, liked={liked}")
-
-        wx.CallAfter(pub.sendMessage, "load_video", video =video_details)
+        video_details = video.Video(video_id, creator, video_name, video_desc, created_at, likes_amount,
+                                    comments_amount, liked)
+        return video_details
 
     def handle_video_comment_confirmation(self, data):  # command 7
         print('data:', data)
@@ -172,13 +166,11 @@ class ClientLogic:
         wx.CallAfter(pub.sendMessage, "added_comment", video_id = video_id, comment = comment_obj)
 
 
-    def handle_test(self, data):  # command 8
-        video_id, test_link = data
+    def handle_user_details_in_profile(self, data):  # command 8
+        user_obj = self.get_user_obj(data)
 
-        if test_link:
-            print(f"video {video_id} has test: {test_link}")
+        wx.CallAfter(pub.sendMessage, "user_details_in_profile_ans", user = user_obj)
 
-        wx.CallAfter(pub.sendMessage, "test_ans", video_id = video_id, test_link = test_link)
 
     def handle_report_status(self, data):  # command 9
         print(data, "1")
@@ -214,26 +206,22 @@ class ClientLogic:
         # data = [[comment_info], [comment_info]]
         comments = []
         video_id = 0
-        print("comments data:",data)
-        if data[0]:
-            for comment_info in data:
-                comment_id, video_id, commenter, comment_content, created_at = comment_info
-                video_id = int(video_id)
-                comment_id = int(comment_id)
-                comments.append(comment.Comment(comment_id, comment_content, commenter, created_at))
-                print(
-                    f"comment added: comment_id: {comment_id} content: {comment_content} by {commenter} created at {created_at}")
-            print("video id:", video_id)
-            wx.CallAfter(pub.sendMessage, "load_new_comments", video_id = video_id, comments = comments)
+        for comment_info in data:
+            comment_id, video_id, commenter, comment_content, created_at = comment_info
+            video_id = int(video_id)
+            comment_id = int(comment_id)
+            comments.append(comment.Comment(comment_id, comment_content, commenter, created_at))
+            print(
+                f"comment added: comment_id: {comment_id} content: {comment_content} by {commenter} created at {created_at}")
+
+        print("video id:", video_id)
+        wx.CallAfter(pub.sendMessage, "load_new_comments", video_id = video_id, comments = comments)
             #todo maybe change so that comments are sent as video_id@#[...]@#[...]@#[...] so the video id wouldnt be sent with each comment
-        else:
-            print("no more comments")
 
     def handle_vid_del_confirmation(self, data):  # command 11
         video_id = int(data[0])
         if video_id:
             print(f"video {video_id} is deleted")
-            # self.videos.pop(video_id, None)
         else:
             print("video deletion failed")
 
@@ -245,14 +233,22 @@ class ClientLogic:
         comment_id = int(comment_id)
         if video_id:
             print(f"comment {comment_id} deleted from video {video_id}")
-            # video = self.videos.get(video_id)
-            # if video:
-            #     video.comments.pop(comment_id, None)
         else:
             print("comment deletion failed")
 
         wx.CallAfter(pub.sendMessage, "video_del_ans", video_id=video_id)
 
+    def handle_video_details_in_profile(self, data): # command 13
+        video_obj = self.get_video_obj(data)
+        wx.CallAfter(pub.sendMessage, "video_details_in_profile_ans", video=video_obj)
+
+    def handle_user_details_in_follow_list(self, data):
+        user_obj = self.get_user_obj(data)
+        wx.CallAfter(pub.sendMessage, "user_details_in_follow_list_ans", user=user_obj)
+
+    def handle_load_new_video(self, data): # command 15
+        video_obj = self.get_video_obj(data)
+        wx.CallAfter(pub.sendMessage, "load_new_video", video=video_obj)
 
     def handle_video_upload_confirmation(self, data):  # command 16
         status = data[0]

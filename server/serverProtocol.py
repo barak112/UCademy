@@ -39,14 +39,14 @@ def build_set_filter_confirmation(filter):
     return build_command(4, [filter])
 
 
-def build_user_details(username, followers_amount, followings_amount, videos_amount):
+def build_user_details_in_search(username, followers_amount, followings_amount, videos_amount):
     return build_command(
         5,
         [username, followers_amount, followings_amount, videos_amount]
     )
 
 
-def build_video_details(video_id, creator_name, video_name, video_desc, created_at, likes_amount,
+def build_video_details_in_search(video_id, creator_name, video_name, video_desc, created_at, likes_amount,
                         comments_amount, liked):
     return build_command(
         6,
@@ -59,10 +59,8 @@ def build_comment_status(comment_id, video_id, commenter, comment, created_at):
     return build_command(7, [comment_id, video_id, commenter, comment, created_at])
 
 
-def build_send_test(video_id, link):
-    if not link:
-        link = ""
-    return build_command(8, [video_id, link])
+def build_user_details_in_profile(username, followers_amount, followings_amount, videos_amount):
+    return build_command(8, [username, followers_amount, followings_amount, videos_amount])
 
 
 def build_report_status(status, id, type, content, content_publisher, created_at = ""):
@@ -81,9 +79,28 @@ def build_del_video_confirmation(video_id):
 def build_del_comment_confirmation(video_id = 0, comment_id = 0):
     return build_command(12, [video_id, comment_id])
 
+def build_video_details_in_profile(video_id, creator_name, video_name, video_desc, created_at, likes_amount,
+                        comments_amount, liked):
+    return build_command(
+        13,
+        [video_id, creator_name, video_name, video_desc, created_at, likes_amount,
+         comments_amount, liked]
+    )
 
-#12-14 are client requests that are handles using other commands
+def build_user_details_follow_list(username, followers_amount, followings_amount, videos_amount):
+    return build_command(
+        14,
+        [username, followers_amount, followings_amount, videos_amount]
+    )
 
+
+def build_video_details(video_id, creator_name, video_name, video_desc, created_at, likes_amount,
+                        comments_amount, liked):
+    return build_command(
+        15,
+        [video_id, creator_name, video_name, video_desc, created_at, likes_amount,
+         comments_amount, liked]
+    )
 
 def build_video_upload_confirmation(status):
     return build_command(16, [status])
@@ -98,12 +115,10 @@ def build_like_video_confirmation(status, video_id):
 # ----- Video transfer protocol -----
 
 
-def build_file_details(file_name, file_size, video_id = None, creator_name = None, video_name=None, video_desc=None,
-                       created_at = None, likes_amount=None,
-                       comments_amount=None, liked=None):
-    return build_command(0, [file_name, file_size, video_id, creator_name, video_name, video_desc,
-                             created_at, likes_amount, comments_amount, liked])
+def build_file_details(file_name, file_size):
+    return build_command(0, [file_name, file_size])
 
+#todo make this only file_name and file_size
 
 def build_confirm_file(status):
     return build_command(1, [status])

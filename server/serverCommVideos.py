@@ -69,8 +69,7 @@ class ServerCommVideos (serverComm.ServerComm):
                         print("msg recved in serverCommVideo:", decrypted_message)
                         self._recv_file(current_socket, decrypted_message)
 
-    def send_file(self, client_ip, file_path, video_id = None, creator = None, video_name=None, video_description=None,
-                  created_at = None, likes_amount = None, comments_amount = None, liked = None):
+    def send_file(self, client_ip, file_path):
         """
         Send a file to a client after encrypting the file and its metadata.
 
@@ -101,14 +100,11 @@ class ServerCommVideos (serverComm.ServerComm):
             data = self.open_clients[client_socket][1].encrypt_file(data)
             file_name = os.path.basename(file_path)
             file_size = len(data)
-            msg = serverProtocol.build_file_details(file_name, file_size, video_id,creator, video_name, video_description,
-                                                    created_at, likes_amount, comments_amount, liked)
+            msg = serverProtocol.build_file_details(file_name, file_size)
             encrypted_message = self.open_clients[client_socket][1].encrypt(msg)
-            print(len(encrypted_message), "encrypted message in send_file in serverCommVideo", msg)
             try:
                 client_socket.send(str(len(encrypted_message)).zfill(settings.MESSAGE_LENGTH_LENGTH).encode() + encrypted_message)
                 client_socket.send(data)
-                #need to add encryption to the file
             except Exception as e:
                 print(f"Error sending message: {e}")
                 self._close_client(client_socket)
