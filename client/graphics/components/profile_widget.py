@@ -12,6 +12,7 @@ import comments
 
 class ProfileWidget(wx.Panel):
     BG_COLOR = (232, 239, 255)
+    # BG_COLOR = settings.OFF_WHITE
 
     def __init__(self, frame, parent):
         super().__init__(parent)
@@ -28,21 +29,69 @@ class ProfileWidget(wx.Panel):
         # profile info
         profile_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        pfp = wx.Bitmap(wx.Image("assets\\null_pfp.png").Scale(settings.PFP_SIZE, settings.PFP_SIZE))
-        pfp = wx.StaticBitmap(self, bitmap=pfp)
+        pfp = wx.Bitmap(wx.Image("assets\\null_pfp_2.png").Scale(128,128, wx.IMAGE_QUALITY_HIGH))
+        self.pfp = wx.StaticBitmap(self, bitmap=pfp)
 
-        info_sizer = wx.BoxSizer(wx.VERTICAL)
+        username_and_info_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.username_label = wx.StaticText(self, label="Barak Ben Meir")
+        self.username_label.SetFont(self.username_label.GetFont().Scale(2).Bold())
 
+        info_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # videos amount, followers amount, following amount labels
+
+        numerics_font = wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+
+        # videos amount
+        videos_amount_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.videos_numeric_amount_label = wx.StaticText(self, label="123")
+        self.videos_numeric_amount_label.SetFont(numerics_font)
+
+        self.videos_amount_label = wx.StaticText(self, label="Videos")
+
+        videos_amount_sizer.Add(self.videos_numeric_amount_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        videos_amount_sizer.Add(self.videos_amount_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        # followers amount
+        followers_amount_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.followers_numeric_amount_label = wx.StaticText(self, label="123")
+        self.followers_numeric_amount_label.SetFont(numerics_font)
+        self.followers_amount_label = wx.StaticText(self, label="followers")
+
+        followers_amount_sizer.Add(self.followers_numeric_amount_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        followers_amount_sizer.Add(self.followers_amount_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        # following amount
+        following_amount_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.following_numeric_amount_label = wx.StaticText(self, label="123")
+        self.following_numeric_amount_label.SetFont(numerics_font)
+        self.following_amount_label = wx.StaticText(self, label="following")
+
+        following_amount_sizer.Add(self.following_numeric_amount_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        following_amount_sizer.Add(self.following_amount_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        # add to info sizer
+        info_sizer.Add(videos_amount_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 20)
+        info_sizer.Add(followers_amount_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 20)
+        info_sizer.Add(following_amount_sizer, 0, wx.ALIGN_CENTER_VERTICAL)
+
+
+        # add to username_and_info sizer
+        username_and_info_sizer.Add(self.username_label, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 20)
+        username_and_info_sizer.Add(info_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        main_sizer.AddSpacer(10)
         profile_info_sizer.Add(pfp, 0, wx.ALIGN_CENTER_VERTICAL)
-        profile_info_sizer.Add(info_sizer, 1, wx.EXPAND)
+        profile_info_sizer.Add(username_and_info_sizer, 0, wx.ALIGN_CENTER_VERTICAL)
+        main_sizer.AddSpacer(10)
 
 
         # add to main sizer
+        main_sizer.AddSpacer(10)
         main_sizer.Add(profile_info_sizer, 0, wx.EXPAND)
+        main_sizer.AddSpacer(10)
 
         self.Bind(wx.EVT_SIZE, self.on_resize)
 
-        self.Hide()
 
     # def update_pfp(self):
     #     user = self.frame.user
@@ -53,8 +102,19 @@ class ProfileWidget(wx.Panel):
     #             self.personal_account_btn.SetBitmap(pfp)
     #     print("updated pfp")
 
+    def req_user_info(self):
+        # msg = clientProtocol.u
+        # self.frame.comm.send_msg(msg)
+        pass
+
     def set_user(self, username):
         self.current_user = username
+        self.username_label.SetLabel(username)
+        self.req_user_info()
+
+        
+        self.Layout()
+        self.Refresh()
 
     def Show(self, show=True):
         super().Show()

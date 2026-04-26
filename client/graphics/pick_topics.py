@@ -21,7 +21,6 @@ class PickTopicsPanel(wx.ScrolledWindow):
         self.SetScrollRate(0, 7)
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
 
-        #todo scale to screen size
         self.background_bitmap = wx.Bitmap("assets\\topic_pick_background.png")
         self.grid_start_pos = 0
 
