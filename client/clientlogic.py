@@ -254,12 +254,12 @@ class ClientLogic:
         wx.CallAfter(pub.sendMessage, "video_del_ans", video_id=video_id)
 
 
-    def handle_video_upload_confirmation(self, data):  # command 13
+    def handle_video_upload_confirmation(self, data):  # command 16
         status = data[0]
         print("video upload status:", status)
         wx.CallAfter(pub.sendMessage, "video_upload_ans", video_id=video_id)
 
-    def handle_follow_status(self, data):  # command 14
+    def handle_follow_status(self, data):  # command 17
         status, following = data
 
         if following:
@@ -270,7 +270,7 @@ class ClientLogic:
 
         wx.CallAfter(pub.sendMessage, "follow_ans", status=status, following = following)
 
-    def handle_like_video(self, data):
+    def handle_like_video(self, data): # command 18
         status, video_id = data
         status = int(status)
         video_id = int(video_id)

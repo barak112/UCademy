@@ -68,6 +68,7 @@ class ClientCommVideos (clientComm.ClientComm):
         """
         # called by handle_save_file in logic
         opcode, data = clientProtocol.unpack(msg)
+        #todo once integerated with opcode for each file purpose, add opcode to video_details
         file_name, file_size, *video_details = data
         file_size = int(file_size)
         file_content = self._recv_file_content(file_size)
@@ -85,6 +86,7 @@ class ClientCommVideos (clientComm.ClientComm):
                     arrived_with_video = True
                 video_details.append(arrived_with_video)
                 print("arrived with a video:",arrived_with_video)
+                # let client proccess video details
                 self.recvQ.put(video_details)
 
         else:
