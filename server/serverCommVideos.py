@@ -67,7 +67,11 @@ class ServerCommVideos (serverComm.ServerComm):
                         print(f"key: {key}, data: {data} in serverCommVideo")
                         decrypted_message = key.decrypt(data)
                         print("msg recved in serverCommVideo:", decrypted_message)
-                        self._recv_file(current_socket, decrypted_message)
+
+                        if serverProtocol.is_file(decrypted_message):
+                            self._recv_file(current_socket, decrypted_message)
+                        else: # if not a file, put in recvQ, its video details
+                            self.recvQ.put((ip, decrypted_message))
 
     def send_file(self, client_ip, file_path):
         """
@@ -133,6 +137,10 @@ class ServerCommVideos (serverComm.ServerComm):
 
         opcode, data = serverProtocol.unpack(decrypted_message)
 
+        #todo get details, add to db, add to queue the id twice (once for video and once for thumbnail)
+        # and then when video and thumbnail arrives, assign id to video and thumbnail
+        # check if video is valid, if is, store it, if not, delete from db using the id.
+
         file_name, file_size, *video_details = data
         file_size = int(file_size)
         print("file_size:", file_size, "file_name:", file_name, "video_details:", video_details)
@@ -143,16 +151,19 @@ class ServerCommVideos (serverComm.ServerComm):
         if len(file_content) == file_size:
             file_content = bytearray(self.open_clients[client_socket][1].decrypt_file(file_content)) #  decrypts file content
 
+            file_path = "media\\pfp"
+
             # this code assumes that pfp names are strings (the user's name) and video and thumbnail file names are a rnd int
             if file_name.isnumeric():
+                file_path = "media\\videos"
                 if video_details: # if video details is not empty, it means that it is a video
-                    self.recvQ.put((client_ip, (file_content, extension, video_details)))
+                    self.recvQ.put((client_ip, (file_content, extension, video_details))) # sending file content with details to logic
 
                 else: # if file_name is a number but video_details is empty, it is a thumbnail
                     file_name = self.idsQ.get()
 
             if file_name and not video_details: # id 0 indicates that the video already exists, so to not save the thumbnail
-                with open(f"assets\\{file_name}.{extension}", 'wb') as f:
+                with open(f"{file_path}\\{file_name}.{extension}", 'wb') as f:
                     f.write(file_content)
 
         else:

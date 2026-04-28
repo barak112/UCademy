@@ -83,8 +83,8 @@ def build_req_video(video_id = 0):
     return build_command(15, [video_id])
 
 
-def build_video_details(video_name, video_desc, test_link):
-    return build_command(16, [video_name, video_desc, test_link])
+def build_video_details(video_name, video_desc, test_link, topics):
+    return build_command(16, [video_name, video_desc, test_link, topics])
 
 
 def build_follow_req(username):
@@ -95,11 +95,12 @@ def build_like_video(video_id):
 
 # ----- Video transfer protocol -----
 
-def build_file_details(file_name, file_size, video_name=None, video_description=None, test_link=None):
-    return build_command(0, [file_name, file_size, video_name, video_description, test_link])
+#todo make this only file_name and file_size
+def build_file_details(file_name, file_size, video_name=None, video_description=None, test_link=None, topics = None):
+    return build_command(0, [file_name, file_size, video_name, video_description, test_link, topics])
 
 
-def is_video(msg):
+def is_file(msg):
     return msg[:2] == build_file_details("", "")[:2]
 
 

@@ -4,11 +4,12 @@ import wx
 
 import clientProtocol
 import video
-from email_verification import EmailVerification
-from feed import Feed
+from email_verification import EmailVerificationPanel
+from feed import FeedPanel
 from log_in import LoginPanel
 from pick_topics import PickTopicsPanel
 from sign_up import SignupPanel
+from upload_video import UploadVideoPanel
 from user_profile import UserProfilePanel
 
 
@@ -42,10 +43,13 @@ class MainFrame(wx.Frame):
 
         self.login_panel = LoginPanel(self, self.container)
         self.signup_panel = SignupPanel(self, self.container)
-        self.email_verification_panel = EmailVerification(self, self.container)
+        self.email_verification_panel = EmailVerificationPanel(self, self.container)
         self.pick_topics_panel = PickTopicsPanel(self, self.container)
-        self.feed_panel = Feed(self, self.container)
+        self.feed_panel = FeedPanel(self, self.container)
+        self.pick_filter_panel = PickTopicsPanel(self, self.container, self.feed_panel)
         self.user_profile_panel = UserProfilePanel(self, self.container)
+        self.upload_video_panel = UploadVideoPanel(self, self.container)
+        self.pick_video_topics_panel = PickTopicsPanel(self, self.container, self.upload_video_panel)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -54,7 +58,10 @@ class MainFrame(wx.Frame):
         self.sizer.Add(self.email_verification_panel, 1, wx.EXPAND)
         self.sizer.Add(self.pick_topics_panel, 1, wx.EXPAND)
         self.sizer.Add(self.feed_panel, 1, wx.EXPAND)
+        self.sizer.Add(self.pick_filter_panel, 1, wx.EXPAND)
         self.sizer.Add(self.user_profile_panel, 1, wx.EXPAND)
+        self.sizer.Add(self.upload_video_panel, 1, wx.EXPAND)
+        self.sizer.Add(self.pick_video_topics_panel, 1, wx.EXPAND)
 
         self.container.SetSizer(self.sizer)
 

@@ -248,7 +248,7 @@ class LoginPanel(wx.Panel):
         :param user: user object
         """
         if status:
-            self.frame.video_ctrl = video_comm
+            self.frame.video_comm = video_comm
             self.frame.user = user
             # send video req
             msg = clientProtocol.build_req_video()

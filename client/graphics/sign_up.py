@@ -168,12 +168,12 @@ class SignupPanel(wx.Panel):
     def field_is_filled(self, field_name):
         self.filled_fields[field_name] = 1
         if all(self.filled_fields.values()):
-            self.signup_button.set_background_color(self.LEFT_COLOR)
+            self.signup_button.set_active(True)
         self.signup_button.Refresh()
 
     def field_is_unfilled(self, field_name):
         self.filled_fields[field_name] = 0
-        self.signup_button.set_background_color(settings.UNACTIVE_BUTTON)
+        self.signup_button.set_active(False)
         self.signup_button.Refresh()
 
     def entering_text(self, event):

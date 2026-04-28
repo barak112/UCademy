@@ -118,6 +118,9 @@ def build_like_video_confirmation(status, video_id):
 def build_file_details(file_name, file_size):
     return build_command(0, [file_name, file_size])
 
+def is_file(msg):
+    return msg[:2] == build_file_details("", "")[:2]
+
 #todo make this only file_name and file_size
 
 def build_confirm_file(status):

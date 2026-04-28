@@ -6,7 +6,7 @@ import settings
 
 
 class RoundedButton(wx.Panel):
-    def __init__(self, parent, label_or_path, base_color = settings.UNACTIVE_BUTTON, background_color = settings.OFF_WHITE, radius = settings.ROUND_BORDER_RADIUS, font_size = settings.BUTTON_TEXT_FONT_SIZE, circle = False, use_image = False):
+    def __init__(self, parent, label_or_path, base_color = settings.UNACTIVE_BUTTON, background_color = settings.OFF_WHITE, radius = settings.ROUND_BORDER_RADIUS, font_size = settings.BUTTON_TEXT_FONT_SIZE, circle = False, use_image = False, text_color = wx.WHITE):
         """
 
         :param parent: parent to add the button to
@@ -27,6 +27,7 @@ class RoundedButton(wx.Panel):
         self.radius = radius
         self.font_size = font_size
         self.circle = circle
+        self.text_color = text_color
         if use_image and os.path.isfile(label_or_path):
             self.use_image = use_image
         else:
@@ -120,9 +121,12 @@ class RoundedButton(wx.Panel):
             w, h = self.GetClientSize()
 
             # Switch color based on hover state
-            current_color = self.hover_color if self.mouse_over else self.current_color
-            current_color = self.mouse_clicked_color if self.mouse_clicked else current_color
+            current_color = self.hover_color if self.mouse_over else self.current_color # hover color if hovering
+            current_color = self.mouse_clicked_color if self.mouse_clicked else current_color # clicked color if clicked
 
+            # gc.SetBrush(wx.WHITE_BRUSH)
+            # gc.SetPen(wx.Pen(settings.THEME_COLOR, 2))
+            # gc.SetPen((wx.Pen(wx.BLACK, 2)))
             gc.SetBrush(wx.Brush(current_color))
             gc.SetPen(wx.NullGraphicsPen)
             if self.circle:
@@ -138,7 +142,7 @@ class RoundedButton(wx.Panel):
                     gc.DrawBitmap(wx.Bitmap(wx.Image(self.label_or_path).Scale(iw, ih, wx.IMAGE_QUALITY_HIGH)) , (w - iw) / 2, (h - ih) / 2,
                                   iw, ih)
             else:
-                gc.SetFont(wx.Font(self.font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD), wx.WHITE)
+                gc.SetFont(wx.Font(self.font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD), self.text_color)
                 tw, th = gc.GetTextExtent(self.label_or_path)
                 gc.DrawText(self.label_or_path, (w - tw) / 2, (h - th) / 2)
 

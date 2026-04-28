@@ -74,6 +74,7 @@ class UserProfilePanel(wx.ScrolledWindow):
 
 
         self.Bind(wx.EVT_SIZE, self.on_resize)
+        self.add_video_btn.Bind(wx.EVT_LEFT_UP, self.on_move_to_upload_video)
 
         self.Layout()
         self.FitInside()  # calculates virtual size
@@ -82,6 +83,12 @@ class UserProfilePanel(wx.ScrolledWindow):
         pub.subscribe(self.video_details_ans, "video_details_in_profile_ans")
 
         self.Hide()
+        #todo when clicking pfp, opens explorer to choose new photo.
+        # when hovering the pfp shows a tooltip with the option to click the image to change it
+
+    def on_move_to_upload_video(self, event):
+        self.frame.switch_panel(self.frame.upload_video_panel, self)
+        event.Skip()
 
     def scale_thumbnail(self, thumbnail_image):
         w, h = thumbnail_image.GetSize()

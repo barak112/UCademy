@@ -4,22 +4,52 @@ import wx
 from pubsub import pub
 
 import clientProtocol
+import feed
 import rounded_button
 import settings
 import topic_widget
+import upload_video
 
 
 class PickTopicsPanel(wx.ScrolledWindow):
-    TITLE = "What are you interested in?"
-    SUBTITLE = "Choose topics to personalise your experience. Select at least 3 topics."
-    def __init__(self, frame, parent):
+    USER_TOPICS_TITLE = "What are you interested in?"
+    USER_TOPICS_SUBTITLE = "Choose topics to personalise your experience. Select at least 3 topics."
+
+    VIDEO_TOPICS_TITLE = "What topics relate to your video?"
+    VIDEO_TOPICS_SUBTITLE = "Choose topics to reach your desired target audience. Select up to 3 topics."
+
+    FILTER_TITLE = "By which topics do you want to filter your videos?"
+    FILTER_SUBTITLE = "Choose topics to filter your videos by"
+
+
+    def __init__(self, frame, parent, panel_set_topics_handler=None):
         super().__init__(parent)
         self.frame = frame
         self.parent = parent
 
+        if panel_set_topics_handler is None:
+            panel_set_topics_handler = self
+
+        # set title and subtitle according to panel handler
+        if isinstance(panel_set_topics_handler, PickTopicsPanel):
+            self.title = self.USER_TOPICS_TITLE
+            self.subtitle = self.USER_TOPICS_SUBTITLE
+            # if user topics, also subscribe to set topics ans
+            pub.subscribe(self.on_set_topics_ans, "set_topics_ans")
+
+        elif isinstance(panel_set_topics_handler, feed.FeedPanel):
+            self.title = self.FILTER_TITLE
+            self.subtitle = self.FILTER_SUBTITLE
+
+        elif isinstance(panel_set_topics_handler, upload_video.UploadVideoPanel):
+            self.title = self.VIDEO_TOPICS_TITLE
+            self.subtitle = self.VIDEO_TOPICS_SUBTITLE
+
         # scroll attributes
         self.SetScrollRate(0, 7)
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+
+        self.panel_set_topics_handler = panel_set_topics_handler
 
         self.background_bitmap = wx.Bitmap("assets\\topic_pick_background.png")
         self.grid_start_pos = 0
@@ -28,7 +58,7 @@ class PickTopicsPanel(wx.ScrolledWindow):
 
         self.SetSizer(vbox)
 
-        self.selected_topics = [] # [topic1, topic2]
+        self.selected_topics = [] # [topic1, topic2] includes the selected topics names
         self.topics = {}  # [topic_name] = topic widget object
 
         self.grid_columns = 4
@@ -45,8 +75,12 @@ class PickTopicsPanel(wx.ScrolledWindow):
 
         self.continue_btn = rounded_button.RoundedButton(self, "Continue", settings.BRIGHT_UNACTIVE_BUTTON, (204, 223, 252), 25, 13)
         self.continue_btn.SetMinSize((140, 60))
-        self.continue_btn.Bind(wx.EVT_LEFT_UP, self.on_set_topics)
         vbox.Add(self.continue_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 40)
+
+        # binds
+
+        # on topic selection, call the function on the correct panel handler
+        self.continue_btn.Bind(wx.EVT_LEFT_UP, self.on_set_topics)
 
         # handles key press
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key)
@@ -63,15 +97,26 @@ class PickTopicsPanel(wx.ScrolledWindow):
         self.Layout()
         self.FitInside()  # calculates virtual size
 
-        pub.subscribe(self.on_set_topics_ans, "set_topics_ans")
-
         self.Hide()
+
+    def set_selected_topics(self, topics:list[str]):
+        # deselects all topics
+        for already_selected_topic in self.selected_topics:
+            self.topic_selected(already_selected_topic)
+
+        # selects the new ones
+        for topic in topics:
+            self.topic_selected(topic)
+
+
+    def handle_set_topics(self, topics):
+        msg = clientProtocol.build_set_topics(topics)
+        self.frame.comm.send_msg(msg)
 
     def on_set_topics(self, event):
         topics = [settings.TOPICS.index(topic) for topic in self.selected_topics]
         print(topics)
-        msg = clientProtocol.build_set_topics(topics)
-        self.frame.comm.send_msg(msg)
+        self.panel_set_topics_handler.handle_set_topics(topics)
         event.Skip()
 
     def on_set_topics_ans(self, topics):
@@ -150,16 +195,16 @@ class PickTopicsPanel(wx.ScrolledWindow):
                 gc.SetFont(
                     wx.Font(25, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD),
                     wx.BLACK)
-                tw, th = gc.GetTextExtent(self.TITLE)
-                gc.DrawText(self.TITLE, (w - tw) / 2, 10)
+                tw, th = gc.GetTextExtent(self.title)
+                gc.DrawText(self.title, (w - tw) / 2, 10)
 
                 #draw subtitle
                 gc.SetFont(
                     wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL),wx.BLACK
                 )
 
-                tw2, th2 = gc.GetTextExtent(self.SUBTITLE)
-                gc.DrawText(self.SUBTITLE, (w - tw2) / 2, th+20)
+                tw2, th2 = gc.GetTextExtent(self.subtitle)
+                gc.DrawText(self.subtitle, (w - tw2) / 2, th+20)
                 if not self.grid_start_pos:
                     self.grid_start_pos = int(th2+th+ 40)
                     self.spacer.SetMinSize((0, self.grid_start_pos))
@@ -180,5 +225,3 @@ class PickTopicsPanel(wx.ScrolledWindow):
             self.on_login(None)
 
         event.Skip()
-
-    #todo fix background image on large screens

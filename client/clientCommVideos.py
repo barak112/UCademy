@@ -27,12 +27,12 @@ class ClientCommVideos (clientComm.ClientComm):
                 self._close_client()
             else:
                 msg = self.cipher.decrypt(data)
-                if clientProtocol.is_video(msg):
+                if clientProtocol.is_file(msg):
                     self._recv_file(msg)
                 else:
                     self.recvQ.put(msg)  # Push received data into the queue
 
-    def send_file(self, file_path, video_name=None, video_description=None, test_link=None):
+    def send_file(self, file_name, file_path, video_name=None, video_description=None, test_link=None, topics = None):
         """
             sends a file to the server
         :param file_path: file path to the file to be sent
@@ -44,9 +44,8 @@ class ClientCommVideos (clientComm.ClientComm):
                 data = f.read()
 
             data = self.cipher.encrypt_file(data)
-            file_name = os.path.basename(file_path)
             file_size = len(data)
-            msg = clientProtocol.build_file_details(file_name, file_size, video_name, video_description, test_link)
+            msg = clientProtocol.build_file_details(file_name, file_size, video_name, video_description, test_link, topics)
             encrypted_message = self.cipher.encrypt(msg)
 
             try:

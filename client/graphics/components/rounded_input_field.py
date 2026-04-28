@@ -9,7 +9,7 @@ class RoundedInputField(wx.Panel):
     BG_COLOR = settings.OFF_WHITE
 
 
-    def __init__(self, panel, parent, field_name, placeholder, field_icon_bitmap = None, is_password = False):
+    def __init__(self, panel, parent, field_name, placeholder, field_icon_bitmap = None, is_password = False, multiline = False, background_color = settings.OFF_WHITE):
         """
            Rounded input field init, the rounded field contains
         :param parent: parent to add this widget to
@@ -26,10 +26,14 @@ class RoundedInputField(wx.Panel):
         self.text_shown = True # used for password show and hide
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT) # gets control of screen paint from OS
-        self.SetBackgroundColour(settings.OFF_WHITE)
+        self.SetBackgroundColour(background_color)
 
         # visible text input widget
-        self.text_visible = wx.TextCtrl(self, style=wx.BORDER_NONE | wx.TE_PROCESS_ENTER)
+        style = wx.BORDER_NONE | wx.TE_PROCESS_ENTER
+        if multiline:
+            style = style | wx.TE_MULTILINE | wx.TE_WORDWRAP # make multiline and wordwrap
+
+        self.text_visible = wx.TextCtrl(self, style=style)
         self.text_visible.SetBackgroundColour(wx.Colour((249, 250, 251)))
         
         font = self.text_visible.GetFont()
@@ -38,7 +42,7 @@ class RoundedInputField(wx.Panel):
         self.text_visible.SetHint(placeholder)
 
         # hidden text input widget
-        self.text_hidden = wx.TextCtrl(self, style=wx.TE_PASSWORD | wx.BORDER_NONE | wx.TE_PROCESS_ENTER)
+        self.text_hidden = wx.TextCtrl(self, style=style | wx.TE_PASSWORD)
         self.text_hidden.SetBackgroundColour(wx.Colour((249, 250, 251)))
         self.text_hidden.SetFont(font)
         self.text_hidden.SetHint(placeholder)
@@ -50,10 +54,13 @@ class RoundedInputField(wx.Panel):
             field_icon_bitmap = wx.StaticBitmap(self, bitmap=field_icon_bitmap)
             self.sizer.Add(field_icon_bitmap, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 20)
 
-        self.SetMinSize((0,70))
+        self.SetMinSize((0,65)) # original 70
 
-        self.sizer.Add(self.text_visible, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 20)
-        self.sizer.Add(self.text_hidden, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 20)
+        if multiline:
+            self.sizer.Add(self.text_visible, 1, wx.EXPAND | wx.ALL, 20)
+        else:
+            self.sizer.Add(self.text_visible, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 20)
+        self.sizer.Add(self.text_hidden, 1, wx.EXPAND |  wx.ALL, 20)
 
         self.text_hidden.Hide()
 

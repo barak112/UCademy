@@ -10,7 +10,7 @@ import settings
 import comments
 
 
-class Feed(wx.Panel):
+class FeedPanel(wx.Panel):
     BG_COLOR = (232, 239, 255)
 
     def __init__(self, frame, parent):
@@ -440,6 +440,6 @@ if __name__ == "__main__":
     app = wx.App()
     frame = wx.Frame(None)
     frame.SetSize((800, 600))
-    panel = Feed(frame, frame)
+    panel = FeedPanel(frame, frame)
     frame.Show()
     app.MainLoop()

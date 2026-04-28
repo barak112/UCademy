@@ -9,7 +9,7 @@ import settings
 import theme_background_panel
 import verification_code_cubes
 
-class EmailVerification(wx.Panel):
+class EmailVerificationPanel(wx.Panel):
     # graphics constants
     LEFT_COLOR = settings.THEME_COLOR
     RIGHT_COLOR = settings.OFF_WHITE

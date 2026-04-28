@@ -712,12 +712,14 @@ class ServerLogic:
 
     def handle_video_upload(self, client_ip, data):  # command 00
         file_content, extension, video_details = data
-        video_name, video_desc, test_link = video_details
-        print("Test link in video upload:",test_link, type(test_link))
+        video_name, video_desc, test_link, topics = video_details
+        print("video_name",video_name,"video_desc",video_desc,"test_link",test_link,"topics",topics)
 
         video_hash = self.hash_video(file_content)
         if not self.db.hash_exists(video_hash):
             video_id = self.db.add_video(self.clients[client_ip][0], video_name, video_desc, test_link)
+            self.db.add_video_topics(video_id, topics)
+
             with open(f"media\\videos\\{video_id}.{extension}", 'wb') as f:
                 f.write(file_content)
             self.db.add_video_hash(video_id, video_hash)
