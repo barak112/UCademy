@@ -33,7 +33,6 @@ class MainFrame(wx.Frame):
 
         self.videos_details = {}  # [video_id] = video_object
         self.videos_ids_with_file = [] # video ids of videos with both details and actual video
-        self.video_index = 0
 
         self.users = {}  # [username] = user_object
 
@@ -48,6 +47,7 @@ class MainFrame(wx.Frame):
         self.feed_panel = FeedPanel(self, self.container)
         self.pick_filter_panel = PickTopicsPanel(self, self.container, self.feed_panel)
         self.user_profile_panel = UserProfilePanel(self, self.container)
+        self.user_profile_feed_panel = FeedPanel(self, self.container)
         self.upload_video_panel = UploadVideoPanel(self, self.container)
         self.pick_video_topics_panel = PickTopicsPanel(self, self.container, self.upload_video_panel)
 
@@ -62,6 +62,7 @@ class MainFrame(wx.Frame):
         self.sizer.Add(self.user_profile_panel, 1, wx.EXPAND)
         self.sizer.Add(self.upload_video_panel, 1, wx.EXPAND)
         self.sizer.Add(self.pick_video_topics_panel, 1, wx.EXPAND)
+        self.sizer.Add(self.user_profile_feed_panel, 1, wx.EXPAND)
 
         self.container.SetSizer(self.sizer)
 

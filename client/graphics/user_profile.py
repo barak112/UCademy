@@ -10,11 +10,12 @@ import profile_widget
 import rounded_button
 import settings
 import comments
+import video_widget
 
 
 class UserProfilePanel(wx.ScrolledWindow):
     BG_COLOR = (232, 239, 255)
-    COLUMN_WIDTH = 200
+    COLUMN_WIDTH = 280
 
     RATIO = 4 / 3
 
@@ -23,7 +24,7 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         self.frame = frame
         self.parent = parent
-        self.SetScrollRate(0, 7)
+        self.SetScrollRate(0, 12)
 
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(main_sizer)
@@ -55,7 +56,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.grid_columns = 4
         self.grid_rows = 1
 
-        self.videos_grid = wx.GridSizer(self.grid_rows, self.grid_columns, 5, 5)
+        self.videos_grid = wx.GridSizer(self.grid_rows, self.grid_columns, 20, 20)
 
         videos_sizer = wx.BoxSizer(wx.VERTICAL)
         videos_sizer.Add(videos_label_and_add_video_btn_sizer, 0, wx.BOTTOM, 10)
@@ -67,7 +68,12 @@ class UserProfilePanel(wx.ScrolledWindow):
         padding_sizer.Add(videos_sizer, 1, wx.ALIGN_CENTER_HORIZONTAL)
 
 
+        # back arrow
+        back_arrow = rounded_button.RoundedButton(self, "assets\\back_arrow.png", wx.WHITE, self.BG_COLOR, circle=True, use_image=True, text_color=wx.WHITE)
+        back_arrow.SetMinSize((50, 50))
+
         # add to main_sizer
+        main_sizer.Add(back_arrow, 0, wx.ALL, 20)
         main_sizer.AddStretchSpacer()
         main_sizer.Add(padding_sizer, 0, wx.EXPAND)
         main_sizer.AddStretchSpacer()
@@ -75,50 +81,47 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         self.Bind(wx.EVT_SIZE, self.on_resize)
         self.add_video_btn.Bind(wx.EVT_LEFT_UP, self.on_move_to_upload_video)
+        back_arrow.Bind(wx.EVT_LEFT_DOWN, self.on_back_arrow)
 
-        self.Layout()
         self.FitInside()  # calculates virtual size
-
         pub.subscribe(self.user_info_ans, "user_details_in_profile_ans")
         pub.subscribe(self.video_details_ans, "video_details_in_profile_ans")
 
         self.Hide()
         #todo when clicking pfp, opens explorer to choose new photo.
         # when hovering the pfp shows a tooltip with the option to click the image to change it
+        # also be able to change topics
+
+    def video_selected(self, video):
+        # req video
+        msg = clientProtocol.build_req_video(video.video_id)
+        self.frame.comm.send_msg(msg)
+
+        # set video ids to scroll through in user_profile_feed_panel
+        self.frame.user_profile_feed_panel.videos_ids = self.video_ids
+        self.frame.user_profile_feed_panel.video_index = self.video_ids.index(video.video_id)
+        # switch to feed associated with user profile
+        self.frame.switch_panel(self.frame.user_profile_feed_panel, self)
+        # todo make sure so when scrolling through the videos, when finishing them, either req more or stop scrolling
+
+    def on_back_arrow(self, event):
+        self.frame.switch_panel(self.frame.feed_panel, self)
+        event.Skip()
 
     def on_move_to_upload_video(self, event):
         self.frame.switch_panel(self.frame.upload_video_panel, self)
         event.Skip()
 
-    def scale_thumbnail(self, thumbnail_image):
-        w, h = thumbnail_image.GetSize()
-        print("thumbnail size:", w, h)
-        column_height = self.COLUMN_WIDTH * self.RATIO
-
-
-        scale_w = self.COLUMN_WIDTH/w
-        scale_h = column_height/h
-        # if w>self.COLUMN_WIDTH and h >column_height:
-        scale = max(scale_h, scale_w)
-
-        new_w = int(w * scale)
-        new_h = int(h * scale)
-        print("new thumbnail size:", new_w, new_h)
-        return thumbnail_image.Scale(new_w, new_h, wx.IMAGE_QUALITY_HIGH)
-
     def video_details_ans(self, video):
         print("got new video in profile:", video)
         self.frame.videos_details[video.video_id] = video
-        thumbnail_path = f"media\\{video.video_id}.png"
-        if not os.path.isfile(thumbnail_path):
-            thumbnail_path = "assets\\no_thumbnail.png"
+        self.video_ids.append(video.video_id)
+        #todo make sure the videos are sorted by date, the new ones sent first
 
-        thumbnail = wx.Image(thumbnail_path)
-        thumbnail = self.scale_thumbnail(thumbnail)
-        thumbnail = wx.Bitmap(thumbnail)
+        thumbnail = video_widget.VideoWidget(self, video, self.COLUMN_WIDTH, self.RATIO)
+        self.videos_grid.Add(thumbnail, 0, wx.EXPAND)
 
-        thumbnail = wx.StaticBitmap(self, bitmap=thumbnail, size=(self.COLUMN_WIDTH, int(self.COLUMN_WIDTH * self.RATIO))) # cutting the image 9X16
-        self.videos_grid.Add(thumbnail)
+        self.FitInside()
         self.Layout()
         self.Refresh()
 
@@ -138,6 +141,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.frame.comm.send_msg(msg)
 
     def set_user(self, username):
+        self.videos_grid.Clear(True)
         self.current_user = username
         self.req_user_info(username)
 
@@ -146,7 +150,6 @@ class UserProfilePanel(wx.ScrolledWindow):
 
     def Show(self, show=True):
         super().Show()
-        self.set_user("Barak")
 
     def on_resize(self, event):
         self.Layout()

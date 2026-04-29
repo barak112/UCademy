@@ -13,16 +13,27 @@ import comments
 class FeedPanel(wx.Panel):
     BG_COLOR = (232, 239, 255)
 
-    def __init__(self, frame, parent):
+    def __init__(self, frame, parent, associated_panel = None):
         super().__init__(parent)
 
         self.frame = frame
         self.parent = parent
+
+        self.associated_panel = associated_panel
+        if not self.associated_panel:
+            self.associated_panel = self
+
         self.is_playing = True
         self.volume = 0
 
         self.scroll_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_scroll_timer, self.scroll_timer)
+
+        self.video_index = 0
+
+        self.a_video_loaded = False
+
+        self.videos_ids = []
 
         self.can_scroll = True
 
@@ -169,7 +180,6 @@ class FeedPanel(wx.Panel):
         actions_sizer.Add(account_sizer, 0, wx.TOP, 10)
 
         # comments
-        # comments_sizer = wx.BoxSizer(wx.VERTICAL)
         self.comments_panel = comments.Comments(frame, self)
         self.comments_panel.SetMinSize((400, 0))
 
@@ -209,7 +219,8 @@ class FeedPanel(wx.Panel):
         padding_sizer.AddSpacer(10)
 
         #adding comments
-        padding_sizer.Add(self.comments_panel, 10, wx.EXPAND | wx.RIGHT, 50) # top, right, bottom, left borders
+        padding_sizer.Add(self.comments_panel, 10, wx.EXPAND)
+        padding_sizer.AddSpacer(50)
 
         #adding video
         padding_sizer.Add(video_sizer, 10, wx.EXPAND)
@@ -233,6 +244,10 @@ class FeedPanel(wx.Panel):
 
         pub.subscribe(self.on_like_video_ans, "video_like_ans")
 
+        # keep the 3 panels the same size
+        self.comments_panel.SetMinSize((100, -1))
+        video_sizer.SetMinSize((100, -1))  # if video_sizer is a sizer, not a panel
+        self.desc_and_name_panel.SetMinSize((100, -1))
 
         self.Bind(wx.EVT_MOUSEWHEEL, self.on_scroll)
         self.like_btn.Bind(wx.EVT_LEFT_UP, self.on_like_video)
@@ -245,6 +260,7 @@ class FeedPanel(wx.Panel):
         self.Hide()
 
     def on_personal_account(self, event):
+        self.frame.user_profile_panel.set_user(self.frame.user.username)
         self.frame.switch_panel(self.frame.user_profile_panel, self)
         event.Skip()
 
@@ -287,6 +303,8 @@ class FeedPanel(wx.Panel):
             self.sound_btn.label_or_path = "assets\\sound_on.png"
             self.sound_label.SetLabel("sound on")
 
+        self.sound_btn.Refresh()
+
         self.video_ctrl.SetVolume(self.volume)
 
     def on_open_comments(self, event):
@@ -328,8 +346,9 @@ class FeedPanel(wx.Panel):
         self.likes_amount_label.SetLabel(str(self.frame.videos_details[video_id].amount_of_likes))
 
     def on_scroll_timer(self, event):
-        self.can_scroll = True
+        # self.can_scroll = True
         self.scroll_timer.Stop()
+        #todo remove
 
     def on_scroll(self, event):
         rotation = event.GetWheelRotation()
@@ -338,31 +357,39 @@ class FeedPanel(wx.Panel):
             self.play_label.SetLabel("pause")
 
             self.can_scroll = False
-            self.scroll_timer.Start(200)
+            # self.scroll_timer.Start(200)
 
-            if rotation > 0:
-                # return to last video
-                if self.frame.video_index > 0:
-                    self.frame.video_index -=1
-                    #loads previous video, find the id of the last video using its index and than gets its video object
-                    self.load_video(self.frame.videos_details[self.frame.videos_ids_with_file[self.frame.video_index]])
-                    # print(self.frame.video_index, self.frame.videos_ids_with_file)
+            load_a_new_video = False
+
+            if rotation > 0: # scroll up
+                # return to the previous video
+                if self.video_index > 0:
+                    self.video_index -= 1 # last video
+                    load_a_new_video = True
             else:
+                if len(self.videos_ids)>self.video_index + 1:
+                    self.video_index += 1
+                    load_a_new_video = True
+                    if isinstance(self.associated_panel, FeedPanel):
+                        msg = clientProtocol.build_req_video()
+                        self.frame.comm.send_msg(msg)
 
-                if len(self.frame.videos_ids_with_file)>self.frame.video_index + 1:
-                    self.frame.video_index += 1
-                    print("going back", self.frame.video_index)
-                    self.load_video(self.frame.videos_details[self.frame.videos_ids_with_file[self.frame.video_index]])
+            if load_a_new_video:
+                video_id = self.videos_ids[self.video_index]
+                # checks if there already is this video's file.
+                if video_id in self.frame.videos_ids_with_file:
+                    video_to_load = self.frame.videos_details[self.videos_ids[self.video_index]]
+                    self.load_video(video_to_load)
                 else:
-                    msg = clientProtocol.build_req_video()
+                    # if not, req it
+                    msg = clientProtocol.build_req_video(video_id)
                     self.frame.comm.send_msg(msg)
-                    print("req")
-
         event.Skip()
 
     def on_load(self, event):
         self.video_ctrl.Play()
         self.video_ctrl.SetVolume(self.volume)
+        self.can_scroll = True
 
     def on_toggle_play(self, event):
         self.is_playing = not self.is_playing
@@ -383,12 +410,26 @@ class FeedPanel(wx.Panel):
         if video_id:
             self.frame.videos_details[video_id] = video
 
-            self.frame.videos_ids_with_file.append(video_id)
+            if video_id not in self.frame.videos_ids_with_file:
+                self.frame.videos_ids_with_file.append(video_id)
 
-            self.frame.video_index += 1
-            self.load_video(video)
+            if video_id in self.videos_ids:
+                # if video_id was already on self.videos_ids, it means that it is part of the videos list to watch.
+                # and that the user has just requested it, and so to play it now and to make it the current video.
+                self.video_index = self.videos_ids.index(video_id)
+                self.load_video(video)
+            else:
+                self.videos_ids.append(video_id)
+
+            if not self.a_video_loaded: # checks if the video ctrl is empty
+                self.load_video(video)
+                self.a_video_loaded = True
         else:
+            # reset videos so the user could watch them again
             self.frame.change_text_status("watched all videos")
+            self.videos_ids = []
+            msg = clientProtocol.build_req_video()
+            self.frame.comm.send_msg(msg)
             print("watched all videos")
 
     def load_video(self, video):
@@ -425,9 +466,10 @@ class FeedPanel(wx.Panel):
             self.Layout()
 
     def load_new_comments(self, video_id, comments):
-        self.frame.videos_details[video_id].add_comments(comments)
-        self.comments_panel.add_comments(comments)
-        self.update_comments_label(video_id)
+        if video_id in self.frame.videos_details:
+            self.frame.videos_details[video_id].add_comments(comments)
+            self.comments_panel.add_comments(comments)
+            self.update_comments_label(video_id)
 
     def update_comments_label(self, video_id):
         self.comments_amount_label.SetLabel(str(self.frame.videos_details[video_id].amount_of_comments))

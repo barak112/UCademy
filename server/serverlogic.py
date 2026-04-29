@@ -639,7 +639,8 @@ class ServerLogic:
         if video_id:
             self.send_video_and_details(client_ip, video_id)
             self.handle_comments_req(client_ip, [video_id, 0])
-            self.db.add_watched_video(username, video_id)
+            if not self.db.has_watched_video(username, video_id):
+                self.db.add_watched_video(username, video_id)
         else:
             self.db.remove_watched_videos_for_user(username)
             msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)

@@ -250,10 +250,11 @@ class LoginPanel(wx.Panel):
         if status:
             self.frame.video_comm = video_comm
             self.frame.user = user
-            # send video req
+
+            # req videos from server for feed panel
             msg = clientProtocol.build_req_video()
-            print("send req in log in")
-            self.frame.comm.send_msg(msg)
+            for req in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
+                self.frame.comm.send_msg(msg)
 
             self.frame.switch_panel(self.frame.feed_panel, self)
 

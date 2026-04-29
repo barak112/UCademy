@@ -101,9 +101,12 @@ class PickTopicsPanel(wx.ScrolledWindow):
 
     def set_selected_topics(self, topics:list[str]):
         # deselects all topics
-        for already_selected_topic in self.selected_topics:
+        print("selected topics before removing ones:",self.selected_topics)
+        for already_selected_topic in self.selected_topics.copy(): # copy so the list wont change during the iteration
             self.topic_selected(already_selected_topic)
+            print("removing current topic: ", already_selected_topic, self.selected_topics)
 
+        print("selected topics before new ones:",self.selected_topics)
         # selects the new ones
         for topic in topics:
             self.topic_selected(topic)
@@ -128,6 +131,7 @@ class PickTopicsPanel(wx.ScrolledWindow):
         print("switching to feed panel")
 
     def topic_selected(self, topic_name):
+        # print("topic_name:",topic_name, "selected:", topic_name in self.selected_topics)
         if topic_name in self.selected_topics:
             self.selected_topics.remove(topic_name)
             for i in range(1, settings.TOPIC_WIDGET_GROWTH + 1):
@@ -213,6 +217,7 @@ class PickTopicsPanel(wx.ScrolledWindow):
                 #topics selected text
                 gc.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL), wx.BLACK)
                 topics_selected_text = f"{len(self.selected_topics)} topics selected"
+                print(f"active_topics = {self.selected_topics}")
                 tw, th = gc.GetTextExtent(topics_selected_text)
                 gc.DrawText(topics_selected_text, (w - tw) // 2, self.grid_start_pos+self.grid.GetSize().GetHeight()+20)
 

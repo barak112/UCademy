@@ -128,7 +128,13 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
         padded_sizer.AddSpacer(20)
 
+        # back arrow
+        back_arrow = rounded_button.RoundedButton(self, "assets\\back_arrow.png", wx.WHITE, self.BG_COLOR, circle=True,
+                                                  use_image=True, text_color=wx.WHITE)
+        back_arrow.SetMinSize((50, 50))
+
         # add to main_sizer
+        main_sizer.Add(back_arrow, 0, wx.ALL, 20)
         main_sizer.AddStretchSpacer()
         main_sizer.Add(padded_sizer, 2, wx.EXPAND)
         main_sizer.AddStretchSpacer()
@@ -138,8 +144,13 @@ class UploadVideoPanel(wx.ScrolledWindow):
         self.pick_video_btn.Bind(wx.EVT_LEFT_DOWN, self.on_pick_video)
         self.pick_topics_btn.Bind(wx.EVT_LEFT_DOWN, self.on_topics_pick)
         self.upload_video_btn.Bind(wx.EVT_LEFT_DOWN, self.on_upload_video)
+        back_arrow.Bind(wx.EVT_LEFT_DOWN, self.on_back_arrow)
 
         self.Hide()
+
+    def on_back_arrow(self, event):
+        self.frame.switch_panel(self.frame.user_profile_panel, self)
+        event.Skip()
 
     def field_is_filled(self, field_name):
         self.filled_fields[field_name] = True
@@ -185,6 +196,7 @@ class UploadVideoPanel(wx.ScrolledWindow):
     def handle_set_topics(self, topics:list[int]):
         self.topic_ids = topics
         self.topic_names = [settings.TOPICS[topic_id] for topic_id in topics] # build topic names from settings.TOPICS
+        print("topic_names:",self.topic_names)
         self.frame.switch_panel(self, self.frame.pick_video_topics_panel) # switch back to this panel from pick video topics
 
 
@@ -213,12 +225,9 @@ class UploadVideoPanel(wx.ScrolledWindow):
                 # send thumbnail file
                 self.frame.video_comm.send_file("1.png", self.thumbnail_path)
 
-
                 # send video details
                 # msg = clientProtocol.build_video_details(video_name, description, test_link, self.topic_ids)
                 # self.frame.video_comm.send_msg(msg)
-
-
 
         event.Skip()
 
