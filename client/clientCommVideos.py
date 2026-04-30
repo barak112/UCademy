@@ -16,7 +16,6 @@ class ClientCommVideos (clientComm.ClientComm):
             try:
 
                 data_len = int(self.my_socket.recv(settings.MESSAGE_LENGTH_LENGTH).decode())
-                print("data_len:",data_len)
                 data = self.my_socket.recv(data_len).decode()
 
             except Exception as e:

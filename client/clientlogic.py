@@ -96,22 +96,21 @@ class ClientLogic:
 
         print("sign in status:", status)
         if status:
-            video_port, username, followers_amount, followings_amount, videos_amount, email, topics, followings_names = data[
+            video_port, username, followers_amount, followings_amount, videos_ids, email, topics, followings_names = data[
                 1:]
 
 
-            self.video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, int(video_port), self.recvQ)
-            self.video_comm.connect()
+            video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, int(video_port), self.recvQ)
+            video_comm.connect()
 
             followers_amount = int(followings_amount)
             followings_amount = int(followings_amount)
-            videos_amount = int(videos_amount)
 
-            self.user = user.User(username, followers_amount, followings_amount, videos_amount, email, topics,
+            user_obj = user.User(username, followers_amount, followings_amount, videos_ids, email, topics,
                                   followings_names)
 
             print(f"signed in as {username}")
-            wx.CallAfter(pub.sendMessage, "login_ans", status=status, video_comm=self.video_comm, user=self.user)
+            wx.CallAfter(pub.sendMessage, "login_ans", status=status, video_comm=video_comm, user=user_obj)
         else:
             wx.CallAfter(pub.sendMessage, "login_ans", status=status)
             print("one of the credentials inputted is incorrect")
@@ -132,11 +131,11 @@ class ClientLogic:
 
     @staticmethod
     def get_user_obj(data): # helper function
-        username, followers_amount, followings_amount, videos_amount = data
+        username, followers_amount, followings_amount, videos_ids = data
         followers_amount = int(followers_amount)
         followings_amount = int(followings_amount)
-        videos_amount = int(videos_amount)
-        user_details = user.User(username, followers_amount, followings_amount, videos_amount)
+        videos_ids = [int(i) for i in videos_ids]
+        user_details = user.User(username, followers_amount, followings_amount, videos_ids)
         return user_details
 
     def handle_video_details_in_search(self, data):  # command 6
@@ -146,11 +145,11 @@ class ClientLogic:
     @staticmethod
     def get_video_obj(data): # helper function
         video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = data
+        print("video_id:",video_id,"comments amount:", comments_amount)
         video_id = int(video_id)
         comments_amount = int(comments_amount)
-        likes_amount = int(comments_amount)
+        likes_amount = int(likes_amount)
         liked = bool(int(liked))
-
         video_details = video.Video(video_id, creator, video_name, video_desc, created_at, likes_amount,
                                     comments_amount, liked)
         return video_details
@@ -214,7 +213,7 @@ class ClientLogic:
             print(
                 f"comment added: comment_id: {comment_id} content: {comment_content} by {commenter} created at {created_at}")
 
-        print("video id:", video_id)
+        print("video id in handle comments:", video_id)
         wx.CallAfter(pub.sendMessage, "load_new_comments", video_id = video_id, comments = comments)
             #todo maybe change so that comments are sent as video_id@#[...]@#[...]@#[...] so the video id wouldnt be sent with each comment
 

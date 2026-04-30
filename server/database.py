@@ -34,14 +34,14 @@ class DataBase:
 
     def print_tables(self):
         """
-        Print the first 40 rows of every table in the database for debugging purposes.
+        Print the first 200 rows of every table in the database for debugging purposes.
         """
         self.cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = [t[0] for t in self.cur.fetchall()]
 
         for table in tables:
             print(f"\nTable: {table}")
-            self.cur.execute(f"SELECT * FROM {table} LIMIT 40;")
+            self.cur.execute(f"SELECT * FROM {table} LIMIT 200;")
             rows = self.cur.fetchall()
             for row in rows:
                 print(row)
@@ -319,12 +319,10 @@ class DataBase:
         :return: List of video IDs sorted by number of views
         """
         self.cur.execute("""
-                         SELECT videos.video_id, COUNT(watched_videos.username) AS views
-                         FROM videos
-                                  LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id
+                         SELECT video_id, created_at 
+                         from videos
                          WHERE videos.creator = ?
-                         GROUP BY videos.video_id
-                         ORDER BY views DESC
+                         ORDER BY created_at DESC 
                          """, (username,))
 
         results = self.cur.fetchall()
@@ -371,10 +369,10 @@ class DataBase:
         if matter_deleted:
             query += "AND videos.deleted = 0"
 
-        print("video id in get specific video: ", video_id)
         self.cur.execute(query, (video_id,))
 
         ret_val = self.cur.fetchone()
+        print("video id in get specific video: ", video_id, "likes amount: ", ret_val[4], "comments amount: ", ret_val[5])
         return ret_val
 
 
@@ -401,15 +399,6 @@ class DataBase:
         """
         self.cur.execute("UPDATE videos SET deleted = 1 WHERE video_id = ?", (video_id,))
         self.conn.commit()
-
-    def get_videos_amount(self, username):
-        """
-        Counts how many videos a user has.
-        :param username: Creator username
-        :return: Number of videos created by the user
-        """
-        self.cur.execute("SELECT COUNT(*) FROM videos WHERE creator = ?", (username,))
-        return self.cur.fetchone()[0]
 
     def get_video_test_link(self, video_id):
         """
@@ -1111,8 +1100,8 @@ if __name__ == "__main__":
     print("\n\n")
 
     # --- testing ---
-
     # print(db.search_videos("ella", []))
+    print(db.get_videos_by_creator("Barak"))
 
     # # --- users ---
     # db.cur.execute("DROP TABLE IF EXISTS users")

@@ -127,6 +127,9 @@ class PickTopicsPanel(wx.ScrolledWindow):
         # send video req
         msg = clientProtocol.build_req_video()
         self.frame.comm.send_msg(msg)
+        self.frame.video_requests_by_feeds.append(self.frame.feed_panel)
+        self.frame.comments_requests_by_feeds.append(self.frame.feed_panel)
+
         self.frame.switch_panel(self.frame.feed_panel, self)
         print("switching to feed panel")
 

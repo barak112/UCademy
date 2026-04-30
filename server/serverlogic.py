@@ -284,13 +284,13 @@ class ServerLogic:
 
             followers_amount = self.db.get_followers_amount(username)
             followings_amount = self.db.get_following_amount(username)
-            videos_amount = self.db.get_videos_amount(username)
+            videos_ids = self.db.get_videos_by_creator(username)
 
             topics = self.db.get_user_topics(username)
             email = self.db.get_user_email(username)
             followings_names = self.db.get_followings(username)
             msg = serverProtocol.build_sign_in_status(1,self.current_video_port,username, followers_amount,
-                                                      followings_amount, videos_amount, email, topics, followings_names)
+                                                      followings_amount, videos_ids, email, topics, followings_names)
             self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), []]
             self.pfps_sent[client_ip] = []
             self.current_video_port += 1
@@ -380,8 +380,9 @@ class ServerLogic:
             if self.db.user_exists(username):
                 followers_amount = self.db.get_followers_amount(username)
                 followings_amount = self.db.get_following_amount(username)
-                videos_amount = self.db.get_videos_amount(username)
-                msg = serverProtocol.build_user_details_in_search(username, followers_amount, followings_amount, videos_amount)
+                videos_ids = self.db.get_videos_by_creator(username)
+                msg = serverProtocol.build_user_details_in_search(username, followers_amount, followings_amount,
+                                                                  videos_ids)
                 self.comm.send_msg(client_ip, msg)
 
                 #sends the user's pfp if the client doesnt already have it
@@ -471,24 +472,25 @@ class ServerLogic:
         username = data[0]
 
         user_details = self.get_user_details(username)
-        msg = serverProtocol.build_user_details_in_profile(*user_details)
 
         # sends the user's pfp if the client doesnt already have it
         self.send_pfp(client_ip, username)
 
+        # sends the user's details
+        msg = serverProtocol.build_user_details_in_profile(*user_details)
         self.clients[client_ip][1].send_msg(client_ip, msg)
 
     def get_user_details(self, username):
         followers_amount = -1
         followings_amount = -1
-        videos_amount = -1
+        videos_ids = -1
 
         if self.db.user_exists(username):
             followers_amount = self.db.get_followers_amount(username)
             followings_amount = self.db.get_following_amount(username)
-            videos_amount = self.db.get_videos_amount(username)
+            videos_ids = self.db.get_videos_by_creator(username)
 
-        return username, followers_amount, followings_amount, videos_amount
+        return username, followers_amount, followings_amount, videos_ids
 
     def handle_report(self, client_ip, data):  # command 9
         id, type = data # 0 - comment, 1 - video
@@ -532,22 +534,21 @@ class ServerLogic:
             last_comment_id is the last comment's id the client has received.
             if last_comment_id = 0. it means that its the first time the client has requested comments.
         """
-        print("comments req arrived at handle")
-        video_id, is_next_send = data
+        video_id, last_id = data
+        print("comments req arrived at handle", video_id)
 
-        is_next_send = int(is_next_send)
+        last_id = int(last_id)
 
-        if is_next_send and client_ip in self.comments_to_send:
-            comments = self.comments_to_send[client_ip]
-            #clears non existent comments (incase they were deleted)
-            comments = [i for i in comments if self.db.comment_exists(i[0])]
-        else:
-            comments = self.db.get_comments(video_id, self.clients[client_ip][0])
+        comments = self.db.get_comments(video_id, self.clients[client_ip][0])
+        comments_ids = [i[0] for i in comments]
+
+        start_index = 0
+        if last_id:
+            start_index = comments_ids.index(last_id) + 1
+
         print("comments:",repr(comments), "commentslen",len(comments))
-        comments_to_send = comments[:settings.AMOUNT_OF_COMMENTS_TO_SEND]
-        self.comments_to_send[client_ip] = comments[settings.AMOUNT_OF_COMMENTS_TO_SEND:]
-
-        print("comments_to_send:",comments_to_send)
+        comments_to_send = comments[start_index:start_index+settings.AMOUNT_OF_COMMENTS_TO_SEND]
+        print(f"comments_to_send for video {video_id}:",comments_to_send)
 
 
         commenters = {i[2] for i in comments_to_send}
@@ -585,17 +586,15 @@ class ServerLogic:
         self.comm.send_msg(client_ip, msg)
 
     def handle_creator_videos_req(self, client_ip, data):  # command 13
-        username, last_id = data
-
-        last_id = int(last_id)
-        if last_id and last_id in self.videos_to_send[client_ip]:
+        username, send_next = data
+        send_next = int(send_next)
+        if send_next and client_ip in self.videos_to_send:
             videos_ids = self.videos_to_send[client_ip]
-            starting_index = videos_ids.index(last_id)+1
         else:
             videos_ids = self.db.get_videos_by_creator(username)
-            starting_index = 0
-        
-        videos_to_send = videos_ids[starting_index:starting_index+settings.AMOUNT_OF_VIDEOS_TO_SEND]
+
+        videos_to_send = videos_ids[:settings.AMOUNT_OF_VIDEOS_TO_SEND]
+        self.videos_to_send[client_ip] = videos_ids[settings.AMOUNT_OF_VIDEOS_TO_SEND:]
 
         print(f"videos_to_send in creator video req: {videos_to_send}")
         
@@ -633,7 +632,6 @@ class ServerLogic:
         video_id = int(data[0])
         username = self.clients[client_ip][0]
         if not video_id:
-            print("user's filter:", self.clients[client_ip][2])
             video_id = self.db.get_video_for_user(username, self.clients[client_ip][2])
 
         if video_id:
@@ -643,9 +641,8 @@ class ServerLogic:
                 self.db.add_watched_video(username, video_id)
         else:
             self.db.remove_watched_videos_for_user(username)
-            self.handle_video_req(client_ip, data)
-            # msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
-            # self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
+            msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
+            self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
 
 
     def send_video_and_details(self, client_ip, video_id):  # helper function

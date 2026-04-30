@@ -1,6 +1,7 @@
 import time
 
 import wx
+from pubsub import pub
 
 import clientProtocol
 import video
@@ -31,13 +32,15 @@ class MainFrame(wx.Frame):
         self.video_comm = None
         self.user = None
 
+        # video_details only contains videos with a video file
         self.videos_details = {}  # [video_id] = video_object
-        self.videos_ids_with_file = [] # video ids of videos with both details and actual video
 
         self.users = {}  # [username] = user_object
 
-        # todo in feed, for each req add to this list. maybe make it a queue.
-        self.video_requests_by_feeds = [] # [feed_associated_panel]
+        self.video_requests_by_feeds = [] # [feed_panel]
+        self.comments_requests_by_feeds = [] # [feed_panel]
+        self.comment_requests_by_feeds = [] # [feed_panel]
+        self.like_requests_by_feeds = [] # [feed_panel]
 
         self.CreateStatusBar()
 
@@ -84,6 +87,32 @@ class MainFrame(wx.Frame):
         # demo_video = video.Video(4, "", "", "", "", 5, 10, False)
         # self.feed_panel.load_video(demo_video)
         # self.comm.send_msg(msg)
+
+        pub.subscribe(self.load_new_video, "load_new_video")
+
+        pub.subscribe(self.load_new_comments, "load_new_comments")
+
+        pub.subscribe(self.on_like_video_ans, "video_like_ans")
+
+        pub.subscribe(self.on_add_comment_ans, "added_comment")
+
+    def load_new_video(self, video):
+        correct_feed_panel = self.video_requests_by_feeds.pop(0)
+        correct_feed_panel.load_new_video(video)
+
+    def load_new_comments(self, video_id, comments):
+        print("loading new comments:", self.comments_requests_by_feeds)
+        correct_feed_panel = self.comments_requests_by_feeds.pop(0)
+        correct_feed_panel.load_new_comments(video_id, comments)
+
+
+    def on_like_video_ans(self, status, video_id):
+        correct_feed_panel = self.like_requests_by_feeds.pop(0)
+        correct_feed_panel.on_like_video_ans(status, video_id)
+
+    def on_add_comment_ans(self, video_id, comment):
+        correct_feed_panel = self.comment_requests_by_feeds.pop(0)
+        correct_feed_panel.on_add_comment_ans(video_id, comment)
 
     def switch_panel(self, new_panel, old_panel):
         old_panel.Hide()

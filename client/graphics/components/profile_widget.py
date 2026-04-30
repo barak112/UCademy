@@ -104,7 +104,7 @@ class ProfileWidget(wx.Panel):
     def set_user(self, user):
         self.current_user = user
         self.username_label.SetLabel(user.username)
-        self.videos_numeric_amount_label.SetLabel(str(user.video_amount))
+        self.videos_numeric_amount_label.SetLabel(str(user.get_video_amount()))
         self.followers_numeric_amount_label.SetLabel(str(user.followers_amount))
         self.following_numeric_amount_label.SetLabel(str(user.followings_amount))
         self.update_pfp()

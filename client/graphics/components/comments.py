@@ -1,5 +1,6 @@
 import math
 import os
+import threading
 
 import wx
 import wx.media
@@ -78,13 +79,35 @@ class Comments(wx.Panel):
 
         self.SetSizer(main_sizer)
 
-        pub.subscribe(self.on_add_comment_ans, "added_comment")
-
         self.add_comment_field.get_text_visible().Bind(wx.EVT_TEXT_ENTER, self.on_enter)
 
         self.call_date_to_ago_timer = wx.Timer()
         self.Bind(wx.EVT_TIMER, self.call_date_to_ago, self.call_date_to_ago_timer)
         self.call_date_to_ago_timer.Start(1000*60) # every minute
+        self.comments_panel.Bind(wx.EVT_SCROLLWIN, self.on_scroll)
+        self.waiting_for_comments = False
+
+    def on_scroll(self, event):
+        event_type = event.GetEventType()
+
+        scrolling_up = event_type in (wx.wxEVT_SCROLLWIN_LINEDOWN, wx.wxEVT_SCROLLWIN_PAGEDOWN, wx.wxEVT_SCROLLWIN_THUMBTRACK)
+
+        if scrolling_up:
+            current = self.comments_panel.GetScrollPos(wx.VERTICAL)
+            max_pos = self.comments_panel.GetScrollRange(wx.VERTICAL) - self.comments_panel.GetScrollThumb(wx.VERTICAL)
+            if self.video.amount_of_comments > len(self.video.get_comments()) and self.video.get_comments():
+                if not self.waiting_for_comments: # if there are more comments to req from the server
+                    if current >= max_pos - 40:
+                        msg = clientProtocol.build_req_comments(self.video.video_id, self.video.get_comments()[-1].comment_id)
+                        self.frame.comm.send_msg(msg)
+                        self.frame.comments_requests_by_feeds.append(self.parent)
+                        self.waiting_for_comments = True
+                        self.frame.change_text_status("waiting for comments from server")
+                        print("req more comments")
+            elif current >= max_pos:
+                self.frame.change_text_status("no more comments to load")
+
+        event.Skip()
 
     def update_pfp_bitmap(self):
         user = self.frame.user
@@ -114,8 +137,10 @@ class Comments(wx.Panel):
         if comment and self.video:
             msg = clientProtocol.build_comment(self.video.video_id, comment)
             self.frame.comm.send_msg(msg)
-            print("sending comment:",comment)
+            self.frame.comment_requests_by_feeds.append(self.parent)
             self.add_comment_field.set_value("")
+        if event:
+            event.Skip()
 
 
     def on_add_comment_ans(self, video_id, comment):
@@ -126,25 +151,36 @@ class Comments(wx.Panel):
             # add comment visually
             comment_panel = comment_widget.CommentWidget(self.comments_panel, comment)
             self.comments_sizer.Insert(0, comment_panel, 0, wx.EXPAND)
-            self.comments_amount_label.SetLabel(f"{self.video.amount_of_comments} comments")
+            self.update_comments_label()
             print("amount of comments:", self.video.amount_of_comments)
             self.parent.update_comments_label(video_id)
             self.Layout()
             print("added comment ")
 
     def add_comments(self, comments):
+        self.comments_panel.Freeze()
+
         for a_comment in comments:
             comment_panel = comment_widget.CommentWidget(self.comments_panel, a_comment)
             self.comments_sizer.Add(comment_panel, 0, wx.EXPAND)
+
+        self.comments_panel.Thaw()
+
+        self.waiting_for_comments = False
         self.Layout()
+        self.comments_panel.FitInside()
 
     def set_video(self, video):
         self.video = video
         self.comments_sizer.Clear(True) # clears prev comments
+        print("video_id in set_video:",video.video_id, "comments:",video.comments)
+
         self.add_comments(video.get_comments()) # if comments already exist with the video (the video already existed)
+
         self.update_comments_label()
         self.Layout()
         self.Refresh()
+        self.comments_panel.Scroll(0, 0)
 
     def update_comments_label(self):
         self.comments_amount_label.SetLabel(f"{self.video.amount_of_comments} comments")

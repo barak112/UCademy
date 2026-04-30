@@ -255,6 +255,8 @@ class LoginPanel(wx.Panel):
             msg = clientProtocol.build_req_video()
             for req in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
                 self.frame.comm.send_msg(msg)
+                self.frame.video_requests_by_feeds.append(self.frame.feed_panel)
+                self.frame.comments_requests_by_feeds.append(self.frame.feed_panel)
 
             self.frame.switch_panel(self.frame.feed_panel, self)
 

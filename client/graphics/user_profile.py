@@ -38,8 +38,6 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         # profile info
         self.profile_info = profile_widget.ProfileWidget(self.frame, self)
-        # profile_info.SetMinSize((400, 100))
-        # profile_info.SetBackgroundColour(wx.BLACK)
 
         # videos grid
         videos_label_and_add_video_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -97,9 +95,12 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.frame.user_profile_feed_panel.waiting_for_video = True
         msg = clientProtocol.build_req_video(video.video_id)
         self.frame.comm.send_msg(msg)
+        self.frame.video_requests_by_feeds.append(self.frame.user_profile_feed_panel)
+        self.frame.comments_requests_by_feeds.append(self.frame.user_profile_feed_panel)
 
         # set video ids to scroll through in user_profile_feed_panel
-        self.frame.user_profile_feed_panel.videos_ids = self.video_ids
+        self.frame.user_profile_feed_panel.videos_ids = self.current_user.videos_ids + [0] # 0 indicates the end of the ids list
+        print("ids list:", self.frame.user_profile_feed_panel.videos_ids)
         # switch to feed associated with user profile
         self.frame.switch_panel(self.frame.user_profile_feed_panel, self)
         # todo make sure so when scrolling through the videos, when finishing them, either req more or stop scrolling
@@ -115,7 +116,6 @@ class UserProfilePanel(wx.ScrolledWindow):
 
     def video_details_ans(self, video):
         print("got new video in profile:", video)
-        self.frame.videos_details[video.video_id] = video
         self.video_ids.append(video.video_id)
         #todo make sure the videos are sorted by date, the new ones sent first
 
@@ -130,7 +130,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.frame.users[user.username] = user
         self.current_user = user
         self.profile_info.set_user(user)
-        self.grid_rows = math.ceil(user.video_amount / self.grid_columns)
+        self.grid_rows = math.ceil(user.get_video_amount() / self.grid_columns)
         print("grid rows:", self.grid_rows)
         self.videos_grid.SetRows(self.grid_rows)
         print("user ans:",user)
@@ -149,8 +149,6 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.Layout()
         self.Refresh()
 
-    def Show(self, show=True):
-        super().Show()
 
     def on_resize(self, event):
         self.Layout()

@@ -59,8 +59,8 @@ def build_report(id, type):
     return build_command(9, [id, type])
 
 
-def build_req_comments(video_id, send_next:bool = False):
-    return build_command(10, [video_id, int(send_next)])
+def build_req_comments(video_id, last_id = 0):
+    return build_command(10, [video_id, last_id])
 
 
 def build_del_video(video_id):

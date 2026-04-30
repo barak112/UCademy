@@ -26,8 +26,8 @@ def build_email_verification_confirmation(status, username = None, email = None,
     return build_command(1, [status, username, email, port])
 
 def build_sign_in_status(status, port = None, username = None, followers_amount = None,
-                         followings_amount = None, videos_amount = None, email = None, topics = None, followings_names = None):
-    return build_command(2, [status, port, username, followers_amount, followings_amount, videos_amount, email, topics,
+                         followings_amount = None, videos_ids = None, email = None, topics = None, followings_names = None):
+    return build_command(2, [status, port, username, followers_amount, followings_amount, videos_ids, email, topics,
                              followings_names])
 
 
@@ -39,10 +39,10 @@ def build_set_filter_confirmation(filter):
     return build_command(4, [filter])
 
 
-def build_user_details_in_search(username, followers_amount, followings_amount, videos_amount):
+def build_user_details_in_search(username, followers_amount, followings_amount, videos_ids):
     return build_command(
         5,
-        [username, followers_amount, followings_amount, videos_amount]
+        [username, followers_amount, followings_amount, videos_ids]
     )
 
 
@@ -59,8 +59,8 @@ def build_comment_status(comment_id, video_id, commenter, comment, created_at):
     return build_command(7, [comment_id, video_id, commenter, comment, created_at])
 
 
-def build_user_details_in_profile(username, followers_amount, followings_amount, videos_amount):
-    return build_command(8, [username, followers_amount, followings_amount, videos_amount])
+def build_user_details_in_profile(username, followers_amount, followings_amount, videos_ids):
+    return build_command(8, [username, followers_amount, followings_amount, videos_ids])
 
 
 def build_report_status(status, id, type, content, content_publisher, created_at = ""):
@@ -87,10 +87,10 @@ def build_video_details_in_profile(video_id, creator_name, video_name, video_des
          comments_amount, liked]
     )
 
-def build_user_details_follow_list(username, followers_amount, followings_amount, videos_amount):
+def build_user_details_follow_list(username, followers_amount, followings_amount, videos_ids):
     return build_command(
         14,
-        [username, followers_amount, followings_amount, videos_amount]
+        [username, followers_amount, followings_amount, videos_ids]
     )
 
 

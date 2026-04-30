@@ -40,7 +40,6 @@ class Video:
     def add_comments(self, comments : list[comment.Comment]):
         """adds multiple comments to this video's comments list"""
         self.comments.update({comment.comment_id : comment for comment in comments})
-        self.amount_of_comments = len(self.comments)
 
     # def get_comments(self) -> dict[int, comment.Comment]:
     #     """returns a list of comments associated with this video"""
