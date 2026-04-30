@@ -16,6 +16,7 @@ class RoundedButton(wx.Panel):
         super().__init__(parent)
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+        self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
         self.SetDoubleBuffered(True)
         self.SetWindowStyleFlag(wx.WANTS_CHARS)
         self.SetMinSize((0, settings.BUTTON_SIZE_Y))

@@ -31,7 +31,7 @@ class FeedPanel(wx.Panel):
 
         self.video_index = 0
 
-        self.a_video_loaded = False
+        self.waiting_for_video = True
 
         self.videos_ids = []
 
@@ -67,6 +67,8 @@ class FeedPanel(wx.Panel):
         personal_account_sizer = wx.BoxSizer(wx.VERTICAL)
         img_path = "assets\\null_pfp.png"
         self.personal_account_btn = wx.StaticBitmap(self, bitmap=wx.Bitmap(img_path))
+        self.personal_account_btn.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+
         self.personal_account_btn.Bind(wx.EVT_LEFT_UP, self.on_personal_account)
         self.personal_account_label = wx.StaticText(self, label="Profile")
 
@@ -94,6 +96,8 @@ class FeedPanel(wx.Panel):
 
         play_sizer.Add(self.play_btn)
         play_sizer.Add(self.play_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        self.play_sizer = play_sizer
 
         # sound/mute
         sound_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -159,6 +163,7 @@ class FeedPanel(wx.Panel):
         img_path = "assets\\null_pfp.png"
 
         self.account_btn = wx.StaticBitmap(self, bitmap=wx.Bitmap(img_path))
+        self.account_btn.SetCursor(wx.Cursor(wx.CURSOR_HAND))
 
         self.account_label = wx.StaticText(self)
 
@@ -238,6 +243,7 @@ class FeedPanel(wx.Panel):
 
         self.SetSizer(main_sizer)
 
+        #todo subscribe to different events for diffrent feeds or use self.isShown
         pub.subscribe(self.load_new_video, "load_new_video")
 
         pub.subscribe(self.load_new_comments, "load_new_comments")
@@ -304,7 +310,6 @@ class FeedPanel(wx.Panel):
             self.sound_label.SetLabel("sound on")
 
         self.sound_btn.Refresh()
-
         self.video_ctrl.SetVolume(self.volume)
 
     def on_open_comments(self, event):
@@ -327,12 +332,11 @@ class FeedPanel(wx.Panel):
         video = self.frame.videos_details[video_id]
         video.amount_of_likes += 1 if status else -1 # either + 1 or - 1
         video.liked = bool(status) # update liked
+        print("got like ans:", "status:", status, "new amount:",video.amount_of_likes)
 
         if video_id == self.current_video_id:
             self.update_like_button(status)
             self.update_likes_amount_label(video_id)
-
-        self.like_btn.Refresh()
 
     def update_like_button(self, is_liked):
         if is_liked:
@@ -344,11 +348,11 @@ class FeedPanel(wx.Panel):
 
     def update_likes_amount_label(self, video_id):
         self.likes_amount_label.SetLabel(str(self.frame.videos_details[video_id].amount_of_likes))
+        print("set label to:", str(self.frame.videos_details[video_id].amount_of_likes))
 
     def on_scroll_timer(self, event):
-        # self.can_scroll = True
+        self.can_scroll = True
         self.scroll_timer.Stop()
-        #todo remove
 
     def on_scroll(self, event):
         rotation = event.GetWheelRotation()
@@ -357,39 +361,50 @@ class FeedPanel(wx.Panel):
             self.play_label.SetLabel("pause")
 
             self.can_scroll = False
-            # self.scroll_timer.Start(200)
+            self.scroll_timer.Start(200)
 
             load_a_new_video = False
+            new_index = self.video_index
 
             if rotation > 0: # scroll up
                 # return to the previous video
                 if self.video_index > 0:
-                    self.video_index -= 1 # last video
+                    new_index -= 1 # last video
                     load_a_new_video = True
             else:
                 if len(self.videos_ids)>self.video_index + 1:
-                    self.video_index += 1
+                    new_index += 1
                     load_a_new_video = True
                     if isinstance(self.associated_panel, FeedPanel):
                         msg = clientProtocol.build_req_video()
                         self.frame.comm.send_msg(msg)
+                else:
+                    # in the feed, the amount settings.VIDEOS_TO_REQ of videos that was req from the server were
+                    # all watched, and so now waiting for the new videos to arrive.
+                    #todo handle req new videos in profile or firsly all of the user's video ids list
+                    self.waiting_for_video = True
+                    self.frame.change_text_status("waiting for video from server...")
 
             if load_a_new_video:
-                video_id = self.videos_ids[self.video_index]
+                video_id = self.videos_ids[new_index]
                 # checks if there already is this video's file.
                 if video_id in self.frame.videos_ids_with_file:
-                    video_to_load = self.frame.videos_details[self.videos_ids[self.video_index]]
+                    video_to_load = self.frame.videos_details[self.videos_ids[new_index]]
                     self.load_video(video_to_load)
+                    self.video_index = new_index
                 else:
-                    # if not, req it
+                    # if not, req it and dont set new index
                     msg = clientProtocol.build_req_video(video_id)
                     self.frame.comm.send_msg(msg)
+                    self.waiting_for_video = True
+                    self.frame.change_text_status("waiting for video from server...")
+                    # if now req video, then you need to wait for it to arrive from the servr
         event.Skip()
 
     def on_load(self, event):
         self.video_ctrl.Play()
         self.video_ctrl.SetVolume(self.volume)
-        self.can_scroll = True
+        # self.can_scroll = True
 
     def on_toggle_play(self, event):
         self.is_playing = not self.is_playing
@@ -401,9 +416,10 @@ class FeedPanel(wx.Panel):
             self.video_ctrl.Pause()
             self.play_btn.label_or_path = "assets\\play.png"
             self.play_label.SetLabel("play")
-        self.Layout()
+        self.play_sizer.Layout()
 
     def load_new_video(self, video):
+        print("loading new video:", type(self.associated_panel).__name__)
         video_id = video.video_id
         #todo req ~6 videos and then each timer req another one, so never stuck
         #todo send pfps together with the video and in signup
@@ -413,17 +429,22 @@ class FeedPanel(wx.Panel):
             if video_id not in self.frame.videos_ids_with_file:
                 self.frame.videos_ids_with_file.append(video_id)
 
-            if video_id in self.videos_ids:
-                # if video_id was already on self.videos_ids, it means that it is part of the videos list to watch.
-                # and that the user has just requested it, and so to play it now and to make it the current video.
-                self.video_index = self.videos_ids.index(video_id)
-                self.load_video(video)
-            else:
+            # if video_id in self.videos_ids:
+            #     # if video_id was already on self.videos_ids, it means that it is part of the videos list to watch.
+            #     # and that the user has just requested it, and so to play it now and to make it the current video.
+            #     self.video_index = self.videos_ids.index(video_id)
+            #     self.load_video(video)
+            # else:
+            #     self.videos_ids.append(video_id)
+
+            if video_id not in self.videos_ids:
                 self.videos_ids.append(video_id)
 
-            if not self.a_video_loaded: # checks if the video ctrl is empty
+            if self.waiting_for_video: # checks if waiting for a video to arrive from server, if so, load it immediately
                 self.load_video(video)
-                self.a_video_loaded = True
+                self.video_index = self.videos_ids.index(video_id)
+                self.waiting_for_video = False
+                self.frame.change_text_status("video_loaded!")
         else:
             # reset videos so the user could watch them again
             self.frame.change_text_status("watched all videos")
@@ -450,7 +471,6 @@ class FeedPanel(wx.Panel):
             self.update_like_button(video.liked)
             self.update_likes_amount_label(video_id)
             self.update_comments_label(video_id)
-            self.comments_panel.update_comments_label()
 
             self.update_video_desc_and_name()
 
@@ -469,7 +489,6 @@ class FeedPanel(wx.Panel):
         if video_id in self.frame.videos_details:
             self.frame.videos_details[video_id].add_comments(comments)
             self.comments_panel.add_comments(comments)
-            self.update_comments_label(video_id)
 
     def update_comments_label(self, video_id):
         self.comments_amount_label.SetLabel(str(self.frame.videos_details[video_id].amount_of_comments))

@@ -94,15 +94,16 @@ class UserProfilePanel(wx.ScrolledWindow):
 
     def video_selected(self, video):
         # req video
+        self.frame.user_profile_feed_panel.waiting_for_video = True
         msg = clientProtocol.build_req_video(video.video_id)
         self.frame.comm.send_msg(msg)
 
         # set video ids to scroll through in user_profile_feed_panel
         self.frame.user_profile_feed_panel.videos_ids = self.video_ids
-        self.frame.user_profile_feed_panel.video_index = self.video_ids.index(video.video_id)
         # switch to feed associated with user profile
         self.frame.switch_panel(self.frame.user_profile_feed_panel, self)
         # todo make sure so when scrolling through the videos, when finishing them, either req more or stop scrolling
+        # do that you get all of the user's videos ids when getting its info
 
     def on_back_arrow(self, event):
         self.frame.switch_panel(self.frame.feed_panel, self)

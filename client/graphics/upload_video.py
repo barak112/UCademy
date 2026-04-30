@@ -220,10 +220,10 @@ class UploadVideoPanel(wx.ScrolledWindow):
                 # and the option to go back to the account's panel and from there to the feed
 
                 # send video file
-                self.frame.video_comm.send_file("1.mp4", self.video_path, video_name, description, test_link, self.topic_ids)
+                self.frame.video_comm.send_file("0.mp4", self.video_path, video_name, description, test_link, self.topic_ids)
 
                 # send thumbnail file
-                self.frame.video_comm.send_file("1.png", self.thumbnail_path)
+                self.frame.video_comm.send_file("0.png", self.thumbnail_path)
 
                 # send video details
                 # msg = clientProtocol.build_video_details(video_name, description, test_link, self.topic_ids)

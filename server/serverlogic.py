@@ -543,7 +543,7 @@ class ServerLogic:
             comments = [i for i in comments if self.db.comment_exists(i[0])]
         else:
             comments = self.db.get_comments(video_id, self.clients[client_ip][0])
-
+        print("comments:",repr(comments), "commentslen",len(comments))
         comments_to_send = comments[:settings.AMOUNT_OF_COMMENTS_TO_SEND]
         self.comments_to_send[client_ip] = comments[settings.AMOUNT_OF_COMMENTS_TO_SEND:]
 
@@ -643,8 +643,9 @@ class ServerLogic:
                 self.db.add_watched_video(username, video_id)
         else:
             self.db.remove_watched_videos_for_user(username)
-            msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
-            self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
+            self.handle_video_req(client_ip, data)
+            # msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
+            # self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
 
 
     def send_video_and_details(self, client_ip, video_id):  # helper function

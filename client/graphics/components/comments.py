@@ -42,7 +42,7 @@ class Comments(wx.Panel):
 
         #comments
         self.comments_panel = wx.ScrolledWindow(self)
-        self.comments_panel.SetScrollRate(0, 7)
+        self.comments_panel.SetScrollRate(0, 12)
 
         self.comments_sizer = wx.BoxSizer(wx.VERTICAL)
         self.comments_panel.SetSizer(self.comments_sizer)
@@ -142,7 +142,9 @@ class Comments(wx.Panel):
         self.video = video
         self.comments_sizer.Clear(True) # clears prev comments
         self.add_comments(video.get_comments()) # if comments already exist with the video (the video already existed)
+        self.update_comments_label()
         self.Layout()
+        self.Refresh()
 
     def update_comments_label(self):
         self.comments_amount_label.SetLabel(f"{self.video.amount_of_comments} comments")
