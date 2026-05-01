@@ -105,6 +105,7 @@ class CommentWidget(wx.Panel):
             self.comment_label.SetBackgroundColour(self.BG_COLOR)
             self.username_label.SetBackgroundColour(self.BG_COLOR)
             self.Refresh()
+        event.Skip()
 
     def date_to_ago(self):
         created_at = self.comment.created_at

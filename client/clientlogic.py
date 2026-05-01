@@ -251,8 +251,8 @@ class ClientLogic:
         wx.CallAfter(pub.sendMessage, "load_new_video", video=video_obj)
 
     def handle_video_upload_confirmation(self, data):  # command 16
-        status = data[0]
-        print("video upload status:", status)
+        video_id = data[0]
+        video_id = int(video_id)
         wx.CallAfter(pub.sendMessage, "video_upload_ans", video_id=video_id)
 
     def handle_follow_status(self, data):  # command 17

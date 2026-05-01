@@ -22,6 +22,9 @@ class FeedPanel(wx.Panel):
         self.frame = frame
         self.parent = parent
 
+        self.SetWindowStyle(self.GetWindowStyle() | wx.WANTS_CHARS)
+        self.SetFocus()
+
         self.associated_panel = associated_panel
         if not self.associated_panel:
             self.associated_panel = self
@@ -270,7 +273,18 @@ class FeedPanel(wx.Panel):
         self.Bind(wx.EVT_MOUSEWHEEL, self.on_scroll)
         self.Bind(wx.EVT_SIZE, self.on_resize)
 
+        self.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.video_ctrl.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.comments_panel.comments_panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.comments_panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        desc_panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+
         self.Hide()
+
+    def on_key_down(self, event):
+        if event.GetKeyCode() == wx.WXK_SPACE:
+            self.on_toggle_play(None)
+        event.Skip()
 
     def on_move_to_creator_account(self, event):
         self.frame.user_profile_panel.set_user(self.frame.videos_details[self.current_video_id].creator)
@@ -340,6 +354,7 @@ class FeedPanel(wx.Panel):
         FeedPanel.volume = int(not FeedPanel.volume)
         self.video_ctrl.SetVolume(FeedPanel.volume)
         self.update_sound_button_and_label(FeedPanel.volume)
+        event.Skip()
 
     def on_open_comments(self, event):
         if self.comments_panel.IsShown():
@@ -357,6 +372,7 @@ class FeedPanel(wx.Panel):
             msg = clientProtocol.build_like_video(self.current_video_id)
             self.frame.comm.send_msg(msg)
             self.frame.like_requests_by_feeds.append(self)
+        event.Skip()
 
     def on_like_video_ans(self, status, video_id):
         video = self.frame.videos_details[video_id]
@@ -456,10 +472,12 @@ class FeedPanel(wx.Panel):
         self.video_ctrl.Thaw() # unfreeze the video once it loads
         self.can_scroll = True
         self.Layout()
+        event.Skip()
 
     def on_video_finished(self, event):
         self.video_ctrl.Seek(0)
         self.video_ctrl.Play()
+        event.Skip()
 
     def on_toggle_play(self, event):
         self.is_playing = not self.is_playing
@@ -472,6 +490,8 @@ class FeedPanel(wx.Panel):
             self.play_btn.label_or_path = "assets\\play.png"
             self.play_label.SetLabel("play")
         self.play_sizer.Layout()
+        if event:
+            event.Skip()
 
     def load_new_video(self, video):
         video_id = video.video_id
@@ -492,6 +512,7 @@ class FeedPanel(wx.Panel):
 
 
     def load_video(self, video):
+        print("is it it:", self.comments_panel.comments_panel)
         video_id = video.video_id
         if video_id:
             self.current_video_id = video_id

@@ -189,7 +189,7 @@ class ServerCommVideos (serverComm.ServerComm):
                 with open(f"{file_path}\\{file_name}.{extension}", 'wb') as f:
                     f.write(file_content)
 
-            if not file_name.isnumeric(): # if pfp, send user its pfp
+            if isinstance(file_name, str): # if filename is a str, it means the file is a pfp, so send user its pfp
                 self.recvQ.put((self.client_ip, "19"))
 
         else:

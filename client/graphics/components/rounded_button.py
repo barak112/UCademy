@@ -100,11 +100,13 @@ class RoundedButton(wx.Panel):
         """triggers when hovering over button"""
         self.mouse_over = True
         self.Refresh()  # Redraw with hover color
+        event.Skip()
 
     def on_mouse_leave(self, event):
         self.mouse_clicked = False
         self.mouse_over = False
         self.Refresh()  # Redraw with base color
+        event.Skip()
 
     def on_size(self, event):
         self.Refresh()

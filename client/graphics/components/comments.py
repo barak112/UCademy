@@ -121,6 +121,7 @@ class Comments(wx.Panel):
     def call_date_to_ago(self, event):
         for a_comment in self.comments_sizer.GetChildren():
             a_comment.date_to_ago()
+        event.Skip()
 
     def on_enter(self, event):
         self.on_add_comment(None)
@@ -133,7 +134,7 @@ class Comments(wx.Panel):
         self.add_comment_button.set_active(False)
 
     def on_add_comment(self, event):
-        comment = self.add_comment_field.get_value()
+        comment = self.add_comment_field.get_value().strip()
         if comment and self.video:
             msg = clientProtocol.build_comment(self.video.video_id, comment)
             self.frame.comm.send_msg(msg)

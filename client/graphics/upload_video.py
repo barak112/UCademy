@@ -1,5 +1,7 @@
+import json
 import math
 import os.path
+import subprocess
 
 import wx
 import wx.media
@@ -93,7 +95,7 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
         # video file and button
         video_sizer = wx.BoxSizer(wx.VERTICAL)
-        video_label = wx.StaticText(self, label="video Image")
+        video_label = wx.StaticText(self, label="video File")
         video_label.SetFont(labels_font)
 
         self.pick_video_btn = rounded_button.RoundedButton(self, "Click to upload video", (249, 250, 251),
@@ -145,6 +147,8 @@ class UploadVideoPanel(wx.ScrolledWindow):
         self.pick_topics_btn.Bind(wx.EVT_LEFT_DOWN, self.on_topics_pick)
         self.upload_video_btn.Bind(wx.EVT_LEFT_DOWN, self.on_upload_video)
         back_arrow.Bind(wx.EVT_LEFT_DOWN, self.on_back_arrow)
+
+        pub.subscribe(self.on_video_upload_ans, "video_upload_ans")
 
         self.Hide()
 
@@ -198,11 +202,22 @@ class UploadVideoPanel(wx.ScrolledWindow):
         print("topic_names:",self.topic_names)
         self.frame.switch_panel(self, self.frame.pick_video_topics_panel) # switch back to this panel from pick video topics
 
+    @staticmethod
+    def get_duration(file_path):
+        result = subprocess.run([
+            "ffprobe", "-v", "error",
+            "-show_entries", "format=duration",
+            "-of", "json",
+            file_path
+        ], capture_output=True, text=True)
+
+        data = json.loads(result.stdout)
+        return float(data["format"]["duration"])
 
     def on_upload_video(self, event):
-        video_name = self.video_name_field.get_value()
-        description = self.description_field.get_value()
-        test_link = self.test_link_field.get_value()
+        video_name = self.video_name_field.get_value().strip()
+        description = self.description_field.get_value().strip()
+        test_link = self.test_link_field.get_value().strip()
         if video_name and description and self.thumbnail_path and self.video_path:
             if not os.path.isfile(self.thumbnail_path):
                 self.thumbnail_path = None
@@ -211,12 +226,16 @@ class UploadVideoPanel(wx.ScrolledWindow):
             if not os.path.isfile(self.video_path):
                 self.video_path = None
                 self.pick_video_btn.label_or_path = "Error loading video, pick another one"
+            else:
+
+                duration = self.get_duration(self.video_path)  # seconds
+                if duration/60 > settings.MAX_VIDEO_LENGTH:
+                    self.video_path = None
+                    self.pick_video_btn.label_or_path = "Click to upload video"
+                    self.upload_video_btn.label_or_path = "Video length is too long, pick another one"
 
             if self.thumbnail_path and self.video_path:
                 self.upload_video_btn.label_or_path = "Uploading..."
-
-                #todo recv confirmation the file and information have been uploaded
-                # and the option to go back to the account's panel and from there to the feed
 
                 # send video file
                 self.frame.video_comm.send_file("0.mp4", self.video_path, video_name, description, test_link, self.topic_ids)
@@ -224,12 +243,39 @@ class UploadVideoPanel(wx.ScrolledWindow):
                 # send thumbnail file
                 self.frame.video_comm.send_file("0.png", self.thumbnail_path)
 
-                # send video details
-                # msg = clientProtocol.build_video_details(video_name, description, test_link, self.topic_ids)
-                # self.frame.video_comm.send_msg(msg)
-
         event.Skip()
 
+    def on_video_upload_ans(self, video_id):
+        print("video uploaded", video_id)
+        if video_id:
+            self.upload_video_btn.label_or_path = "Video uploaded"
+
+            self.test_link_field.set_value("")
+            self.description_field.set_value("")
+            self.video_name_field.set_value("")
+            self.pick_thumbnail_btn.label_or_path = "Click to upload thumbnail"
+            self.pick_video_btn.label_or_path = "Click to upload video"
+            self.pick_topics_btn.label_or_path = "Choose Topics"
+            self.thumbnail_path = None
+            self.video_path = None
+            self.topic_names = []
+            self.topic_ids = []
+            self.upload_video_btn.set_active(False)
+            self.filled_fields = {"video_name":False, "thumbnail":False,"video":False}
+
+            feed_panel = self.frame.feed_panel
+            feed_panel.videos_ids.insert(feed_panel.video_index, video_id)
+
+            msg = clientProtocol.build_req_video(video_id)
+            self.frame.video_requests_by_feeds.append(self.frame.feed_panel)
+            self.frame.comments_requests_by_feeds.append(self.frame.feed_panel)
+            self.frame.video_comm.send_msg(msg)
+
+        else:
+            self.upload_video_btn.label_or_path = "Video file already exists, upload a different one"
+
+
+        self.Refresh()
 
     def scale_thumbnail(self, thumbnail_image):
         w, h = thumbnail_image.GetSize()
@@ -238,17 +284,12 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
         scale_w = self.COLUMN_WIDTH / w
         scale_h = column_height / h
-        # if w>self.COLUMN_WIDTH and h >column_height:
         scale = max(scale_h, scale_w)
 
         new_w = int(w * scale)
         new_h = int(h * scale)
         print("new thumbnail size:", new_w, new_h)
         return thumbnail_image.Scale(new_w, new_h, wx.IMAGE_QUALITY_HIGH)
-
-    # def Show(self, show=True):
-    #     super().Show()
-    #     self.
 
     def on_resize(self, event):
         self.Layout()

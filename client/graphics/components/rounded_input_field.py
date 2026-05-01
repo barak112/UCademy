@@ -128,6 +128,7 @@ class RoundedInputField(wx.Panel):
             self.text_visible.Show()
             self.text_hidden.Hide()
         self.sizer.Layout()
+        event.Skip()
 
     def on_focus(self, event):
         """once field focused, indicates to change the field border color"""
@@ -166,7 +167,6 @@ class RoundedInputField(wx.Panel):
             gc.SetBrush(wx.TRANSPARENT_BRUSH)
             gc.SetPen(wx.Pen(border_color, 2))
             gc.DrawRoundedRectangle(1, 1, w - 2, h - 2, settings.ROUND_BORDER_RADIUS)
-
 
     def get_value(self):
         """returns the value of the field"""

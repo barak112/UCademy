@@ -102,8 +102,8 @@ def build_video_details(video_id, creator_name, video_name, video_desc, created_
          comments_amount, liked]
     )
 
-def build_video_upload_confirmation(status):
-    return build_command(16, [status])
+def build_video_upload_confirmation(video_id):
+    return build_command(16, [video_id])
 
 
 def build_follow_user_status(status, followed):

@@ -340,11 +340,16 @@ class ServerLogic:
 
                 content = (comment, video_name)
                 content_publisher = (commenter, creator)
-            else:
+                self.send_pfp(client_ip, commenter) # sends the commenter's pfp if the client doesnt already have it
+            else: # type == settings.VIDEO_DIGIT_REPR
                 content, content_publisher = self.db.get_specific_video(id, False)[:2]
+                thumbnail_path = (f"media\\videos\\{id}.png")
+                if os.path.isfile(thumbnail_path) and thumbnail_path not in self.thumbnails_sent[client_ip]:
+                    self.clients[client_ip][1].send_file(thumbnail_path) # sends the video's thumbnail if the client doesnt already have it'
+                    self.thumbnails_sent[client_ip].append(thumbnail_path)
 
             msg = serverProtocol.build_report_status(status, id, type, content, content_publisher, created_at)
-            self.comm.send_msg(client_ip, msg)
+            self.clients[client_ip][1].send_msg(client_ip, msg)
 
     def handle_set_user_topics(self, client_ip, data):  # command 3
         topics = [int(t) for t in data]
@@ -608,6 +613,7 @@ class ServerLogic:
         msg = serverProtocol.build_del_video_confirmation(0)
         if client_ip in self.clients and self.db.is_the_video_creator(video_id, self.clients[client_ip][0]):
             self.db.delete_video(video_id)
+            self.delete_video_file(video_id)
             msg = serverProtocol.build_del_video_confirmation(video_id)
 
         self.comm.send_msg(client_ip, msg)
@@ -776,12 +782,14 @@ class ServerLogic:
             # puts the id for the thumbnail filename
             self.clients[client_ip][1].idsQ.put(video_id)
             print("video uploaded")
+            msg = serverProtocol.build_video_upload_confirmation(video_id)
+            self.comm.send_msg(client_ip, msg)
         else:
             # 0 indicates that the video already exists, so to not save the thumbnail
             self.clients[client_ip][1].idsQ.put(0)
+            msg = serverProtocol.build_video_upload_confirmation(0)
+            self.comm.send_msg(client_ip, msg)
             print("video already exists")
-
-        #todo make sure that the client gets feedback if the video has been uploaded or has this video already existed
 
     # Called by System Manager
 
@@ -802,6 +810,8 @@ class ServerLogic:
                     else: # video
                         creator, video_name, desc, created_at = self.db.get_specific_video(id)[:4]
                         self.db.delete_video(id)
+                        self.db.remove_video_hash(id)
+                        self.delete_video_file(id)
                         self.send_email(creator, self.EMAIL_VIDEO_REMOVE_MSG.format(video_name, desc, created_at, creator), self.EMAIL_VIDEO_REMOVE_SUBJECT)
 
                 self.db.set_report_status(id, type, status)
@@ -819,6 +829,12 @@ class ServerLogic:
                 print("content does not exist")
         else:
             print("not a system manager")
+
+    def delete_video_file(self, video_id):
+        file_path = f"media\\videos\\{video_id}.{settings.VIDEO_EXTENSION}"
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+        self.db.remove_video_hash(video_id)
 
     def handle_user_kick(self, client_ip, data):  # command 99
         username = data[0]

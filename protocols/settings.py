@@ -9,14 +9,16 @@ SERVER_IP = "127.0.0.1"
 PORT = 1000
 VIDEO_PORT = 1001
 
-MESSAGE_LENGTH_LENGTH = 5
+MESSAGE_LENGTH_LENGTH = 4
 
 PHYSICAL_FPS = 60
 
-AMOUNT_OF_USERS_TO_SEND = 15
-AMOUNT_OF_VIDEOS_TO_SEND = 15
-AMOUNT_OF_VIDEOS_TO_REQ = 3 # amount of videos to request from server when first moving to feed
+AMOUNT_OF_USERS_TO_SEND = 20
+AMOUNT_OF_VIDEOS_TO_SEND = 20
+AMOUNT_OF_VIDEOS_TO_REQ = 4 # amount of videos to request from server when first moving to feed
 AMOUNT_OF_COMMENTS_TO_SEND = 20
+
+MAX_VIDEO_LENGTH = 2 # minutes
 
 COMMENT_DIGIT_REPR = 0
 VIDEO_DIGIT_REPR = 1
