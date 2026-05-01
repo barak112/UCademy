@@ -89,10 +89,10 @@ class ServerLogic:
             '15': self.handle_video_req,
             '16': self.handle_video_upload,
             '17': self.handle_follow_user,
-            "18": self.handle_like_video_confirmation,
+            '18': self.handle_like_video_confirmation,
+            '19': self.send_user_its_pfp,
 
-
-            '97':self.handle_client_disconnected,
+            '97': self.handle_client_disconnected,
             '98': self.handle_comment_or_video_status,
             '99': self.handle_user_kick,
         }
@@ -106,9 +106,22 @@ class ServerLogic:
         self.videos_to_send = {} # [client_ip] = [videos_ids]
         self.users_to_send = {} # [client_ip] = [users_names]
         self.comments_to_send = {} # [client_ip] = [comments_ids]
+
         self.pfps_sent = {} # [client_ip] = [users_names]
+        self.videos_sent = {} # [client_ip] = [videos_ids]
+        self.thumbnails_sent = {} # [client_ip] = [videos_ids]
 
         self.handle_msgs()
+
+    def send_user_its_pfp(self, client_ip, data):
+        if self.clients[client_ip][0] in self.pfps_sent[client_ip]:
+            self.pfps_sent[client_ip].remove(self.clients[client_ip][0])
+        print(self.pfps_sent)
+        self.send_pfp(client_ip, self.clients[client_ip][0])
+        msg = serverProtocol.build_update_pfp()
+        self.clients[client_ip][1].send_msg(client_ip, msg)
+        print("sending user pfp")
+
 
     def handle_client_disconnected(self, client_ip, data):
         """
@@ -121,7 +134,10 @@ class ServerLogic:
         self.videos_to_send.pop(client_ip, None)
         self.users_to_send.pop(client_ip, None)
         self.comments_to_send.pop(client_ip, None)
+
         self.pfps_sent.pop(client_ip, None)
+        self.videos_sent.pop(client_ip, None)
+        self.thumbnails_sent.pop(client_ip, None)
 
 
     def handle_msgs(self):
@@ -196,6 +212,9 @@ class ServerLogic:
                                                serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ),
                                                []]
                     self.pfps_sent[client_ip] = []
+                    self.videos_sent[client_ip] = []
+                    self.thumbnails_sent[client_ip] = []
+
                     port = self.current_video_port
                     status = settings.EMAIL_VERIFICATION_SUCCESSFUL
                     self.current_video_port += 1
@@ -291,8 +310,10 @@ class ServerLogic:
             followings_names = self.db.get_followings(username)
             msg = serverProtocol.build_sign_in_status(1,self.current_video_port,username, followers_amount,
                                                       followings_amount, videos_ids, email, topics, followings_names)
-            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ), []]
+            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ, client_ip), []]
             self.pfps_sent[client_ip] = []
+            self.videos_sent[client_ip] = []
+            self.thumbnails_sent[client_ip] = []
             self.current_video_port += 1
 
         self.comm.send_msg(client_ip, msg)
@@ -401,7 +422,8 @@ class ServerLogic:
             user_pfp_image_path = f"media\\pfps\\{username}.png"
             if os.path.isfile(user_pfp_image_path):
                 self.pfps_sent[client_ip].append(username)
-                self.clients[client_ip][1].send_file(client_ip, user_pfp_image_path)
+                self.clients[client_ip][1].send_file(user_pfp_image_path)
+                print("sending pfp of user:",username)
 
     def handle_videos_search(self, client_ip, data):  # command 6
         """
@@ -447,13 +469,21 @@ class ServerLogic:
         for video_id in video_ids:
             if self.db.video_exists(video_id):
                 video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = self.get_video_details(client_ip, video_id)
-                thumbnail_path = f"media\\videos\\{video_id}.png"
-                self.clients[client_ip][1].send_file(client_ip, thumbnail_path)
+
+                if video_id not in self.thumbnails_sent[client_ip]:
+                    self.thumbnails_sent[client_ip].append(video_id)
+                    thumbnail_path = f"media\\videos\\{video_id}.png"
+                    self.clients[client_ip][1].send_file(thumbnail_path)
 
                 msg = serverProtocol.build_video_details_in_profile(video_id, creator, video_name, video_desc, created_at,
                                                          likes_amount, comments_amount, liked)
 
                 self.clients[client_ip][1].send_msg(client_ip, msg)
+
+        # to indicate end of videos sending
+        msg = serverProtocol.build_video_details_in_profile(settings.END_OF_BATCH_SEND_ID, "", "", "", "",0, 0, 0)
+        self.clients[client_ip][1].send_msg(client_ip, msg)
+
 
 
 
@@ -481,9 +511,9 @@ class ServerLogic:
         self.clients[client_ip][1].send_msg(client_ip, msg)
 
     def get_user_details(self, username):
-        followers_amount = -1
-        followings_amount = -1
-        videos_ids = -1
+        followers_amount = 0
+        followings_amount = 0
+        videos_ids = 0
 
         if self.db.user_exists(username):
             followers_amount = self.db.get_followers_amount(username)
@@ -546,8 +576,16 @@ class ServerLogic:
         if last_id:
             start_index = comments_ids.index(last_id) + 1
 
+        comments = comments[start_index:] # make the comments start from the start_index
+
+        deleted_comments_ids = self.db.get_deleted_command_ids(video_id)
+        print("deleted comments ids:",deleted_comments_ids)
+
+        # recreate comments without any deleted comments
+        comments = [i for i in comments if i[0] not in deleted_comments_ids]
+
         print("comments:",repr(comments), "commentslen",len(comments))
-        comments_to_send = comments[start_index:start_index+settings.AMOUNT_OF_COMMENTS_TO_SEND]
+        comments_to_send = comments[:settings.AMOUNT_OF_COMMENTS_TO_SEND]
         print(f"comments_to_send for video {video_id}:",comments_to_send)
 
 
@@ -555,7 +593,7 @@ class ServerLogic:
         # send pfps
         for commenter_name in commenters:
             self.send_pfp(client_ip, commenter_name)
-            print("sending pfp of user:",commenter_name)
+            print("sending pfp of user in comments:",commenter_name)
 
 
         msg = serverProtocol.build_send_comments(comments_to_send)
@@ -586,15 +624,20 @@ class ServerLogic:
         self.comm.send_msg(client_ip, msg)
 
     def handle_creator_videos_req(self, client_ip, data):  # command 13
-        username, send_next = data
-        send_next = int(send_next)
-        if send_next and client_ip in self.videos_to_send:
-            videos_ids = self.videos_to_send[client_ip]
-        else:
-            videos_ids = self.db.get_videos_by_creator(username)
+        username, last_id = data
+        last_id = int(last_id)
+
+        videos_ids = self.db.get_videos_by_creator(username, False)
+        start_index = 0
+        if last_id:
+            start_index = videos_ids.index(last_id) + 1
+
+        videos_ids = videos_ids[start_index:]
+        deleted_videos_ids = self.db.get_deleted_videos_ids()
+
+        videos_ids = [i for i in videos_ids if i not in deleted_videos_ids]
 
         videos_to_send = videos_ids[:settings.AMOUNT_OF_VIDEOS_TO_SEND]
-        self.videos_to_send[client_ip] = videos_ids[settings.AMOUNT_OF_VIDEOS_TO_SEND:]
 
         print(f"videos_to_send in creator video req: {videos_to_send}")
         
@@ -635,10 +678,15 @@ class ServerLogic:
             video_id = self.db.get_video_for_user(username, self.clients[client_ip][2])
 
         if video_id:
-            self.send_video_and_details(client_ip, video_id)
-            self.handle_comments_req(client_ip, [video_id, 0])
-            if not self.db.has_watched_video(username, video_id):
-                self.db.add_watched_video(username, video_id)
+            if self.db.video_exists(video_id):
+                self.send_video_and_details(client_ip, video_id)
+                self.handle_comments_req(client_ip, [video_id, 0])
+                if not self.db.has_watched_video(username, video_id):
+                    self.db.add_watched_video(username, video_id)
+            else:
+                # if video requested has been deleted
+                msg_to_send = serverProtocol.build_video_details(settings.DELETED_ID, "", "", "", "", 0, 0, 0)
+                self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
         else:
             self.db.remove_watched_videos_for_user(username)
             msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
@@ -656,8 +704,11 @@ class ServerLogic:
             client_ip, video_id)
 
         self.send_pfp(client_ip, creator)  # sends creator's pfp if the clients doesnt already have it
-        file_path = f"media\\videos\\{video_id}.{settings.VIDEO_EXTENSION}"
-        self.clients[client_ip][1].send_file(client_ip, file_path)
+
+        if not video_id in self.videos_sent[client_ip]:
+            self.videos_sent[client_ip].append(video_id)
+            file_path = f"media\\videos\\{video_id}.{settings.VIDEO_EXTENSION}"
+            self.clients[client_ip][1].send_file(file_path)
 
         msg = serverProtocol.build_video_details(video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked)
         self.clients[client_ip][1].send_msg(client_ip, msg)

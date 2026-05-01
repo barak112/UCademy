@@ -3,6 +3,9 @@ import queue
 
 import select
 import threading
+
+from typing_extensions import override
+
 import serverComm
 import serverProtocol
 import settings
@@ -19,7 +22,7 @@ class ServerCommVideos (serverComm.ServerComm):
     :ivar open_clients: Dictionary mapping client sockets to [ip, cipher] pairs.
     """
 
-    def __init__(self, port, recvQ):
+    def __init__(self, port, recvQ, client_ip):
         """
         Initializes the instance with the given port and a queue for receiving data.
 
@@ -28,112 +31,132 @@ class ServerCommVideos (serverComm.ServerComm):
         """
         super().__init__(port, recvQ)
         self.idsQ = queue.Queue()
+        self.client_socket = None
+        self.client_ip = client_ip
+        self.client_cipher = None
 
+    # def _mainLoop(self):
+    #     """Continuously monitor for incoming connections and messages.
+    #
+    #     Binds the server socket, listens for new client connections, and processes
+    #     incoming messages from connected clients. Places received messages in the queue.
+    #     """
+    #     self.server_socket.bind(("0.0.0.0", self.port))
+    #     self.server_socket.listen(3)
+    #     #todo make for only one client
+    #     while True:
+    #         rlist = select.select([self.server_socket] + list(self.open_clients.keys()), [], [], 0.01)[0]
+    #         for current_socket in rlist:
+    #             if current_socket is self.server_socket:
+    #                 client, addr = self.server_socket.accept()
+    #
+    #
+    #                 if any(ip == addr[0] for ip, _ in self.open_clients.values()):
+    #                     client.close()
+    #                     print("attempted to enter through the same ip")
+    #                 else:
+    #                     print(f"{addr[0]} - connected")
+    #                     # Start a new thread to exchange keys with the new client
+    #                     threading.Thread(target=self._change_key, args=(client, addr[0])).start()
+    #
+    #             else:
+    #                 try:
+    #                     data_len = current_socket.recv(settings.MESSAGE_LENGTH_LENGTH).decode()
+    #                     data = current_socket.recv(int(data_len)).decode()
+    #                 except Exception as e:
+    #                     print("error in comm mainloop -", e)
+    #                     data = ""
+    #
+    #                 if not data:
+    #                     self._close_client(current_socket)
+    #                 else:
+    #                     ip, key = self.open_clients[current_socket]
+    #                     print(f"key: {key}, data: {data} in serverCommVideo")
+    #                     decrypted_message = key.decrypt(data)
+    #                     print("msg recved in serverCommVideo:", decrypted_message)
+    #
+    #                     if serverProtocol.is_file(decrypted_message):
+    #                         self._recv_file(current_socket, decrypted_message)
+    #                     else: # if not a file, put in recvQ, its video details
+    #                         self.recvQ.put((ip, decrypted_message))
+
+    # for a single client, still is a thread
     def _mainLoop(self):
-        """Continuously monitor for incoming connections and messages.
-
-        Binds the server socket, listens for new client connections, and processes
-        incoming messages from connected clients. Places received messages in the queue.
-        """
         self.server_socket.bind(("0.0.0.0", self.port))
-        self.server_socket.listen(3)
-        #todo make for only one client
+        self.server_socket.listen(1)
+
         while True:
-            rlist = select.select([self.server_socket] + list(self.open_clients.keys()), [], [], 0.01)[0]
-            for current_socket in rlist:
-                if current_socket is self.server_socket:
-                    client, addr = self.server_socket.accept()
+            client_socket, addr = self.server_socket.accept()
+            if addr[0] == self.client_ip:
+                break
+            client_socket.close()
 
-                    if any(ip == addr[0] for ip, _ in self.open_clients.values()):
-                        client.close()
-                        print("attempted to enter through the same ip")
-                    else:
-                        print(f"{addr[0]} - connected")
-                        # Start a new thread to exchange keys with the new client
-                        threading.Thread(target=self._change_key, args=(client, addr[0])).start()
+        self.client_socket = client_socket
 
+        # only one client, so no need for thread
+        self._change_key(self.client_socket, self.client_ip)
+
+        self.client_cipher = self.open_clients[self.client_socket][1]
+
+        # send the user its pfp, notify logic that the client has connected to its servercommvideos
+        self.recvQ.put((self.client_ip, "19"))
+
+        while True:
+            try:
+                data_len = self.client_socket.recv(settings.MESSAGE_LENGTH_LENGTH).decode()
+                data = self.client_socket.recv(int(data_len)).decode()
+            except Exception as e:
+                print("error in video comm mainloop -", e)
+                data = ""
+
+            if not data:
+                self._close_client(self.client_socket)
+                break
+            else:
+                decrypted_message = self.client_cipher.decrypt(data)
+                if serverProtocol.is_file(decrypted_message):
+                    self._recv_file(decrypted_message)
                 else:
-                    try:
-                        data_len = current_socket.recv(settings.MESSAGE_LENGTH_LENGTH).decode()
-                        data = current_socket.recv(int(data_len)).decode()
-                    except Exception as e:
-                        print("error in comm mainloop -", e)
-                        data = ""
+                    self.recvQ.put((self.client_ip, decrypted_message))
 
-                    if not data:
-                        self._close_client(current_socket)
-                    else:
-                        ip, key = self.open_clients[current_socket]
-                        print(f"key: {key}, data: {data} in serverCommVideo")
-                        decrypted_message = key.decrypt(data)
-                        print("msg recved in serverCommVideo:", decrypted_message)
-
-                        if serverProtocol.is_file(decrypted_message):
-                            self._recv_file(current_socket, decrypted_message)
-                        else: # if not a file, put in recvQ, its video details
-                            self.recvQ.put((ip, decrypted_message))
-
-    def send_file(self, client_ip, file_path):
+    def send_file(self, file_path):
         """
-        Send a file to a client after encrypting the file and its metadata.
-
-        This method identifies the client by their IP address, encrypts the file
-        content and associated metadata, and sends them over an established
-        socket connection. The metadata includes additional details about the
-        file such as its video ID, creator, video name, description, creation
-        timestamp, likes, comments count, and liked status. If the file does not
-        exist, it prints an error message.
-
-        :param client_ip: The IP address of the client to send the file to.
-        :param file_path: The path to the file to be sent.
-        :param video_id: The unique identifier of the video
-        :param creator: The creator of the video
-        :param video_name: The name of the video
-        :param video_description: A brief description of the video
-        :param created_at: A timestamp indicating when the video was created
-        :param likes_amount: The number of likes the video has
-        :param comments_amount: The number of comments on the video
-        :param liked: Whether the video is liked by the user
+        Send a file to a client after encrypting the file.
         """
 
         if os.path.isfile(file_path):
             with open(file_path, 'rb') as f:
                 data = f.read()
 
-            client_socket = self._find_socket_by_ip(client_ip)
-            data = self.open_clients[client_socket][1].encrypt_file(data)
+            data = self.client_cipher.encrypt_file(data)
             file_name = os.path.basename(file_path)
             file_size = len(data)
             msg = serverProtocol.build_file_details(file_name, file_size)
-            encrypted_message = self.open_clients[client_socket][1].encrypt(msg)
+            encrypted_message = self.client_cipher.encrypt(msg)
             try:
-                client_socket.send(str(len(encrypted_message)).zfill(settings.MESSAGE_LENGTH_LENGTH).encode() + encrypted_message)
-                client_socket.send(data)
+                self.client_socket.send(str(len(encrypted_message)).zfill(settings.MESSAGE_LENGTH_LENGTH).encode() + encrypted_message)
+                self.client_socket.send(data)
             except Exception as e:
                 print(f"Error sending message: {e}")
-                self._close_client(client_socket)
+                self._close_client(self.client_socket)
 
         else:
             print("file does not exist")
 
 
-    def _recv_file(self, client_socket, decrypted_message):
+    def _recv_file(self, decrypted_message):
         """
         Receive and process a file sent by a client socket.
 
-        This method handles the reception of a file from a client, processing its
-        metadata, decrypting its contents, and saving it to the proper location based
-        on the type of file received (video, thumbnail, etc.). It ensures that the file
+        This method handles the reception of a file from a client, decrypting its contents,
+         and saving it to the proper location based on the type of file received (video, thumbnail, pfp). It ensures that the file
         size matches the expected size and takes necessary actions if the size does not
         match, such as closing the client connection.
 
-        :param client_socket: The client socket from which the file is being received.
         :param decrypted_message: The decrypted message containing metadata about the
             file being transferred.
-        :return: creates file at assets\\ and if video, puts video_details to recvQ
+        :return: creates file at media\\videos if video or thumbnail and media\\pfps if pfp
         """
-
-        client_ip = self.open_clients[client_socket][0]
 
         opcode, data = serverProtocol.unpack(decrypted_message)
 
@@ -144,20 +167,20 @@ class ServerCommVideos (serverComm.ServerComm):
         file_name, file_size, *video_details = data
         file_size = int(file_size)
         print("file_size:", file_size, "file_name:", file_name, "video_details:", video_details)
-        file_content = self._recv_file_content(client_socket, file_size)
+        file_content = self._recv_file_content(file_size)
 
         file_name, extension = file_name.split(".") # the filename received from the server is filename.extension
 
         if len(file_content) == file_size:
-            file_content = bytearray(self.open_clients[client_socket][1].decrypt_file(file_content)) #  decrypts file content
+            file_content = bytearray(self.client_cipher.decrypt_file(file_content)) #  decrypts file content
 
-            file_path = "media\\pfp"
 
             # this code assumes that pfp names are strings (the user's name) and video and thumbnail file names are a rnd int
+            file_path = "media\\pfps"
             if file_name.isnumeric():
                 file_path = "media\\videos"
                 if video_details: # if video details is not empty, it means that it is a video
-                    self.recvQ.put((client_ip, (file_content, extension, video_details))) # sending file content with details to logic
+                    self.recvQ.put((self.client_ip, (file_content, extension, video_details))) # sending file content with details to logic
 
                 else: # if file_name is a number but video_details is empty, it is a thumbnail
                     file_name = self.idsQ.get()
@@ -166,19 +189,21 @@ class ServerCommVideos (serverComm.ServerComm):
                 with open(f"{file_path}\\{file_name}.{extension}", 'wb') as f:
                     f.write(file_content)
 
-        else:
-            self._close_client(client_socket)
+            if not file_name.isnumeric(): # if pfp, send user its pfp
+                self.recvQ.put((self.client_ip, "19"))
 
-    @staticmethod
-    def _recv_file_content(client_socket, file_size):
+        else:
+            self._close_client(self.client_socket)
+
+    def _recv_file_content(self, file_size):
         file_content = bytearray()
         while len(file_content) < file_size:
             slice = min(1024, (file_size - len(file_content)))
             try:
-                data = client_socket.recv(slice)
+                data = self.client_socket.recv(slice)
             except Exception as e:
                 print("Error at receiving file -", e)
-                data = ''
+                data = b''
 
             if not data:
                 break

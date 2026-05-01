@@ -90,9 +90,9 @@ class Comments(wx.Panel):
     def on_scroll(self, event):
         event_type = event.GetEventType()
 
-        scrolling_up = event_type in (wx.wxEVT_SCROLLWIN_LINEDOWN, wx.wxEVT_SCROLLWIN_PAGEDOWN, wx.wxEVT_SCROLLWIN_THUMBTRACK)
+        scrolling_down = event_type in (wx.wxEVT_SCROLLWIN_LINEDOWN, wx.wxEVT_SCROLLWIN_PAGEDOWN, wx.wxEVT_SCROLLWIN_THUMBTRACK)
 
-        if scrolling_up:
+        if scrolling_down:
             current = self.comments_panel.GetScrollPos(wx.VERTICAL)
             max_pos = self.comments_panel.GetScrollRange(wx.VERTICAL) - self.comments_panel.GetScrollThumb(wx.VERTICAL)
             if self.video.amount_of_comments > len(self.video.get_comments()) and self.video.get_comments():

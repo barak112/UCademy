@@ -312,22 +312,34 @@ class DataBase:
 
     # ===== videos =====
 
-    def get_videos_by_creator(self, username):
+    def get_videos_by_creator(self, username, matter_deleted=True):
         """
         Retrieves video IDs created by a specific user ordered by views.
+        :param matter_deleted: whether to exclude deleted videos in the results
         :param username: Creator username
         :return: List of video IDs sorted by number of views
         """
-        self.cur.execute("""
-                         SELECT video_id, created_at 
-                         from videos
-                         WHERE videos.creator = ?
-                         ORDER BY created_at DESC 
-                         """, (username,))
+
+        query = """
+                SELECT video_id, created_at
+                from videos
+                WHERE videos.creator = ? 
+                """
+
+        if matter_deleted:
+            query += "AND videos.deleted = 0 "
+
+        query += "ORDER BY created_at DESC"
+
+        self.cur.execute(query, (username,))
 
         results = self.cur.fetchall()
         results = [i[0] for i in results]
         return results
+
+    def get_deleted_videos_ids(self):
+        self.cur.execute("SELECT video_id FROM videos WHERE deleted = 1")
+        return [i[0] for i in self.cur.fetchall()]
 
     def is_the_video_creator(self, video_id, username):
         """
@@ -535,16 +547,20 @@ class DataBase:
         Retrieves comments for a video.
         :param video_id: ID of the video
         :param username: username of the user requesting the comments
-        :return: List of comment rows from the comments table, when the comments of username are first
+        :return: List of comment rows from the comments table, when the comments of username are first, returns deleted comments also
         """
         self.cur.execute("""
                          SELECT comment_id, video_id, commenter, comment, strftime('%d/%m/%Y %H:%M', created_at)
                          FROM comments
                          WHERE video_id = ?
-                           AND deleted = 0
                          ORDER BY CASE WHEN commenter = ? THEN 0 ELSE 1 END, comment_id DESC;""", (video_id, username))
         comments = self.cur.fetchall()
         return comments
+
+    def get_deleted_command_ids(self, video_id):
+        self.cur.execute("SELECT comment_id FROM comments WHERE video_id = ? AND deleted = 1", (video_id,))
+
+        return [i[0] for i in self.cur.fetchall()]
 
     def get_comments_amount(self, video_id):
         """

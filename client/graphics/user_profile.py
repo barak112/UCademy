@@ -1,5 +1,6 @@
 import math
 import os.path
+import shutil
 
 import wx
 import wx.media
@@ -31,7 +32,8 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.SetBackgroundColour(self.BG_COLOR)
 
         self.current_user = None  # current user object
-        self.video_ids = []
+        self.waiting_for_videos = False
+        self.videos_ids = []
 
         #padded vertical sizer
         padding_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -80,15 +82,53 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.Bind(wx.EVT_SIZE, self.on_resize)
         self.add_video_btn.Bind(wx.EVT_LEFT_UP, self.on_move_to_upload_video)
         back_arrow.Bind(wx.EVT_LEFT_DOWN, self.on_back_arrow)
+        self.Bind(wx.EVT_SCROLLWIN, self.on_scroll)
 
         self.FitInside()  # calculates virtual size
         pub.subscribe(self.user_info_ans, "user_details_in_profile_ans")
         pub.subscribe(self.video_details_ans, "video_details_in_profile_ans")
+        pub.subscribe(self.update_pfp, "update_pfp_ans")
 
         self.Hide()
-        #todo when clicking pfp, opens explorer to choose new photo.
-        # when hovering the pfp shows a tooltip with the option to click the image to change it
-        # also be able to change topics
+        # todo be able to change topics
+
+    def on_scroll(self, event):
+        event_type = event.GetEventType()
+
+        scrolling_down = event_type in (wx.wxEVT_SCROLLWIN_LINEDOWN, wx.wxEVT_SCROLLWIN_PAGEDOWN,
+                                      wx.wxEVT_SCROLLWIN_THUMBTRACK)
+
+        if scrolling_down:
+            current = self.GetScrollPos(wx.VERTICAL)
+            max_pos = self.GetScrollRange(wx.VERTICAL) - self.GetScrollThumb(wx.VERTICAL)
+            if len(self.current_user.videos_ids) > len(self.videos_ids) and self.videos_ids:
+                if not self.waiting_for_videos:  # if there are more comments to req from the server
+                    if current >= max_pos - 50:
+                        msg = clientProtocol.build_req_creator_videos(self.current_user.username, self.videos_ids[-1])
+                        self.frame.comm.send_msg(msg)
+                        self.waiting_for_videos = True
+                        self.frame.change_text_status("waiting for videos from server")
+                        print("req more videos: last id:", self.videos_ids[-1], "videos ids:",self.videos_ids)
+            elif current >= max_pos:
+                self.frame.change_text_status("this user does not have more videos")
+
+        event.Skip()
+
+    def update_pfp(self):
+        self.profile_info.update_pfp()
+        self.frame.feed_panel.update_pfp()
+        self.frame.user_profile_feed_panel.update_pfp()
+
+
+    # called from profile_widget
+    def set_pfp(self):
+        """opens file dialog to pick pfp image"""
+        dlg = wx.FileDialog(self, "Choose an Image to Set Your pfp", "", "", "PNG files (*.png)|*.png", wx.FD_OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            img_path = dlg.GetPath()
+            self.frame.video_comm.send_file(f"{self.frame.user.username}.png", img_path)
+
+        dlg.Destroy()
 
     def video_selected(self, video):
         # req video
@@ -102,9 +142,8 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.frame.user_profile_feed_panel.videos_ids = self.current_user.videos_ids + [0] # 0 indicates the end of the ids list
         print("ids list:", self.frame.user_profile_feed_panel.videos_ids)
         # switch to feed associated with user profile
+        self.frame.user_profile_feed_panel.video_ctrl.Hide()
         self.frame.switch_panel(self.frame.user_profile_feed_panel, self)
-        # todo make sure so when scrolling through the videos, when finishing them, either req more or stop scrolling
-        # do that you get all of the user's videos ids when getting its info
 
     def on_back_arrow(self, event):
         self.frame.switch_panel(self.frame.feed_panel, self)
@@ -116,24 +155,37 @@ class UserProfilePanel(wx.ScrolledWindow):
 
     def video_details_ans(self, video):
         print("got new video in profile:", video)
-        self.video_ids.append(video.video_id)
-        #todo make sure the videos are sorted by date, the new ones sent first
 
-        thumbnail = video_widget.VideoWidget(self, video, self.COLUMN_WIDTH, self.RATIO)
-        self.videos_grid.Add(thumbnail, 0, wx.EXPAND)
+        if not video.video_id: # video_id = 0 indicates no more users videos
+            self.frame.change_text_status("this user does not have more videos")
 
-        self.FitInside()
-        self.Layout()
-        self.Refresh()
+        elif video.video_id == settings.END_OF_BATCH_SEND_ID:
+            self.waiting_for_videos = False
+
+
+        if video.video_id not in self.videos_ids:
+            self.videos_ids.append(video.video_id)
+
+            if self.videos_grid.GetChildren() == self.grid_columns*self.grid_rows: # if grid is full
+                self.grid_rows += 1
+                self.videos_grid.SetRows(self.grid_rows+1)
+
+            thumbnail = video_widget.VideoWidget(self, video, self.COLUMN_WIDTH, self.RATIO)
+            self.videos_grid.Add(thumbnail, 0, wx.EXPAND)
+
+            self.FitInside()
+            self.Layout()
+            self.Refresh()
 
     def user_info_ans(self, user):
-        self.frame.users[user.username] = user
+        if user.username != self.frame.user.username: # to not reset the info about the user that is currently logged in
+            self.frame.users[user.username] = user
         self.current_user = user
         self.profile_info.set_user(user)
-        self.grid_rows = math.ceil(user.get_video_amount() / self.grid_columns)
-        print("grid rows:", self.grid_rows)
+        self.videos_ids.clear()
+        # the amount of videos to recv is either the amount of videos the user has or the limit to be sent
+        self.grid_rows = math.ceil(min(user.get_video_amount(), settings.AMOUNT_OF_VIDEOS_TO_SEND) / self.grid_columns)
         self.videos_grid.SetRows(self.grid_rows)
-        print("user ans:",user)
 
     def req_user_info(self, username):
         msg = clientProtocol.build_req_user_info(username)
@@ -146,6 +198,10 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.current_user = username
         self.req_user_info(username)
 
+        if self.current_user == self.frame.user.username:
+            self.add_video_btn.Show()
+        else:
+            self.add_video_btn.Hide()
         self.Layout()
         self.Refresh()
 

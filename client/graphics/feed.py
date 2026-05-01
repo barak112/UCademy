@@ -14,6 +14,8 @@ from user_profile import UserProfilePanel
 class FeedPanel(wx.Panel):
     BG_COLOR = (232, 239, 255)
 
+    volume = 0
+
     def __init__(self, frame, parent, associated_panel = None):
         super().__init__(parent)
 
@@ -25,7 +27,6 @@ class FeedPanel(wx.Panel):
             self.associated_panel = self
 
         self.is_playing = True
-        self.volume = 0
 
         self.video_index = 0
 
@@ -68,7 +69,6 @@ class FeedPanel(wx.Panel):
         self.personal_account_btn = wx.StaticBitmap(self, bitmap=wx.Bitmap(img_path))
         self.personal_account_btn.SetCursor(wx.Cursor(wx.CURSOR_HAND))
 
-        self.personal_account_btn.Bind(wx.EVT_LEFT_UP, self.on_personal_account)
         self.personal_account_label = wx.StaticText(self, label="Profile")
 
         personal_account_sizer.Add(self.personal_account_btn)
@@ -244,6 +244,11 @@ class FeedPanel(wx.Panel):
             main_sizer.Add(back_arrow, 0, wx.ALL, 20)
 
         # add to main_sizer
+        self.status_label = wx.StaticText(self)
+        self.status_label.SetFont(wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        self.status_label.SetForegroundColour(wx.Colour(wx.RED))
+
+        main_sizer.Add(self.status_label, wx.ALIGN_CENTER_HORIZONTAL)
         main_sizer.AddSpacer(50)
         main_sizer.Add(padding_sizer, 1 , wx.EXPAND)
         main_sizer.AddSpacer(50)
@@ -255,16 +260,22 @@ class FeedPanel(wx.Panel):
         video_sizer.SetMinSize((100, -1))
         self.desc_and_name_panel.SetMinSize((100, -1))
 
-        self.Bind(wx.EVT_MOUSEWHEEL, self.on_scroll)
+        self.personal_account_btn.Bind(wx.EVT_LEFT_UP, self.on_personal_account)
         self.like_btn.Bind(wx.EVT_LEFT_UP, self.on_like_video)
         self.open_comments_btn.Bind(wx.EVT_LEFT_UP, self.on_open_comments)
         self.sound_btn.Bind(wx.EVT_LEFT_UP, self.on_toggle_sound)
         self.play_btn.Bind(wx.EVT_LEFT_UP, self.on_toggle_play)
+        self.account_btn.Bind(wx.EVT_LEFT_UP, self.on_move_to_creator_account)
 
+        self.Bind(wx.EVT_MOUSEWHEEL, self.on_scroll)
         self.Bind(wx.EVT_SIZE, self.on_resize)
 
-
         self.Hide()
+
+    def on_move_to_creator_account(self, event):
+        self.frame.user_profile_panel.set_user(self.frame.videos_details[self.current_video_id].creator)
+        self.frame.switch_panel(self.frame.user_profile_panel, self)
+        event.Skip()
 
     def on_add_comment_ans(self, video_id, comment):
         self.comments_panel.on_add_comment_ans(video_id, comment)
@@ -290,8 +301,17 @@ class FeedPanel(wx.Panel):
 
     def Show(self, show = True):
         super().Show()
+        self.video_ctrl.Play()
         self.update_pfp()
         self.comments_panel.update_pfp_bitmap()
+        # update volume as according to the static var of volume
+
+        self.video_ctrl.SetVolume(FeedPanel.volume)
+        self.update_sound_button_and_label(FeedPanel.volume)
+
+    def Hide(self):
+        super().Hide()
+        self.video_ctrl.Pause()
 
     def update_video_desc_and_name(self):
         if self.current_video_id in self.frame.videos_details:
@@ -307,19 +327,19 @@ class FeedPanel(wx.Panel):
         self.Refresh()
         event.Skip()
 
-
-    def on_toggle_sound(self, event):
-        if self.volume:
-            self.volume = 0
-            self.sound_btn.label_or_path = "assets/sound_off.png"
-            self.sound_label.SetLabel("sound off")
-        else:
-            self.volume = 1
+    def update_sound_button_and_label(self, volume):
+        if volume:
             self.sound_btn.label_or_path = "assets\\sound_on.png"
             self.sound_label.SetLabel("sound on")
-
+        else:
+            self.sound_btn.label_or_path = "assets\\sound_off.png"
+            self.sound_label.SetLabel("sound off")
         self.sound_btn.Refresh()
-        self.video_ctrl.SetVolume(self.volume)
+
+    def on_toggle_sound(self, event):
+        FeedPanel.volume = int(not FeedPanel.volume)
+        self.video_ctrl.SetVolume(FeedPanel.volume)
+        self.update_sound_button_and_label(FeedPanel.volume)
 
     def on_open_comments(self, event):
         if self.comments_panel.IsShown():
@@ -396,14 +416,15 @@ class FeedPanel(wx.Panel):
                 if not video_id: # no more videos, either watched them all or no more in search/profile
                     # reset videos so the user could watch them again
                     if isinstance(self.associated_panel, FeedPanel):
-                        self.frame.change_text_status("Watched all videos, resting watched history")
+                        self.frame.change_text_status("Watched all videos, reseting watched history")
                         self.videos_ids = []
                         self.video_index = 0
                         self.waiting_for_video = True
                         msg = clientProtocol.build_req_video()
-                        self.frame.comm.send_msg(msg)
-                        self.frame.video_requests_by_feeds.append(self)
-                        self.frame.comments_requests_by_feeds.append(self)
+                        for req in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
+                            self.frame.comm.send_msg(msg)
+                            self.frame.video_requests_by_feeds.append(self.frame.feed_panel)
+                            self.frame.comments_requests_by_feeds.append(self.frame.feed_panel)
                         print("watched all videos")
 
                     elif isinstance(self.associated_panel, UserProfilePanel):
@@ -429,11 +450,12 @@ class FeedPanel(wx.Panel):
         event.Skip()
 
     def on_load(self, event):
+        self.video_ctrl.Show()
         self.video_ctrl.Play()
-        self.video_ctrl.SetVolume(self.volume)
+        self.video_ctrl.SetVolume(FeedPanel.volume)
         self.video_ctrl.Thaw() # unfreeze the video once it loads
         self.can_scroll = True
-        print("has thawd")
+        self.Layout()
 
     def on_video_finished(self, event):
         self.video_ctrl.Seek(0)
@@ -453,7 +475,7 @@ class FeedPanel(wx.Panel):
 
     def load_new_video(self, video):
         video_id = video.video_id
-        if video_id:
+        if video_id>0: # if not a special id
             self.frame.videos_details[video_id] = video
 
             if video_id not in self.videos_ids:
@@ -466,27 +488,20 @@ class FeedPanel(wx.Panel):
                 self.waiting_for_video = False
                 self.frame.change_text_status("video_loaded!")
         else:
-            self.videos_ids.append(video_id) # add 0 to indicate the end of the videos
-            # reset videos so the user could watch them again
-            # self.frame.change_text_status("watched all videos")
-            # self.videos_ids = []
-            # self.video_index = 0
-            # msg = clientProtocol.build_req_video()
-            # self.frame.comm.send_msg(msg)
-            # self.frame.video_requests_by_feeds.append(self)
-            # print("watched all videos")
+            self.videos_ids.append(video_id) # add 0 to indicate the end of the videos or -2 to indicate the video has been deleted
+
 
     def load_video(self, video):
         video_id = video.video_id
         if video_id:
             self.current_video_id = video_id
 
+            self.video_ctrl.Freeze()
             self.Layout()
             self.Refresh()
             self.Update()
 
             print("loading video:",video_id)
-            self.video_ctrl.Freeze()
             self.can_scroll = False
             print("has freezed")
 
@@ -501,18 +516,19 @@ class FeedPanel(wx.Panel):
             self.update_comments_label(video_id)
 
             self.update_video_desc_and_name()
-
-            pfp_path = f"media\\{video.creator}.png"
-            null_pfp_path = f"assets\\null_pfp.png"
-            if os.path.isfile(pfp_path):
-                self.account_btn.SetBitmap(wx.Bitmap(wx.Image(pfp_path).Scale(48,48)))
-            else:
-                self.account_btn.SetBitmap(wx.Bitmap(null_pfp_path))
-
-            self.account_label.SetLabel(video.creator)
+            self.update_creator_account_pfp_and_label(video)
 
             self.Layout()
 
+    def update_creator_account_pfp_and_label(self, video):
+        pfp_path = f"media\\{video.creator}.png"
+        null_pfp_path = f"assets\\null_pfp.png"
+        if os.path.isfile(pfp_path):
+            self.account_btn.SetBitmap(wx.Bitmap(wx.Image(pfp_path).Scale(48, 48)))
+        else:
+            self.account_btn.SetBitmap(wx.Bitmap(null_pfp_path))
+
+        self.account_label.SetLabel(video.creator)
 
     def load_new_comments(self, video_id, comments):
         print("loading new comments for video:",video_id)

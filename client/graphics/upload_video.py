@@ -167,7 +167,6 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
     def on_pick_thumbnail(self, event):
         """opens file dialog to pick thumbnail image"""
-        print("picking thumb")
         dlg = wx.FileDialog(self, "Choose thumbnail image", "", "", "PNG files (*.png)|*.png", wx.FD_OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.thumbnail_path = dlg.GetPath()

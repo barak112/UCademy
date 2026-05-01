@@ -44,7 +44,8 @@ class ClientLogic:
             "15": self.handle_load_new_video,
             "16": self.handle_video_upload_confirmation,
             "17": self.handle_follow_status,
-            "18": self.handle_like_video
+            "18": self.handle_like_video,
+            "19": self.update_pfp
         }
         self.video_commands = {
             # "00": self.handle_video_details,
@@ -272,6 +273,8 @@ class ClientLogic:
 
         wx.CallAfter(pub.sendMessage, "video_like_ans", status = status, video_id = video_id)
 
+    def update_pfp(self, data): # command 19
+        wx.CallAfter(pub.sendMessage, "update_pfp_ans")
 
     # called by the video_comm
 

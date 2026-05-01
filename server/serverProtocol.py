@@ -112,6 +112,9 @@ def build_follow_user_status(status, followed):
 def build_like_video_confirmation(status, video_id):
     return build_command(18, [status, video_id])
 
+def build_update_pfp():
+    return build_command(19, [])
+
 # ----- Video transfer protocol -----
 
 

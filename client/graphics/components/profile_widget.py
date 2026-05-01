@@ -92,7 +92,6 @@ class ProfileWidget(wx.Panel):
 
         self.Bind(wx.EVT_SIZE, self.on_resize)
 
-
     def update_pfp(self):
         if self.current_user:
             pfp_path = f"media\\{self.current_user.username}.png"
@@ -108,6 +107,19 @@ class ProfileWidget(wx.Panel):
         self.followers_numeric_amount_label.SetLabel(str(user.followers_amount))
         self.following_numeric_amount_label.SetLabel(str(user.followings_amount))
         self.update_pfp()
+
+        self.pfp.Unbind(wx.EVT_LEFT_DOWN)
+        print("should it bind",self.current_user.username == self.frame.user.username)
+
+        if self.current_user.username == self.frame.user.username:
+            self.pfp.Bind(wx.EVT_LEFT_DOWN, self.on_set_pfp)
+            self.pfp.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+            print("binding")
+        else:
+            self.pfp.SetCursor(wx.Cursor(wx.CURSOR_DEFAULT))
+
+    def on_set_pfp(self, event):
+        self.parent.set_pfp()
 
     def on_resize(self, event):
         self.Layout()

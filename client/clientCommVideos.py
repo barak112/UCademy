@@ -58,7 +58,7 @@ class ClientCommVideos (clientComm.ClientComm):
 
     def _recv_file(self, msg):
         """
-            recvs file send from the server and saves it at media//``file_name``
+            recvs file send from the server and saves it at media//pfps or media//videos //``file_name``
         :return: returns whether the recv was successful
         """
         # called by handle_save_file in logic
@@ -66,12 +66,11 @@ class ClientCommVideos (clientComm.ClientComm):
         file_name, file_size = data
         file_size = int(file_size)
         file_content = self._recv_file_content(file_size)
-
+        print("recieved file:", file_name)
         if len(file_content) == file_size:
             store_path = f"media\\{file_name}"
-            if not os.path.isfile(store_path):
-                with open(store_path, 'wb') as f:
-                    f.write(self.cipher.decrypt_file(file_content))
+            with open(store_path, 'wb') as f:
+                f.write(self.cipher.decrypt_file(file_content))
 
         else:
             self._close_client()
