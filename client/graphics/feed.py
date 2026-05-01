@@ -247,12 +247,13 @@ class FeedPanel(wx.Panel):
             main_sizer.Add(back_arrow, 0, wx.ALL, 20)
 
         # add to main_sizer
-        self.status_label = wx.StaticText(self)
+        self.status_label = wx.StaticText(self, label = "status")
         self.status_label.SetFont(wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
         self.status_label.SetForegroundColour(wx.Colour(wx.RED))
 
-        main_sizer.Add(self.status_label, wx.ALIGN_CENTER_HORIZONTAL)
-        main_sizer.AddSpacer(50)
+        main_sizer.AddSpacer(25)
+        main_sizer.Add(self.status_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        main_sizer.AddSpacer(25)
         main_sizer.Add(padding_sizer, 1 , wx.EXPAND)
         main_sizer.AddSpacer(50)
 
@@ -424,7 +425,7 @@ class FeedPanel(wx.Panel):
                     # in the feed, the amount settings.VIDEOS_TO_REQ of videos that was req from the server were
                     # all watched, and so now waiting for the new videos to arrive.
                     self.waiting_for_video = True
-                    self.frame.change_text_status("waiting for video from server...")
+                    self.status_label.SetLabel("waiting for video from server...")
 
             if load_a_new_video:
                 video_id = self.videos_ids[new_index]
@@ -432,7 +433,8 @@ class FeedPanel(wx.Panel):
                 if not video_id: # no more videos, either watched them all or no more in search/profile
                     # reset videos so the user could watch them again
                     if isinstance(self.associated_panel, FeedPanel):
-                        self.frame.change_text_status("Watched all videos, reseting watched history")
+                        self.status_label.SetLabel("Watched all videos, reseting watched history")
+
                         self.videos_ids = []
                         self.video_index = 0
                         self.waiting_for_video = True
@@ -444,7 +446,8 @@ class FeedPanel(wx.Panel):
                         print("watched all videos")
 
                     elif isinstance(self.associated_panel, UserProfilePanel):
-                        self.frame.change_text_status("This user does not have more videos")
+                        self.status_label.SetLabel("This user does not have more videos")
+
                         print("This user does not have more videos")
 
                 elif video_id in self.frame.videos_details:
@@ -461,7 +464,7 @@ class FeedPanel(wx.Panel):
                     self.frame.comments_requests_by_feeds.append(self)
 
                     self.waiting_for_video = True
-                    self.frame.change_text_status("waiting for video from server...")
+                    self.status_label.SetLabel("waiting for video from server...")
                     # if now requested video, then you need to wait for it to arrive from the server
         event.Skip()
 
@@ -506,7 +509,9 @@ class FeedPanel(wx.Panel):
                 self.video_index = self.videos_ids.index(video_id)
                 print(video_id,"video loaded at index", self.video_index)
                 self.waiting_for_video = False
-                self.frame.change_text_status("video_loaded!")
+                self.status_label.SetLabel("video_loaded!")
+                self.status_label.Layout()
+
         else:
             self.videos_ids.append(video_id) # add 0 to indicate the end of the videos or -2 to indicate the video has been deleted
 
@@ -527,9 +532,10 @@ class FeedPanel(wx.Panel):
             print("has freezed")
 
             self.video_ctrl.Load(f"media\\{video_id}.mp4")
-            self.video_ctrl.SetInitialSize((500, 500)) #todo do i really need?
+            self.video_ctrl.SetInitialSize((500, 500))
             self.comments_panel.set_video(video)
-            self.frame.change_text_status("")
+            self.status_label.SetLabel("")
+
 
             #load actions
             self.update_like_button(video.liked)

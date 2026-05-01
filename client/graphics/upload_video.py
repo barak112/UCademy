@@ -232,7 +232,8 @@ class UploadVideoPanel(wx.ScrolledWindow):
                 if duration/60 > settings.MAX_VIDEO_LENGTH:
                     self.video_path = None
                     self.pick_video_btn.label_or_path = "Click to upload video"
-                    self.upload_video_btn.label_or_path = "Video length is too long, pick another one"
+                    self.upload_video_btn.label_or_path = f"Video length is too long, pick another one under {settings.MAX_VIDEO_LENGTH} minutes"
+                    #todo put this in a status bar and check for video name and desc length too
 
             if self.thumbnail_path and self.video_path:
                 self.upload_video_btn.label_or_path = "Uploading..."

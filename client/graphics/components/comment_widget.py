@@ -41,6 +41,7 @@ class CommentWidget(wx.Panel):
         font = self.username_label.GetFont().Scale(2).Bold()
         self.username_label.SetFont(font)
 
+        # todo make this multiline
         w, h = self.username_label.GetTextExtent(self.username_label.GetValue())
         self.username_label.SetMinSize((w+14, h))  # +4 for padding
         self.username_label.SetCanFocus(False)

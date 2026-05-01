@@ -12,7 +12,6 @@ class ClientCommVideos (clientComm.ClientComm):
         Closes the client on connection errors or empty messages.
         """
         while not self.closed:
-            data = ""
             try:
 
                 data_len = int(self.my_socket.recv(settings.MESSAGE_LENGTH_LENGTH).decode())
@@ -20,7 +19,7 @@ class ClientCommVideos (clientComm.ClientComm):
 
             except Exception as e:
                 print(f"Error in mainLoop: {e}")
-                self._close_client()
+                data = ""
 
             if not data:
                 self._close_client()

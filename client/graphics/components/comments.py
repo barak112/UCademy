@@ -55,6 +55,7 @@ class Comments(wx.Panel):
         pfp = wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE))
         self.pfp = wx.StaticBitmap(self, bitmap=pfp)
 
+        # todo make this multiline
         self.add_comment_field = rounded_input_field.RoundedInputField(self, self, "Add a comment", "Add a comment...")
         self.add_comment_field.SetMinSize((0,50))
 
