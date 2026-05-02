@@ -6,12 +6,20 @@ import settings
 
 
 class RoundedButton(wx.Panel):
-    def __init__(self, parent, label_or_path, base_color = settings.UNACTIVE_BUTTON, background_color = settings.OFF_WHITE, radius = settings.ROUND_BORDER_RADIUS, font_size = settings.BUTTON_TEXT_FONT_SIZE, circle = False, use_image = False, text_color = wx.WHITE):
+    def __init__(self, parent, label_or_path, base_color=settings.UNACTIVE_BUTTON, background_color=settings.OFF_WHITE,
+                 radius=settings.ROUND_BORDER_RADIUS, font_size=settings.BUTTON_TEXT_FONT_SIZE, circle=False,
+                 use_image=False, text_color=wx.WHITE):
         """
-
+        Initializes a custom rounded button panel with hover, click, and image support.
         :param parent: parent to add the button to
         :param label_or_path: which label to put inside the button
         :param base_color: what color should be the button
+        :param background_color: the color of the area surrounding the button.
+        :param radius: the corner radius of the rounded rectangle.
+        :param font_size: font size of the button label text.
+        :param circle: if True, draws the button as a circle instead of a rounded rectangle.
+        :param use_image: if True, renders an image from label_or_path instead of text.
+        :param text_color: the color of the button label text.
         """
         super().__init__(parent)
 
@@ -51,6 +59,10 @@ class RoundedButton(wx.Panel):
         self.Bind(wx.EVT_LEFT_UP, self.on_mouse_release)
 
     def set_active(self, active):
+        """
+        Toggles the button between its active (theme color) and inactive (base color) appearance.
+        :param active: If True, sets the button to its active color; otherwise reverts to base color.
+        """
         if active:
             self.current_color = wx.Colour(settings.THEME_COLOR)
         else:
@@ -66,33 +78,28 @@ class RoundedButton(wx.Panel):
             min(255, int(b * (1 - percent / 100)))
         )
 
-    # def on_mouse_click(self, event):
-    #     """handles button mouse click, indicates to change the button's color"""
-    #     self.mouse_clicked = True
-    #     self.CaptureMouse()
-    #     self.Refresh()
-    #     self.Update()
-    #
-    # def on_mouse_release(self, event):
-    #     """handles button mouse release, indicates to change the button's color"""
-    #     if self.HasCapture():
-    #         self.ReleaseMouse()
-    #
-    #     # Delay resetting the state (e.g. 100ms)
-    #     wx.CallLater(100, self.reset_click_state)
-
     def on_mouse_click(self, event):
+        """
+        Handles mouse button down, marking the button as clicked and triggering a repaint.
+        :param event: The wx mouse down event.
+        """
         self.mouse_clicked = True
         self.Refresh()
         self.Update()
         event.Skip()
 
     def on_mouse_release(self, event):
-        # Delay resetting the state (e.g. 100ms)
+        """
+        Handles mouse button release and schedules a reset of the clicked state after a short delay.
+        :param event: The wx mouse up event.
+        """
         wx.CallLater(100, self.reset_click_state)
         event.Skip()
 
     def reset_click_state(self):
+        """
+        Resets the clicked state of the button and triggers a repaint.
+        """
         self.mouse_clicked = False
         self.Refresh()
 
@@ -103,16 +110,28 @@ class RoundedButton(wx.Panel):
         event.Skip()
 
     def on_mouse_leave(self, event):
+        """
+        Resets hover and click states when the mouse leaves the button area.
+        :param event: The wx mouse leave event.
+        """
         self.mouse_clicked = False
         self.mouse_over = False
         self.Refresh()  # Redraw with base color
         event.Skip()
 
     def on_size(self, event):
+        """
+        Triggers a repaint when the button is resized.
+        :param event: The wx size event.
+        """
         self.Refresh()
         event.Skip()
 
     def on_paint(self, event):
+        """
+        Draws the button shape and its label or image, applying the correct color based on hover and click state.
+        :param event: The wx paint event.
+        """
         dc = wx.AutoBufferedPaintDC(self)
         dc.Clear()
         gc = wx.GraphicsContext.Create(dc)
@@ -124,12 +143,9 @@ class RoundedButton(wx.Panel):
             w, h = self.GetClientSize()
 
             # Switch color based on hover state
-            current_color = self.hover_color if self.mouse_over else self.current_color # hover color if hovering
-            current_color = self.mouse_clicked_color if self.mouse_clicked else current_color # clicked color if clicked
+            current_color = self.hover_color if self.mouse_over else self.current_color  # hover color if hovering
+            current_color = self.mouse_clicked_color if self.mouse_clicked else current_color  # clicked color if clicked
 
-            # gc.SetBrush(wx.WHITE_BRUSH)
-            # gc.SetPen(wx.Pen(settings.THEME_COLOR, 2))
-            # gc.SetPen((wx.Pen(wx.BLACK, 2)))
             gc.SetBrush(wx.Brush(current_color))
             gc.SetPen(wx.NullGraphicsPen)
             if self.circle:
@@ -140,14 +156,19 @@ class RoundedButton(wx.Panel):
 
             if self.use_image:
                 if self.label_or_path:
-                    # iw, ih = 24, 24
                     iw, ih = 32, 32
-                    gc.DrawBitmap(wx.Bitmap(wx.Image(self.label_or_path).Scale(iw, ih, wx.IMAGE_QUALITY_HIGH)) , (w - iw) / 2, (h - ih) / 2,
+                    gc.DrawBitmap(wx.Bitmap(wx.Image(self.label_or_path).Scale(iw, ih, wx.IMAGE_QUALITY_HIGH)),
+                                  (w - iw) / 2, (h - ih) / 2,
                                   iw, ih)
             else:
-                gc.SetFont(wx.Font(self.font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD), self.text_color)
+                gc.SetFont(wx.Font(self.font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD),
+                           self.text_color)
                 tw, th = gc.GetTextExtent(self.label_or_path)
                 gc.DrawText(self.label_or_path, (w - tw) / 2, (h - th) / 2)
 
     def set_background_color(self, color):
+        """
+        Updates the button's current draw color and triggers a repaint.
+        :param color: The new color to apply to the button.
+        """
         self.current_color = wx.Colour(color)

@@ -36,4 +36,8 @@ class User:
         self.followings = followings
 
     def get_video_amount(self):
+        """
+        Calculates and retrieves the total number of video identifiers.
+        :return: The total count of videos this user has uploaded.
+        """
         return len(self.videos_ids)

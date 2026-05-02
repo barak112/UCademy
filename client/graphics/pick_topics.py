@@ -21,8 +21,13 @@ class PickTopicsPanel(wx.ScrolledWindow):
     FILTER_TITLE = "By which topics do you want to filter your videos?"
     FILTER_SUBTITLE = "Choose topics to filter your videos by"
 
-
     def __init__(self, frame, parent, panel_set_topics_handler=None):
+        """
+        Initializes the PickTopicsPanel, setting up UI elements, topic widgets, and event bindings.
+        :param frame: The main application frame.
+        :param parent: The parent wx window this panel belongs to.
+        :param panel_set_topics_handler: The panel that will handle the topic selection result. Determines the panel's title/subtitle and behaviour.
+        """
         super().__init__(parent)
         self.frame = frame
         self.parent = parent
@@ -58,11 +63,11 @@ class PickTopicsPanel(wx.ScrolledWindow):
 
         self.SetSizer(vbox)
 
-        self.selected_topics = [] # [topic1, topic2] includes the selected topics names
+        self.selected_topics = []  # [topic1, topic2] includes the selected topics names
         self.topics = {}  # [topic_name] = topic widget object
 
         self.grid_columns = 4
-        self.grid_rows = math.ceil(len(settings.TOPICS)/self.grid_columns)
+        self.grid_rows = math.ceil(len(settings.TOPICS) / self.grid_columns)
 
         self.grid = wx.GridSizer(self.grid_rows, self.grid_columns, 5, 5)
         for topic_name in settings.TOPICS:
@@ -73,7 +78,8 @@ class PickTopicsPanel(wx.ScrolledWindow):
         self.spacer = vbox.Add((0, 100))
         vbox.Add(self.grid, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
-        self.continue_btn = rounded_button.RoundedButton(self, "Continue", settings.BRIGHT_UNACTIVE_BUTTON, (204, 223, 252), 25, 13)
+        self.continue_btn = rounded_button.RoundedButton(self, "Continue", settings.BRIGHT_UNACTIVE_BUTTON,
+                                                         (204, 223, 252), 25, 13)
         self.continue_btn.SetMinSize((140, 60))
         vbox.Add(self.continue_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 40)
 
@@ -99,30 +105,45 @@ class PickTopicsPanel(wx.ScrolledWindow):
 
         self.Hide()
 
-    def set_selected_topics(self, topics:list[str]):
+    def set_selected_topics(self, topics: list[str]):
+        """
+        Clears the current topic selection and selects the given list of topics.
+        :param topics: A list of topic name strings to select.
+        """
         # deselects all topics
-        print("selected topics before removing ones:",self.selected_topics)
-        for already_selected_topic in self.selected_topics.copy(): # copy so the list wont change during the iteration
+        print("selected topics before removing ones:", self.selected_topics)
+        for already_selected_topic in self.selected_topics.copy():  # copy so the list wont change during the iteration
             self.topic_selected(already_selected_topic)
             print("removing current topic: ", already_selected_topic, self.selected_topics)
 
-        print("selected topics before new ones:",self.selected_topics)
+        print("selected topics before new ones:", self.selected_topics)
         # selects the new ones
         for topic in topics:
             self.topic_selected(topic)
 
-
     def handle_set_topics(self, topics):
+        """
+        Builds and sends a set-topics message to the server.
+        :param topics: A list of topic indices to send to the server.
+        """
         msg = clientProtocol.build_set_topics(topics)
         self.frame.comm.send_msg(msg)
 
     def on_set_topics(self, event):
+        """
+        Converts selected topic names to indices and delegates to the panel handler.
+        :param event: The wx button click event.
+        """
         topics = [settings.TOPICS.index(topic) for topic in self.selected_topics]
         print(topics)
         self.panel_set_topics_handler.handle_set_topics(topics)
         event.Skip()
 
     def on_set_topics_ans(self, topics):
+        """
+        Handles the server response after topics are set, requests the first video, and switches to the feed panel.
+        :param topics: The list of topics confirmed by the server.
+        """
         self.frame.user.topics = topics
         # send video req
         msg = clientProtocol.build_req_video()
@@ -134,6 +155,10 @@ class PickTopicsPanel(wx.ScrolledWindow):
         print("switching to feed panel")
 
     def topic_selected(self, topic_name):
+        """
+        Toggles the selection state of a topic widget and updates the continue button's active state.
+        :param topic_name: The name of the topic to toggle.
+        """
         # print("topic_name:",topic_name, "selected:", topic_name in self.selected_topics)
         if topic_name in self.selected_topics:
             self.selected_topics.remove(topic_name)
@@ -151,16 +176,23 @@ class PickTopicsPanel(wx.ScrolledWindow):
 
     @staticmethod
     def calc_columns(event):
-        w,h = event.GetSize()
+        """
+        Calculates the appropriate number of grid columns based on the current panel width.
+        :param event: The wx resize event containing the new panel size.
+        :return: The number of columns to use, clamped between 2 and 4.
+        """
+        w, h = event.GetSize()
 
         size_of_each_column = settings.TOPIC_WIDGET_WIDTH + 40
-        possible_amount_of_columns = w//size_of_each_column
+        possible_amount_of_columns = w // size_of_each_column
 
         return max(min(4, possible_amount_of_columns), 2)
 
-
     def on_resize(self, event):
-
+        """
+        Adjusts the grid column and row count when the panel is resized.
+        :param event: The wx resize event.
+        """
         if event.GetSize()[0] < self.grid.GetSize()[0] + 40 and self.grid.GetCols() > 1:
             self.grid_columns = self.calc_columns(event)
             self.grid.SetCols(self.grid_columns)
@@ -177,9 +209,13 @@ class PickTopicsPanel(wx.ScrolledWindow):
         event.Skip()
 
     def on_scroll(self, event):
+        """
+        Tracks scroll events and triggers a background repaint every 20 scrolls.
+        :param event: The wx scroll event.
+        """
         self.scrolls += 1
         if self.scrolls > 20:
-            #repaint the bg every 20 scrolls
+            # repaint the bg every 20 scrolls
             self.a_scroll = True
             self.Refresh()
             self.a_scroll = False
@@ -188,14 +224,18 @@ class PickTopicsPanel(wx.ScrolledWindow):
         event.Skip()
 
     def on_paint(self, event):
+        """
+        Draws the background bitmap, title, subtitle, and topic selection count onto the panel.
+        :param event: The wx paint event.
+        """
         dc = wx.BufferedPaintDC(self)
         gc = wx.GraphicsContext.Create(dc)
         if gc:
             w, h = self.GetClientSize()
-            gc.DrawBitmap(self.background_bitmap, 0,0, w, h)
+            gc.DrawBitmap(self.background_bitmap, 0, 0, w, h)
 
             if not self.a_scroll:
-                dc = wx.GCDC(gc) # so that the bg wont scroll
+                dc = wx.GCDC(gc)  # so that the bg wont scroll
                 self.PrepareDC(dc)
 
                 # draw title
@@ -205,24 +245,25 @@ class PickTopicsPanel(wx.ScrolledWindow):
                 tw, th = gc.GetTextExtent(self.title)
                 gc.DrawText(self.title, (w - tw) / 2, 10)
 
-                #draw subtitle
+                # draw subtitle
                 gc.SetFont(
-                    wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL),wx.BLACK
+                    wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL), wx.BLACK
                 )
 
                 tw2, th2 = gc.GetTextExtent(self.subtitle)
-                gc.DrawText(self.subtitle, (w - tw2) / 2, th+20)
+                gc.DrawText(self.subtitle, (w - tw2) / 2, th + 20)
                 if not self.grid_start_pos:
-                    self.grid_start_pos = int(th2+th+ 40)
+                    self.grid_start_pos = int(th2 + th + 40)
                     self.spacer.SetMinSize((0, self.grid_start_pos))
                     self.Layout()
 
-                #topics selected text
+                # topics selected text
                 gc.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL), wx.BLACK)
                 topics_selected_text = f"{len(self.selected_topics)} topics selected"
                 print(f"active_topics = {self.selected_topics}")
                 tw, th = gc.GetTextExtent(topics_selected_text)
-                gc.DrawText(topics_selected_text, (w - tw) // 2, self.grid_start_pos+self.grid.GetSize().GetHeight()+20)
+                gc.DrawText(topics_selected_text, (w - tw) // 2,
+                            self.grid_start_pos + self.grid.GetSize().GetHeight() + 20)
 
     def on_key(self, event):
         """checks for keys pressed, exists on Escape, log in on Enter"""

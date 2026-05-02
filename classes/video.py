@@ -41,9 +41,6 @@ class Video:
         """adds multiple comments to this video's comments list"""
         self.comments.update({comment.comment_id : comment for comment in comments})
 
-    # def get_comments(self) -> dict[int, comment.Comment]:
-    #     """returns a list of comments associated with this video"""
-    #     return self.comments
 
     def get_comments(self) -> list[comment.Comment]:
         """returns a list of comments associated with this video"""

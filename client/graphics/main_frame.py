@@ -20,7 +20,11 @@ from user_profile import UserProfilePanel
 class MainFrame(wx.Frame):
 
     def __init__(self, comm):
-        super().__init__(None, title="Ucademy", size=(1366,768))
+        """
+        Initializes the main application frame, sets up all panels, sizers, and pubsub subscriptions.
+        :param comm: The communication object used to send and receive messages with the server.
+        """
+        super().__init__(None, title="Ucademy", size=(1366, 768))
         super().Maximize()
 
         icon_path = "assets\\ucademy_logo.ico"
@@ -36,10 +40,10 @@ class MainFrame(wx.Frame):
 
         self.users = {}  # [username] = user_object
 
-        self.video_requests_by_feeds = [] # [feed_panel]
-        self.comments_requests_by_feeds = [] # [feed_panel]
-        self.comment_requests_by_feeds = [] # [feed_panel]
-        self.like_requests_by_feeds = [] # [feed_panel]
+        self.video_requests_by_feeds = []  # [feed_panel]
+        self.comments_requests_by_feeds = []  # [feed_panel]
+        self.comment_requests_by_feeds = []  # [feed_panel]
+        self.like_requests_by_feeds = []  # [feed_panel]
 
         self.CreateStatusBar()
 
@@ -96,23 +100,46 @@ class MainFrame(wx.Frame):
         pub.subscribe(self.on_add_comment_ans, "added_comment")
 
     def load_new_video(self, video):
+        """
+        Routes an incoming video to the feed panel that originally requested it.
+        :param video: The video object to load into the appropriate feed panel.
+        """
         correct_feed_panel = self.video_requests_by_feeds.pop(0)
         correct_feed_panel.load_new_video(video)
 
     def load_new_comments(self, video_id, comments):
+        """
+        Routes an incoming list of comments to the feed panel that originally requested them.
+        :param video_id: The ID of the video whose comments are being loaded.
+        :param comments: The list of comment objects to load.
+        """
         correct_feed_panel = self.comments_requests_by_feeds.pop(0)
         correct_feed_panel.load_new_comments(video_id, comments)
 
-
     def on_like_video_ans(self, status, video_id):
+        """
+        Routes a like response from the server to the feed panel that sent the like request.
+        :param status: The success or failure status of the like action.
+        :param video_id: The ID of the video that was liked.
+        """
         correct_feed_panel = self.like_requests_by_feeds.pop(0)
         correct_feed_panel.on_like_video_ans(status, video_id)
 
     def on_add_comment_ans(self, video_id, comment):
+        """
+        Routes an add-comment response from the server to the feed panel that sent the request.
+        :param video_id: The ID of the video the comment was added to.
+        :param comment: The comment object returned by the server.
+        """
         correct_feed_panel = self.comment_requests_by_feeds.pop(0)
         correct_feed_panel.on_add_comment_ans(video_id, comment)
 
     def switch_panel(self, new_panel, old_panel):
+        """
+        Hides the current panel and shows the new one, then refreshes the layout.
+        :param new_panel: The panel to switch to and display.
+        :param old_panel: The panel to hide.
+        """
         old_panel.Hide()
         new_panel.Show()
         new_panel.SetFocus()
@@ -124,7 +151,6 @@ class MainFrame(wx.Frame):
     def change_text_status(self, text):
         """Event handler to update the status bar text."""
         self.SetStatusText(text, 0)
-
 
 
 # ----------------------------

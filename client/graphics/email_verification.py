@@ -9,6 +9,7 @@ import settings
 import theme_background_panel
 import verification_code_cubes
 
+
 class EmailVerificationPanel(wx.Panel):
     # graphics constants
     LEFT_COLOR = settings.THEME_COLOR
@@ -98,7 +99,8 @@ class EmailVerificationPanel(wx.Panel):
         self.status_message.SetForegroundColour(wx.RED)
 
         # verify email button
-        self.verify_email_button = rounded_button.RoundedButton(form, "Verify Email", wx.Colour(settings.UNACTIVE_BUTTON))
+        self.verify_email_button = rounded_button.RoundedButton(form, "Verify Email",
+                                                                wx.Colour(settings.UNACTIVE_BUTTON))
         self.verify_email_button.Bind(wx.EVT_LEFT_UP, self.on_email_verification)
 
         # didnt recv code label
@@ -114,7 +116,6 @@ class EmailVerificationPanel(wx.Panel):
         didnt_recv_code_container = wx.BoxSizer(wx.HORIZONTAL)
         didnt_recv_code_container.Add(didnt_recv_code)
         didnt_recv_code_container.Add(resend)
-
 
         # back to sign up label
 
@@ -139,7 +140,6 @@ class EmailVerificationPanel(wx.Panel):
 
         form_sizer.Add(self.status_message, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, 35)
 
-
         form_sizer.Add(self.verify_email_button, 0, wx.EXPAND)
 
         form_sizer.Add(didnt_recv_code_container, 0, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 20)
@@ -159,7 +159,7 @@ class EmailVerificationPanel(wx.Panel):
         # add both left and self.right panels to the screen
         ucademy_icon = wx.Bitmap("assets\\ucademy_log_in_logo_with_Text.png")
         # ucademy_icon = wx.Bitmap("assets\\selected_topic_icon.png")
-        #todo get a new icon here.
+        # todo get a new icon here.
         # or change it totally to drawing the icon and writing the text instead of displaying a picture featuring both
 
         self.left = theme_background_panel.ThemeBackgroundPanel(self, ucademy_icon)
@@ -177,6 +177,10 @@ class EmailVerificationPanel(wx.Panel):
         self.Hide()
 
     def on_resize(self, event):
+        """
+            Hides or shows the left panel based on available width to handle narrow window sizes.
+        :param event: The resize event triggered when the panel is resized.
+        """
         if self.GetSize()[0] - self.right.GetSize()[0] == 1:
             self.left.Hide()
         else:
@@ -193,24 +197,42 @@ class EmailVerificationPanel(wx.Panel):
         event.Skip()
 
     def verification_code_full(self):
+        """
+            Updates the verify button to its active color when all code digits have been entered.
+        """
         self.verify_email_button.set_background_color(self.LEFT_COLOR)
         self.verify_email_button.Refresh()
 
-
     def verification_code_not_full(self):
+        """
+            Resets the verify button to its inactive color and clears the status message
+            when the verification code is incomplete.
+        """
         self.verify_email_button.set_background_color(settings.UNACTIVE_BUTTON)
         self.verify_email_button.Refresh()
         if not self.waiting_for_server_response:
             self.status_message.SetLabel("")
 
     def on_back_to_sign_up(self, event):
+        """
+            Navigates the user back to the sign-up panel.
+        :param event: The mouse click event that triggered this handler.
+        """
         self.frame.switch_panel(self.frame.signup_panel, self)
 
     def set_email(self, email):
+        """
+            Updates the email label displayed on the panel to show which address the code was sent to.
+        :param email: The email address string to display.
+        """
         self.email_label.SetLabel(email)
         self.Layout()
 
     def on_email_verification(self, event):
+        """
+            Sends the entered verification code to the server for validation.
+        :param event: The mouse click or key event that triggered this handler.
+        """
         self.status_message.SetLabel("Sending verification code...")
         self.Layout()
         if not self.waiting_for_server_response:
@@ -220,7 +242,14 @@ class EmailVerificationPanel(wx.Panel):
         if event:
             event.Skip()
 
-    def on_email_verification_ans(self, status, video_comm = None, user = None):
+    def on_email_verification_ans(self, status, video_comm=None, user=None):
+        """
+            Handles the server's response to the email verification attempt.
+            Navigates to the next screen on success or displays an error message on failure.
+        :param status: The status code returned by the server.
+        :param video_comm: The video communication object assigned to the client, if successful.
+        :param user: The username of the verified user, if successful.
+        """
         if status == settings.EMAIL_VERIFICATION_SUCCESSFUL:
             print("moving to next screen")
             self.frame.video_comm = video_comm
@@ -235,6 +264,9 @@ class EmailVerificationPanel(wx.Panel):
         self.waiting_for_server_response = False
 
     def on_resend_code(self, event):
+        """
+            Triggers a resend of the verification code by re-submitting the sign-up form.
+        :param event: The mouse click event that triggered this handler.
+        """
         self.status_message.SetLabel("Resending code...")
         self.frame.signup_panel.on_signup(None)
-

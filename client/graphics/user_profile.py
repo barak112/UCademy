@@ -21,6 +21,11 @@ class UserProfilePanel(wx.ScrolledWindow):
     RATIO = 4 / 3
 
     def __init__(self, frame, parent):
+        """
+        Initializes the UserProfilePanel, setting up the profile info widget, videos grid, navigation buttons, and event bindings.
+        :param frame: The main application frame.
+        :param parent: The parent wx window this panel belongs to.
+        """
         super().__init__(parent)
 
         self.frame = frame
@@ -35,7 +40,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.waiting_for_videos = False
         self.videos_ids = []
 
-        #padded vertical sizer
+        # padded vertical sizer
         padding_sizer = wx.BoxSizer(wx.VERTICAL)
 
         # profile info
@@ -46,7 +51,8 @@ class UserProfilePanel(wx.ScrolledWindow):
         videos_label = wx.StaticText(self, label="Videos")
         videos_label.SetFont(videos_label.GetFont().Scale(1.3).Bold())
 
-        self.add_video_btn = rounded_button.RoundedButton(self, "assets\\add_video.png", (180, 200, 255), self.BG_COLOR, circle=True, use_image=True)
+        self.add_video_btn = rounded_button.RoundedButton(self, "assets\\add_video.png", (180, 200, 255), self.BG_COLOR,
+                                                          circle=True, use_image=True)
         self.add_video_btn.SetMinSize((25, 25))
 
         # add to videos_label_and_add_video_btn_sizer
@@ -62,14 +68,13 @@ class UserProfilePanel(wx.ScrolledWindow):
         videos_sizer.Add(videos_label_and_add_video_btn_sizer, 0, wx.BOTTOM, 10)
         videos_sizer.Add(self.videos_grid, 0)
 
-
         # add to padding_sizer
         padding_sizer.Add(self.profile_info, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 20)
         padding_sizer.Add(videos_sizer, 1, wx.ALIGN_CENTER_HORIZONTAL)
 
-
         # back arrow
-        back_arrow = rounded_button.RoundedButton(self, "assets\\back_arrow.png", wx.WHITE, self.BG_COLOR, circle=True, use_image=True, text_color=wx.WHITE)
+        back_arrow = rounded_button.RoundedButton(self, "assets\\back_arrow.png", wx.WHITE, self.BG_COLOR, circle=True,
+                                                  use_image=True, text_color=wx.WHITE)
         back_arrow.SetMinSize((50, 50))
 
         # add to main_sizer
@@ -77,7 +82,6 @@ class UserProfilePanel(wx.ScrolledWindow):
         main_sizer.AddStretchSpacer()
         main_sizer.Add(padding_sizer, 0, wx.EXPAND)
         main_sizer.AddStretchSpacer()
-
 
         self.Bind(wx.EVT_SIZE, self.on_resize)
         self.add_video_btn.Bind(wx.EVT_LEFT_UP, self.on_move_to_upload_video)
@@ -93,10 +97,14 @@ class UserProfilePanel(wx.ScrolledWindow):
         # todo be able to change topics
 
     def on_scroll(self, event):
+        """
+        Handles scroll events to request more videos from the server when the user reaches the bottom of the panel.
+        :param event: The wx scroll event.
+        """
         event_type = event.GetEventType()
 
         scrolling_down = event_type in (wx.wxEVT_SCROLLWIN_LINEDOWN, wx.wxEVT_SCROLLWIN_PAGEDOWN,
-                                      wx.wxEVT_SCROLLWIN_THUMBTRACK)
+                                        wx.wxEVT_SCROLLWIN_THUMBTRACK)
 
         if scrolling_down:
             current = self.GetScrollPos(wx.VERTICAL)
@@ -108,19 +116,22 @@ class UserProfilePanel(wx.ScrolledWindow):
                         self.frame.comm.send_msg(msg)
                         self.waiting_for_videos = True
                         self.frame.change_text_status("waiting for videos from server")
-                        print("req more videos: last id:", self.videos_ids[-1], "videos ids:",self.videos_ids)
+                        print("req more videos: last id:", self.videos_ids[-1], "videos ids:", self.videos_ids)
             elif current >= max_pos:
                 self.frame.change_text_status("this user does not have more videos")
+        else:
+            self.frame.change_text_status("")
 
         event.Skip()
 
     def update_pfp(self):
+        """
+        Refreshes the profile picture across the profile panel and both feed panels.
+        """
         self.profile_info.update_pfp()
         self.frame.feed_panel.update_pfp()
         self.frame.user_profile_feed_panel.update_pfp()
 
-
-    # called from profile_widget
     def set_pfp(self):
         """opens file dialog to pick pfp image"""
         dlg = wx.FileDialog(self, "Choose an Image to Set Your pfp", "", "", "PNG files (*.png)|*.png", wx.FD_OPEN)
@@ -131,6 +142,10 @@ class UserProfilePanel(wx.ScrolledWindow):
         dlg.Destroy()
 
     def video_selected(self, video):
+        """
+        Handles the selection of a video thumbnail, requests the full video, and switches to the user profile feed panel.
+        :param video: The video object that was selected.
+        """
         # req video
         self.frame.user_profile_feed_panel.waiting_for_video = True
         msg = clientProtocol.build_req_video(video.video_id)
@@ -139,36 +154,48 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.frame.comments_requests_by_feeds.append(self.frame.user_profile_feed_panel)
 
         # set video ids to scroll through in user_profile_feed_panel
-        self.frame.user_profile_feed_panel.videos_ids = self.current_user.videos_ids + [0] # 0 indicates the end of the ids list
+        self.frame.user_profile_feed_panel.videos_ids = self.current_user.videos_ids + [
+            0]  # 0 indicates the end of the ids list
         print("ids list:", self.frame.user_profile_feed_panel.videos_ids)
         # switch to feed associated with user profile
         self.frame.user_profile_feed_panel.video_ctrl.Hide()
         self.frame.switch_panel(self.frame.user_profile_feed_panel, self)
 
     def on_back_arrow(self, event):
+        """
+        Navigates back to the main feed panel.
+        :param event: The wx mouse click event.
+        """
         self.frame.switch_panel(self.frame.feed_panel, self)
         event.Skip()
 
     def on_move_to_upload_video(self, event):
+        """
+        Switches to the upload video panel.
+        :param event: The wx mouse click event.
+        """
         self.frame.switch_panel(self.frame.upload_video_panel, self)
         event.Skip()
 
     def video_details_ans(self, video):
+        """
+        Handles an incoming video detail response and adds the video thumbnail to the grid if it is new.
+        :param video: The video object received from the server.
+        """
         print("got new video in profile:", video)
 
-        if not video.video_id: # video_id = 0 indicates no more users videos
+        if not video.video_id:  # video_id = 0 indicates no more users videos
             self.frame.change_text_status("this user does not have more videos")
 
         elif video.video_id == settings.END_OF_BATCH_SEND_ID:
             self.waiting_for_videos = False
 
-
         elif video.video_id not in self.videos_ids:
             self.videos_ids.append(video.video_id)
 
-            if self.videos_grid.GetChildren() == self.grid_columns*self.grid_rows: # if grid is full
+            if self.videos_grid.GetChildren() == self.grid_columns * self.grid_rows:  # if grid is full
                 self.grid_rows += 1
-                self.videos_grid.SetRows(self.grid_rows+1)
+                self.videos_grid.SetRows(self.grid_rows + 1)
 
             thumbnail = video_widget.VideoWidget(self, video, self.COLUMN_WIDTH, self.RATIO)
             self.videos_grid.Add(thumbnail, 0, wx.EXPAND)
@@ -178,6 +205,10 @@ class UserProfilePanel(wx.ScrolledWindow):
             self.Refresh()
 
     def user_info_ans(self, user):
+        """
+        Handles the server response with user details and initialises the profile view for that user.
+        :param user: The user object received from the server.
+        """
         self.frame.users[user.username] = user
         # todo load info about user from self.frame.users when setting a new user instead of req from the server
         self.current_user = user
@@ -188,12 +219,20 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.videos_grid.SetRows(self.grid_rows)
 
     def req_user_info(self, username):
+        """
+        Sends requests to the server for the user's profile info and their uploaded videos.
+        :param username: The username of the user whose info is being requested.
+        """
         msg = clientProtocol.build_req_user_info(username)
         self.frame.comm.send_msg(msg)
         msg = clientProtocol.build_req_creator_videos(username)
         self.frame.comm.send_msg(msg)
 
     def set_user(self, username):
+        """
+        Clears the current profile view and loads the profile for the given username.
+        :param username: The username of the user to display.
+        """
         self.videos_grid.Clear(True)
         self.current_user = username
         self.req_user_info(username)
@@ -205,8 +244,11 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.Layout()
         self.Refresh()
 
-
     def on_resize(self, event):
+        """
+        Refreshes the layout when the panel is resized.
+        :param event: The wx resize event.
+        """
         self.Layout()
         self.Refresh()
         event.Skip()

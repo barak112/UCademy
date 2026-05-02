@@ -12,15 +12,14 @@ from pubsub import pub
 import wx
 from main_frame import MainFrame
 
+
 class ClientLogic:
     """Manages client-side logic for the UCademy project.
     Processes server messages
     """
 
     def __init__(self):
-        """Initialize the ClientLogic object.
-
-        """
+        """Initialize the ClientLogic object."""
         self.recvQ = queue.Queue()
         self.comm = clientComm.ClientComm(self, settings.SERVER_IP, settings.PORT, self.recvQ)
         self.comm.connect()
@@ -44,13 +43,17 @@ class ClientLogic:
             "15": self.handle_load_new_video,
             "16": self.handle_video_upload_confirmation,
             "17": self.handle_follow_status,
-            "18": self.handle_like_video,
+            "18": self.handle_like_video_confirmation,
             "19": self.handle_update_pfp
         }
 
         threading.Thread(target=self.handle_msgs, daemon=True).start()
 
     def getComm(self):
+        """Returns the client communication object.
+
+        :return: The ClientComm instance used for server communication.
+        """
         return self.comm
 
     def quit(self):
@@ -72,11 +75,19 @@ class ClientLogic:
                 self.commands[opcode](data)
 
     def handle_reg_confirmation(self, data):  # command 0
+        """Handles the server's response to a registration request and notifies the UI.
+
+        :param data: The response data from the server containing a status list.
+        """
         status = data[0]
         status = [int(i) for i in status]
         wx.CallAfter(pub.sendMessage, "signup_ans", status=status)
 
     def handle_email_verification_confirmation(self, data):  # command 1
+        """Handles the server's response to an email verification attempt, sets up video communication if successful, and notifies the UI.
+
+        :param data: The response data containing status, and optionally username, email, and video port.
+        """
         status = data[0]
         status = int(status)
         if status == settings.EMAIL_VERIFICATION_SUCCESSFUL:
@@ -86,16 +97,19 @@ class ClientLogic:
             video_comm.connect()
             self.user = user.User(username, 0, 0, 0, email)
 
-        wx.CallAfter(pub.sendMessage,"email_verification_ans", status = status, video_comm = video_comm, user = self.user)
+        wx.CallAfter(pub.sendMessage, "email_verification_ans", status=status, video_comm=video_comm, user=self.user)
 
     def handle_sign_in_confirmation(self, data):  # command 2
+        """Handles the server's response to a sign-in attempt, initializes video communication and user object if successful, and notifies the UI.
+
+        :param data: The response data containing status, and optionally video port, username, follower counts, video IDs, email, topics, and followings.
+        """
         status = int(data[0])
 
         print("sign in status:", status)
         if status:
             video_port, username, followers_amount, followings_amount, videos_ids, email, topics, followings_names = data[
                 1:]
-
 
             video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, int(video_port), self.recvQ)
             video_comm.connect()
@@ -104,7 +118,7 @@ class ClientLogic:
             followings_amount = int(followings_amount)
 
             user_obj = user.User(username, followers_amount, followings_amount, videos_ids, email, topics,
-                                  followings_names)
+                                 followings_names)
 
             print(f"signed in as {username}")
             wx.CallAfter(pub.sendMessage, "login_ans", status=status, video_comm=video_comm, user=user_obj)
@@ -113,21 +127,38 @@ class ClientLogic:
             print("one of the credentials inputted is incorrect")
 
     def handle_topics_confirmation(self, data):  # command 3
+        """Handles the server's confirmation of topic preferences and notifies the UI.
+
+        :param data: The response data containing a list of topic integers.
+        """
         topics = data[0]
         topics = [int(topic) for topic in topics]
-        wx.CallAfter(pub.sendMessage, "set_topics_ans", topics = topics)
+        wx.CallAfter(pub.sendMessage, "set_topics_ans", topics=topics)
 
     def handle_filter_confirmation(self, data):  # command 4
+        """Handles the server's confirmation of a filter update and notifies the UI.
+
+        :param data: The response data containing the active filter value.
+        """
         filter = data[0]
         print("setting filter:", filter)
         wx.CallAfter(pub.sendMessage, "set_filter_ans", filter=filter)
 
     def handle_user_details_in_search(self, data):  # command 5
+        """Handles user details received during a search and notifies the UI.
+
+        :param data: The response data containing user details.
+        """
         user_obj = self.get_user_obj(data)
         wx.CallAfter(pub.sendMessage, "user_details_ans", user=user_obj)
 
     @staticmethod
-    def get_user_obj(data): # helper function
+    def get_user_obj(data):  # helper function
+        """Constructs a User object from raw response data.
+
+        :param data: A list containing username, followers amount, followings amount, and video IDs.
+        :return: A User object populated with the provided data.
+        """
         username, followers_amount, followings_amount, videos_ids = data
         followers_amount = int(followers_amount)
         followings_amount = int(followings_amount)
@@ -136,13 +167,22 @@ class ClientLogic:
         return user_details
 
     def handle_video_details_in_search(self, data):  # command 6
+        """Handles video details received during a search and notifies the UI to load the video.
+
+        :param data: The response data containing video details.
+        """
         video_obj = self.get_video_obj(data)
-        wx.CallAfter(pub.sendMessage, "load_video", video =video_obj)
+        wx.CallAfter(pub.sendMessage, "load_video", video=video_obj)
 
     @staticmethod
-    def get_video_obj(data): # helper function
+    def get_video_obj(data):  # helper function
+        """Constructs a Video object from raw response data.
+
+        :param data: A list containing video ID, creator, name, description, creation date, likes amount, comments amount, and liked status.
+        :return: A Video object populated with the provided data.
+        """
         video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = data
-        print("video_id:",video_id,"comments amount:", comments_amount)
+        print("video_id:", video_id, "comments amount:", comments_amount)
         video_id = int(video_id)
         comments_amount = int(comments_amount)
         likes_amount = int(likes_amount)
@@ -152,6 +192,10 @@ class ClientLogic:
         return video_details
 
     def handle_video_comment_confirmation(self, data):  # command 7
+        """Handles the server's confirmation of a posted comment and notifies the UI with the new comment.
+
+        :param data: The response data containing comment ID, video ID, commenter username, comment content, and creation timestamp.
+        """
         print('data:', data)
         comment_id, video_id, commenter, added_comment, created_at = data
         comment_id = int(comment_id)
@@ -159,16 +203,22 @@ class ClientLogic:
         comment_obj = comment.Comment(comment_id, added_comment, commenter, created_at)
 
         print("calling after")
-        wx.CallAfter(pub.sendMessage, "added_comment", video_id = video_id, comment = comment_obj)
-
+        wx.CallAfter(pub.sendMessage, "added_comment", video_id=video_id, comment=comment_obj)
 
     def handle_user_details_in_profile(self, data):  # command 8
+        """Handles user details received for a profile view and notifies the UI.
+
+        :param data: The response data containing user details.
+        """
         user_obj = self.get_user_obj(data)
 
-        wx.CallAfter(pub.sendMessage, "user_details_in_profile_ans", user = user_obj)
-
+        wx.CallAfter(pub.sendMessage, "user_details_in_profile_ans", user=user_obj)
 
     def handle_report_status(self, data):  # command 9
+        """Handles the server's update on a submitted report and prints the appropriate status message.
+
+        :param data: The response data containing status, content ID, type, content, content publisher, and creation timestamp.
+        """
         print(data, "1")
         status, id, type, content, content_publisher, created_at = data
         status = int(status)
@@ -199,6 +249,10 @@ class ClientLogic:
         print(status_messages[status])
 
     def handle_comments(self, data):  # command 10
+        """Handles a batch of comments received from the server and notifies the UI to load them.
+
+        :param data: A list of comment info lists, each containing comment ID, video ID, commenter, content, and creation timestamp.
+        """
         # data = [[comment_info], [comment_info]]
         comments = []
         video_id = 0
@@ -211,19 +265,27 @@ class ClientLogic:
                 f"comment added: comment_id: {comment_id} content: {comment_content} by {commenter} created at {created_at}")
 
         print("video id in handle comments:", video_id)
-        wx.CallAfter(pub.sendMessage, "load_new_comments", video_id = video_id, comments = comments)
-            #todo maybe change so that comments are sent as video_id@#[...]@#[...]@#[...] so the video id wouldnt be sent with each comment
+        wx.CallAfter(pub.sendMessage, "load_new_comments", video_id=video_id, comments=comments)
+        # todo maybe change so that comments are sent as video_id@#[...]@#[...]@#[...] so the video id wouldnt be sent with each comment
 
     def handle_vid_del_confirmation(self, data):  # command 11
+        """Handles the server's confirmation of a video deletion and notifies the UI.
+
+        :param data: The response data containing the deleted video ID (0 if deletion failed).
+        """
         video_id = int(data[0])
         if video_id:
             print(f"video {video_id} is deleted")
         else:
             print("video deletion failed")
 
-        wx.CallAfter(pub.sendMessage, "video_del_ans", video_id = video_id)
+        wx.CallAfter(pub.sendMessage, "video_del_ans", video_id=video_id)
 
     def handle_comment_del_confirmation(self, data):  # command 12
+        """Handles the server's confirmation of a comment deletion and notifies the UI.
+
+        :param data: The response data containing the video ID and deleted comment ID (video ID is 0 if deletion failed).
+        """
         video_id, comment_id = data
         video_id = int(video_id)
         comment_id = int(comment_id)
@@ -234,24 +296,44 @@ class ClientLogic:
 
         wx.CallAfter(pub.sendMessage, "video_del_ans", video_id=video_id)
 
-    def handle_video_details_in_profile(self, data): # command 13
+    def handle_video_details_in_profile(self, data):  # command 13
+        """Handles video details received for a profile view and notifies the UI.
+
+        :param data: The response data containing video details.
+        """
         video_obj = self.get_video_obj(data)
         wx.CallAfter(pub.sendMessage, "video_details_in_profile_ans", video=video_obj)
 
     def handle_user_details_in_follow_list(self, data):
+        """Handles user details received from a follow list request and notifies the UI.
+
+        :param data: The response data containing user details.
+        """
         user_obj = self.get_user_obj(data)
         wx.CallAfter(pub.sendMessage, "user_details_in_follow_list_ans", user=user_obj)
 
-    def handle_load_new_video(self, data): # command 15
+    def handle_load_new_video(self, data):  # command 15
+        """Handles a newly available video received from the server and notifies the UI.
+
+        :param data: The response data containing video details.
+        """
         video_obj = self.get_video_obj(data)
         wx.CallAfter(pub.sendMessage, "load_new_video", video=video_obj)
 
     def handle_video_upload_confirmation(self, data):  # command 16
+        """Handles the server's confirmation of a video upload and notifies the UI with the assigned video ID.
+
+        :param data: The response data containing the newly assigned video ID.
+        """
         video_id = data[0]
         video_id = int(video_id)
         wx.CallAfter(pub.sendMessage, "video_upload_ans", video_id=video_id)
 
     def handle_follow_status(self, data):  # command 17
+        """Handles the server's response to a follow request and notifies the UI.
+
+        :param data: The response data containing the follow status and the username being followed.
+        """
         status, following = data
 
         if following:
@@ -260,16 +342,24 @@ class ClientLogic:
         else:
             print("user trying to follow doesnt exists")
 
-        wx.CallAfter(pub.sendMessage, "follow_ans", status=status, following = following)
+        wx.CallAfter(pub.sendMessage, "follow_ans", status=status, following=following)
 
-    def handle_like_video(self, data): # command 18
+    def handle_like_video_confirmation(self, data):  # command 18
+        """Handles the server's response to a video like action and notifies the UI.
+
+        :param data: The response data containing the like status and the video ID.
+        """
         status, video_id = data
         status = int(status)
         video_id = int(video_id)
 
-        wx.CallAfter(pub.sendMessage, "video_like_ans", status = status, video_id = video_id)
+        wx.CallAfter(pub.sendMessage, "video_like_ans", status=status, video_id=video_id)
 
-    def handle_update_pfp(self, data): # command 19
+    def handle_update_pfp(self, data):  # command 19
+        """Handles the server's confirmation of a profile picture update and notifies the UI.
+
+        :param data: The response data from the server (unused).
+        """
         wx.CallAfter(pub.sendMessage, "update_pfp_ans")
 
 
@@ -282,8 +372,6 @@ if __name__ == "__main__":
     frame = MainFrame(client.getComm())
     frame.Show()
     app.MainLoop()
-
-
 
     # test command 0
     # msg_to_send = clientProtocol.build_sign_up("Barak", "password123", "bbmalt9@gmail.com")
@@ -366,4 +454,3 @@ if __name__ == "__main__":
     #
     # while True:
     #     pass
-

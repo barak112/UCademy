@@ -11,11 +11,15 @@ import comments
 
 
 class ProfileWidget(wx.Panel):
-    # BG_COLOR = (232, 239, 255)
     BG_COLOR = (243, 247, 255)
-    # BG_COLOR = settings.OFF_WHITE
 
     def __init__(self, frame, parent):
+        """
+        Initializes the ProfileWidget, building the UI with a profile picture, username label,
+        and stats for video count, followers, and following.
+        :param frame: The main application frame that holds the current logged-in user.
+        :param parent: The parent wx window this widget belongs to.
+        """
         super().__init__(parent)
 
         self.frame = frame
@@ -25,12 +29,12 @@ class ProfileWidget(wx.Panel):
 
         self.SetBackgroundColour(self.BG_COLOR)
 
-        self.current_user = None # current user object
+        self.current_user = None
 
         # profile info
         profile_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        pfp = wx.Bitmap(wx.Image("assets\\null_pfp_2.png").Scale(128,128, wx.IMAGE_QUALITY_HIGH))
+        pfp = wx.Bitmap(wx.Image("assets\\null_pfp_2.png").Scale(128, 128, wx.IMAGE_QUALITY_HIGH))
         self.pfp = wx.StaticBitmap(self, bitmap=pfp)
 
         username_and_info_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -38,7 +42,6 @@ class ProfileWidget(wx.Panel):
         self.username_label.SetFont(self.username_label.GetFont().Scale(2).Bold())
 
         info_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        # videos amount, followers amount, following amount labels
 
         numerics_font = wx.Font(13, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
@@ -46,7 +49,6 @@ class ProfileWidget(wx.Panel):
         videos_amount_sizer = wx.BoxSizer(wx.VERTICAL)
         self.videos_numeric_amount_label = wx.StaticText(self)
         self.videos_numeric_amount_label.SetFont(numerics_font)
-
         self.videos_amount_label = wx.StaticText(self, label="Videos")
 
         videos_amount_sizer.Add(self.videos_numeric_amount_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
@@ -75,15 +77,12 @@ class ProfileWidget(wx.Panel):
         info_sizer.Add(followers_amount_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 20)
         info_sizer.Add(following_amount_sizer, 0, wx.ALIGN_CENTER_VERTICAL)
 
-
         # add to username_and_info sizer
         username_and_info_sizer.Add(self.username_label, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 20)
         username_and_info_sizer.Add(info_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
         profile_info_sizer.Add(self.pfp, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 20)
         profile_info_sizer.Add(username_and_info_sizer, 0, wx.ALIGN_CENTER_VERTICAL)
-        # main_sizer.AddSpacer(10)
-
 
         # add to main sizer
         main_sizer.AddSpacer(10)
@@ -93,6 +92,10 @@ class ProfileWidget(wx.Panel):
         self.Bind(wx.EVT_SIZE, self.on_resize)
 
     def update_pfp(self):
+        """
+        Updates the profile picture bitmap if the current user has a local image file,
+        falling back to the default placeholder if none is found.
+        """
         if self.current_user:
             pfp_path = f"media\\{self.current_user.username}.png"
             if os.path.isfile(pfp_path):
@@ -101,6 +104,11 @@ class ProfileWidget(wx.Panel):
         print("updated pfp")
 
     def set_user(self, user):
+        """
+        Populates the widget with data from the given user, updates the profile picture,
+        and conditionally binds the pfp click event if viewing the logged-in user's own profile.
+        :param user: The user object whose profile data should be displayed.
+        """
         self.current_user = user
         self.username_label.SetLabel(user.username)
         self.videos_numeric_amount_label.SetLabel(str(user.get_video_amount()))
@@ -109,7 +117,7 @@ class ProfileWidget(wx.Panel):
         self.update_pfp()
 
         self.pfp.Unbind(wx.EVT_LEFT_DOWN)
-        print("should it bind",self.current_user.username == self.frame.user.username)
+        print("should it bind", self.current_user.username == self.frame.user.username)
 
         if self.current_user.username == self.frame.user.username:
             self.pfp.Bind(wx.EVT_LEFT_DOWN, self.on_set_pfp)
@@ -119,9 +127,17 @@ class ProfileWidget(wx.Panel):
             self.pfp.SetCursor(wx.Cursor(wx.CURSOR_DEFAULT))
 
     def on_set_pfp(self, event):
+        """
+        Handles a click on the profile picture by delegating to the parent's set_pfp method.
+        :param event: The wx mouse event triggered by clicking the profile picture.
+        """
         self.parent.set_pfp()
 
     def on_resize(self, event):
+        """
+        Handles window resize events by refreshing the layout and redrawing the panel.
+        :param event: The wx size event triggered on window resize.
+        """
         self.Layout()
         self.Refresh()
         event.Skip()

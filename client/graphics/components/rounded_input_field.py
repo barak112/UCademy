@@ -8,63 +8,62 @@ class RoundedInputField(wx.Panel):
     FOCUS_COLOR = settings.THEME_COLOR
     BG_COLOR = settings.OFF_WHITE
 
-
-    def __init__(self, panel, parent, field_name, placeholder, field_icon_bitmap = None, is_password = False, multiline = False, background_color = settings.OFF_WHITE):
+    def __init__(self, panel, parent, field_name, placeholder, field_icon_bitmap=None, is_password=False,
+                 multiline=False, background_color=settings.OFF_WHITE):
         """
-           Rounded input field init, the rounded field contains
-        :param parent: parent to add this widget to
-        :param placeholder: placeholder to put in the textCtrl
-        :param field_icon_bitmap: field icon to place before the textCtrl
-        :param is_password: whether this field is a password
+        Initializes the RoundedInputField with a styled text control, optional icon, and optional password visibility toggle.
+        :param panel: The panel that owns this field, used to call field_is_filled and field_is_unfilled.
+        :param parent: The parent wx window this widget is added to.
+        :param field_name: The identifier used when notifying the panel of fill state changes.
+        :param placeholder: The placeholder hint text shown inside the text control when empty.
+        :param field_icon_bitmap: An optional bitmap icon displayed to the left of the text control.
+        :param is_password: Whether this field should obscure input as a password field.
+        :param multiline: Whether this field should support multiple lines of text.
+        :param background_color: The background color of the panel surrounding the input field.
         """
         super().__init__(parent)
         self.panel = panel
         self.field_name = field_name
 
-        #attributes
-        self.has_focus = False # used to change the text box border color
-        self.text_shown = True # used for password show and hide
+        self.has_focus = False
+        self.text_shown = True
 
-        self.SetBackgroundStyle(wx.BG_STYLE_PAINT) # gets control of screen paint from OS
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
         self.SetBackgroundColour(background_color)
 
-        # visible text input widget
         style = wx.BORDER_NONE | wx.TE_PROCESS_ENTER
         if multiline:
-            style = style | wx.TE_MULTILINE | wx.TE_WORDWRAP # make multiline and wordwrap
+            style = style | wx.TE_MULTILINE | wx.TE_WORDWRAP
 
         self.text_visible = wx.TextCtrl(self, style=style)
         self.text_visible.SetBackgroundColour(wx.Colour((249, 250, 251)))
-        
+
         font = self.text_visible.GetFont()
         font = font.Scale(1.5)
         self.text_visible.SetFont(font)
         self.text_visible.SetHint(placeholder)
 
-        # hidden text input widget
         self.text_hidden = wx.TextCtrl(self, style=style | wx.TE_PASSWORD)
         self.text_hidden.SetBackgroundColour(wx.Colour((249, 250, 251)))
         self.text_hidden.SetFont(font)
         self.text_hidden.SetHint(placeholder)
 
-
-        # Layout
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
         if field_icon_bitmap:
             field_icon_bitmap = wx.StaticBitmap(self, bitmap=field_icon_bitmap)
             self.sizer.Add(field_icon_bitmap, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 20)
 
-        self.SetMinSize((0,65)) # original 70
+        self.SetMinSize((0, 65))
 
         if multiline:
             self.sizer.Add(self.text_visible, 1, wx.EXPAND | wx.ALL, 20)
         else:
             self.sizer.Add(self.text_visible, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 20)
-        self.sizer.Add(self.text_hidden, 1, wx.EXPAND |  wx.ALL, 20)
+        self.sizer.Add(self.text_hidden, 1, wx.EXPAND | wx.ALL, 20)
 
         self.text_hidden.Hide()
 
-        if is_password: # if is a password field
+        if is_password:
             self.text_visible.Hide()
             self.text_hidden.Show()
             self.text_shown = False
@@ -72,14 +71,12 @@ class RoundedInputField(wx.Panel):
             show_password_icon = wx.Bitmap("assets\\show_password_icon.png", wx.BITMAP_TYPE_PNG)
             self.password_visibility_icon = wx.StaticBitmap(self, bitmap=show_password_icon)
             self.sizer.Add(self.password_visibility_icon, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 20)
-            # handle change password visibility on icon press
             self.password_visibility_icon.Bind(wx.EVT_LEFT_UP, self.toggle_show_password)
 
         self.SetSizer(self.sizer)
 
-        # Events
-        self.Bind(wx.EVT_PAINT, self.on_paint) # paint round field border
-        self.Bind(wx.EVT_SIZE, self.on_size) # paint on every resize
+        self.Bind(wx.EVT_PAINT, self.on_paint)
+        self.Bind(wx.EVT_SIZE, self.on_size)
 
         self.text_visible.Bind(wx.EVT_SET_FOCUS, self.on_focus)
         self.text_visible.Bind(wx.EVT_KILL_FOCUS, self.on_kill_focus)
@@ -91,6 +88,10 @@ class RoundedInputField(wx.Panel):
         self.text_hidden.Bind(wx.EVT_TEXT, self.on_text_change)
 
     def on_text_change(self, event):
+        """
+        Handles text change events by notifying the parent panel whether the field is filled or empty.
+        :param event: The wx text event triggered whenever the field's content changes.
+        """
         ctrl = event.GetEventObject()
         value = ctrl.GetValue()
 
@@ -103,7 +104,7 @@ class RoundedInputField(wx.Panel):
 
     def toggle_show_password(self, event):
         """triggered once clicked on the eye icon on the password field, toggles between text shown and hidden"""
-        if self.text_shown: # hide text
+        if self.text_shown:
             hide_password_icon = wx.Bitmap("assets\\show_password_icon.png", wx.BITMAP_TYPE_PNG)
             self.password_visibility_icon.SetBitmap(hide_password_icon)
             self.text_shown = False
@@ -116,7 +117,7 @@ class RoundedInputField(wx.Panel):
             self.text_visible.Hide()
             self.text_hidden.Show()
 
-        else: # show text
+        else:
             show_password_icon = wx.Bitmap(wx.Image("assets\\hide_password_icon.png"))
             self.password_visibility_icon.SetBitmap(show_password_icon)
             self.text_shown = True
@@ -156,12 +157,10 @@ class RoundedInputField(wx.Panel):
         if gc:
             w, h = self.GetClientSize()
 
-            # Background
             gc.SetBrush(wx.Brush(self.BG_COLOR))
             gc.SetPen(wx.NullGraphicsPen)
             gc.DrawRoundedRectangle(0, 0, w, h, settings.ROUND_BORDER_RADIUS)
 
-            # Border color (changes on focus)
             border_color = self.FOCUS_COLOR if self.has_focus else self.BORDER_COLOR
 
             gc.SetBrush(wx.TRANSPARENT_BRUSH)
@@ -193,6 +192,5 @@ class RoundedInputField(wx.Panel):
 
         if value == "":
             self.panel.field_is_unfilled(self.field_name)
-
         else:
             self.panel.field_is_filled(self.field_name)

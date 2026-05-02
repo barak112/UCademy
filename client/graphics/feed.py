@@ -16,7 +16,7 @@ class FeedPanel(wx.Panel):
 
     volume = 0
 
-    def __init__(self, frame, parent, associated_panel = None):
+    def __init__(self, frame, parent, associated_panel=None):
         super().__init__(parent)
 
         self.frame = frame
@@ -52,13 +52,6 @@ class FeedPanel(wx.Panel):
         self.video_ctrl.Bind(wx.media.EVT_MEDIA_LOADED, self.on_load)
         self.video_ctrl.Bind(wx.media.EVT_MEDIA_FINISHED, self.on_video_finished)
 
-        # self.video.Play()
-        # video_size = (int(self.GetClientSize()[0]), int(self.GetClientSize()[0] * (9 / 16)))
-        # video_size = (int(self.GetClientSize()[1] * (9 / 16)), self.GetClientSize()[1])
-        # self.video.SetInitialSize(video_size)
-        # self.video.SetInitialSize((90, 160))
-        # self.video.SetMinSize(video_size)
-
         # video
         video_sizer.Add(self.video_ctrl, 1, wx.EXPAND)
 
@@ -81,7 +74,7 @@ class FeedPanel(wx.Panel):
         search_sizer = wx.BoxSizer(wx.VERTICAL)
         img_path = "assets\\search.png"
         self.search_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
-                                                     self.BG_COLOR, circle=True, use_image=True)
+                                                       self.BG_COLOR, circle=True, use_image=True)
         self.search_btn.SetMinSize((50, 50))
         self.search_label = wx.StaticText(self, label="search")
 
@@ -92,7 +85,7 @@ class FeedPanel(wx.Panel):
         play_sizer = wx.BoxSizer(wx.VERTICAL)
         img_path = "assets\\pause.png"
         self.play_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
-                                                      self.BG_COLOR, circle=True, use_image=True)
+                                                     self.BG_COLOR, circle=True, use_image=True)
         self.play_btn.SetMinSize((50, 50))
         self.play_label = wx.StaticText(self, label="pause")
 
@@ -105,20 +98,19 @@ class FeedPanel(wx.Panel):
         sound_sizer = wx.BoxSizer(wx.VERTICAL)
         img_path = "assets\\sound_off.png"
         self.sound_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
-                                                     self.BG_COLOR, circle=True, use_image=True)
+                                                      self.BG_COLOR, circle=True, use_image=True)
         self.sound_btn.SetMinSize((50, 50))
-        self.sound_label = wx.StaticText(self, label = "sound off")
+        self.sound_label = wx.StaticText(self, label="sound off")
 
         sound_sizer.Add(self.sound_btn)
         sound_sizer.Add(self.sound_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
-
 
         # like
         like_sizer = wx.BoxSizer(wx.VERTICAL)
         img_path = "assets\\like_icon.png"
         self.like_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
-                                                     self.BG_COLOR, circle=True,use_image=True)
-        self.like_btn.SetMinSize((50,50))
+                                                     self.BG_COLOR, circle=True, use_image=True)
+        self.like_btn.SetMinSize((50, 50))
         self.likes_amount_label = wx.StaticText(self)
 
         like_sizer.Add(self.like_btn)
@@ -129,7 +121,7 @@ class FeedPanel(wx.Panel):
 
         img_path = "assets\\open_comments_icon.png"
         self.open_comments_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
-                                                     self.BG_COLOR, circle=True, use_image=True)
+                                                              self.BG_COLOR, circle=True, use_image=True)
         self.open_comments_btn.SetMinSize((50, 50))
         self.comments_amount_label = wx.StaticText(self)
 
@@ -141,7 +133,7 @@ class FeedPanel(wx.Panel):
 
         img_path = "assets\\test.png"
         self.test_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
-                                                              self.BG_COLOR, circle=True, use_image=True)
+                                                     self.BG_COLOR, circle=True, use_image=True)
         self.test_btn.SetMinSize((50, 50))
         self.test_label = wx.StaticText(self, label="test")
 
@@ -219,21 +211,21 @@ class FeedPanel(wx.Panel):
 
         self.desc_and_name_panel.SetSizer(desc_and_name_sizer)
 
-        #padding sizer
+        # padding sizer
         padding_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         padding_sizer.AddStretchSpacer()
         padding_sizer.AddSpacer(10)
 
-        #adding comments
+        # adding comments
         padding_sizer.Add(self.comments_panel, 10, wx.EXPAND)
         padding_sizer.AddSpacer(50)
 
-        #adding video
+        # adding video
         padding_sizer.Add(video_sizer, 10, wx.EXPAND)
         padding_sizer.AddSpacer(10)
 
-        #adding video name and description
+        # adding video name and description
         padding_sizer.Add(self.desc_and_name_panel, 10, wx.EXPAND)
 
         padding_sizer.AddSpacer(10)
@@ -241,7 +233,8 @@ class FeedPanel(wx.Panel):
 
         if isinstance(self.associated_panel, UserProfilePanel):
             # back arrow
-            back_arrow = rounded_button.RoundedButton(self, "assets\\back_arrow.png", wx.WHITE, self.BG_COLOR, circle=True, use_image=True)
+            back_arrow = rounded_button.RoundedButton(self, "assets\\back_arrow.png", wx.WHITE, self.BG_COLOR,
+                                                      circle=True, use_image=True)
             back_arrow.SetMinSize((50, 50))
             back_arrow.Bind(wx.EVT_LEFT_DOWN, self.on_back_arrow)
             main_sizer.Add(back_arrow, 0, wx.ALL, 20)
@@ -254,7 +247,7 @@ class FeedPanel(wx.Panel):
         main_sizer.AddSpacer(25)
         main_sizer.Add(self.status_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
         main_sizer.AddSpacer(25)
-        main_sizer.Add(padding_sizer, 1 , wx.EXPAND)
+        main_sizer.Add(padding_sizer, 1, wx.EXPAND)
         main_sizer.AddSpacer(50)
 
         self.SetSizer(main_sizer)
@@ -283,29 +276,53 @@ class FeedPanel(wx.Panel):
         self.Hide()
 
     def on_key_down(self, event):
+        """
+            Toggles play/pause when the spacebar is pressed.
+        :param event: The key down event triggered by a keypress.
+        """
         if event.GetKeyCode() == wx.WXK_SPACE:
             self.on_toggle_play(None)
         event.Skip()
 
     def on_move_to_creator_account(self, event):
+        """
+            Navigates to the current video's creator profile page.
+        :param event: The mouse click event that triggered this handler.
+        """
         self.frame.user_profile_panel.set_user(self.frame.videos_details[self.current_video_id].creator)
         self.frame.switch_panel(self.frame.user_profile_panel, self)
         event.Skip()
 
     def on_add_comment_ans(self, video_id, comment):
+        """
+            Forwards a new comment confirmation to the comments panel.
+        :param video_id: The ID of the video the comment was posted on.
+        :param comment: The comment data to display.
+        """
         self.comments_panel.on_add_comment_ans(video_id, comment)
 
     def on_back_arrow(self, event):
+        """
+            Navigates back to the current user's profile page.
+        :param event: The mouse click event that triggered this handler.
+        """
         self.frame.user_profile_panel.set_user(self.frame.user.username)
         self.frame.switch_panel(self.frame.user_profile_panel, self)
         event.Skip()
 
     def on_personal_account(self, event):
+        """
+            Navigates to the logged-in user's own profile page.
+        :param event: The mouse click event that triggered this handler.
+        """
         self.frame.user_profile_panel.set_user(self.frame.user.username)
         self.frame.switch_panel(self.frame.user_profile_panel, self)
         event.Skip()
 
     def update_pfp(self):
+        """
+            Updates the personal account button bitmap with the user's current profile picture.
+        """
         user = self.frame.user
         if user:
             pfp_path = f"media\\{user.username}.png"
@@ -314,35 +331,53 @@ class FeedPanel(wx.Panel):
                 self.personal_account_btn.SetBitmap(pfp)
         print("updated pfp")
 
-    def Show(self, show = True):
+    def Show(self, show=True):
+        """
+            Shows the panel, resumes video playback, updates the profile picture,
+            and restores the current volume state.
+        :param show: Whether to show the panel.
+        """
         super().Show()
         self.video_ctrl.Play()
         self.update_pfp()
         self.comments_panel.update_pfp_bitmap()
-        # update volume as according to the static var of volume
-
         self.video_ctrl.SetVolume(FeedPanel.volume)
         self.update_sound_button_and_label(FeedPanel.volume)
 
     def Hide(self):
+        """
+            Hides the panel and pauses video playback.
+        """
         super().Hide()
         self.video_ctrl.Pause()
 
     def update_video_desc_and_name(self):
+        """
+            Updates the video name and description labels with the current video's details.
+        """
         if self.current_video_id in self.frame.videos_details:
             self.video_desc_label.SetLabel(self.frame.videos_details[self.current_video_id].video_desc)
-            self.video_name_label.SetLabel(str(self.current_video_id)+" "+self.frame.videos_details[self.current_video_id].video_name)
+            self.video_name_label.SetLabel(
+                str(self.current_video_id) + " " + self.frame.videos_details[self.current_video_id].video_name)
 
             self.video_name_label.Wrap(self.desc_and_name_panel.GetSize()[0])
             self.video_desc_label.Wrap(self.desc_and_name_panel.GetSize()[0])
 
     def on_resize(self, event):
+        """
+            Refreshes the layout and video description labels when the panel is resized.
+        :param event: The resize event triggered when the panel size changes.
+        """
         self.update_video_desc_and_name()
         self.Layout()
         self.Refresh()
         event.Skip()
 
     def update_sound_button_and_label(self, volume):
+        """
+            Updates the sound button icon and label to reflect the current volume state.
+        :param volume: The current volume level; non-zero means sound is on, zero means muted.
+        """
         if volume:
             self.sound_btn.label_or_path = "assets\\sound_on.png"
             self.sound_label.SetLabel("sound on")
@@ -352,12 +387,20 @@ class FeedPanel(wx.Panel):
         self.sound_btn.Refresh()
 
     def on_toggle_sound(self, event):
+        """
+            Toggles the video sound between muted and unmuted.
+        :param event: The mouse click event that triggered this handler.
+        """
         FeedPanel.volume = int(not FeedPanel.volume)
         self.video_ctrl.SetVolume(FeedPanel.volume)
         self.update_sound_button_and_label(FeedPanel.volume)
         event.Skip()
 
     def on_open_comments(self, event):
+        """
+            Toggles the visibility of the comments panel.
+        :param event: The mouse click event that triggered this handler.
+        """
         if self.comments_panel.IsShown():
             self.comments_panel.Hide()
         else:
@@ -368,6 +411,10 @@ class FeedPanel(wx.Panel):
         event.Skip()
 
     def on_like_video(self, event):
+        """
+            Sends a like or unlike request to the server for the current video.
+        :param event: The mouse click event that triggered this handler.
+        """
         print("liking video")
         if self.current_video_id:
             msg = clientProtocol.build_like_video(self.current_video_id)
@@ -376,16 +423,26 @@ class FeedPanel(wx.Panel):
         event.Skip()
 
     def on_like_video_ans(self, status, video_id):
+        """
+            Handles the server's response to a like or unlike request,
+            updating the like button and count label accordingly.
+        :param status: 1 if the video was liked, 0 if the like was removed.
+        :param video_id: The ID of the video that was liked or unliked.
+        """
         video = self.frame.videos_details[video_id]
-        video.amount_of_likes += 1 if status else -1 # either + 1 or - 1
-        video.liked = bool(status) # update liked
-        print("got like ans:", "status:", status, "new amount:",video.amount_of_likes)
+        video.amount_of_likes += 1 if status else -1  # either + 1 or - 1
+        video.liked = bool(status)  # update liked
+        print("got like ans:", "status:", status, "new amount:", video.amount_of_likes)
 
         if video_id == self.current_video_id:
             self.update_like_button(status)
             self.update_likes_amount_label(video_id)
 
     def update_like_button(self, is_liked):
+        """
+            Updates the like button icon to reflect whether the video is currently liked.
+        :param is_liked: True or 1 if the video is liked, False or 0 otherwise.
+        """
         if is_liked:
             self.like_btn.label_or_path = "assets\\liked_icon.png"
         else:
@@ -394,10 +451,20 @@ class FeedPanel(wx.Panel):
         self.like_btn.Refresh()
 
     def update_likes_amount_label(self, video_id):
+        """
+            Updates the likes count label with the current like count for the given video.
+        :param video_id: The ID of the video whose like count should be displayed.
+        """
         self.likes_amount_label.SetLabel(str(self.frame.videos_details[video_id].amount_of_likes))
         print("set label to:", str(self.frame.videos_details[video_id].amount_of_likes))
 
     def on_scroll(self, event):
+        """
+            Handles mouse wheel scrolling to navigate between videos.
+            Scrolling up loads the previous video and scrolling down loads the next,
+            requesting new videos from the server when necessary.
+        :param event: The mouse wheel event triggered by scrolling.
+        """
         rotation = event.GetWheelRotation()
         if self.can_scroll:
             self.play_btn.label_or_path = "assets\\pause.png"
@@ -406,17 +473,17 @@ class FeedPanel(wx.Panel):
             load_a_new_video = False
             new_index = self.video_index
 
-            if rotation > 0: # scroll up
+            if rotation > 0:  # scroll up
                 # return to the previous video
                 if self.video_index > 0:
-                    print("current video index:", self.video_index, "ids:",self.videos_ids)
-                    new_index -= 1 # last video
+                    print("current video index:", self.video_index, "ids:", self.videos_ids)
+                    new_index -= 1  # last video
                     load_a_new_video = True
             else:
-                if len(self.videos_ids)>self.video_index + 1:
+                if len(self.videos_ids) > self.video_index + 1:
                     new_index += 1
                     load_a_new_video = True
-                    if isinstance(self.associated_panel, FeedPanel): # if in the feed, then preload a video
+                    if isinstance(self.associated_panel, FeedPanel):  # if in the feed, then preload a video
                         msg = clientProtocol.build_req_video()
                         self.frame.comm.send_msg(msg)
                         self.frame.video_requests_by_feeds.append(self)
@@ -430,7 +497,7 @@ class FeedPanel(wx.Panel):
             if load_a_new_video:
                 video_id = self.videos_ids[new_index]
                 # checks if there already is this video's file.
-                if not video_id: # no more videos, either watched them all or no more in search/profile
+                if not video_id:  # no more videos, either watched them all or no more in search/profile
                     # reset videos so the user could watch them again
                     if isinstance(self.associated_panel, FeedPanel):
                         self.status_label.SetLabel("Watched all videos, reseting watched history")
@@ -452,7 +519,7 @@ class FeedPanel(wx.Panel):
 
                 elif video_id in self.frame.videos_details:
                     video_to_load = self.frame.videos_details[self.videos_ids[new_index]]
-                    print("loading video:",video_id, 'comments',video_to_load.get_comments())
+                    print("loading video:", video_id, 'comments', video_to_load.get_comments())
                     self.load_video(video_to_load)
                     self.video_index = new_index
                 else:
@@ -470,20 +537,34 @@ class FeedPanel(wx.Panel):
         event.Skip()
 
     def on_load(self, event):
+        """
+            Handles the media loaded event by playing the video and re-enabling scrolling.
+        :param event: The media loaded event fired when a video finishes loading.
+        """
         self.video_ctrl.Show()
         self.video_ctrl.Play()
         self.video_ctrl.SetVolume(FeedPanel.volume)
-        self.video_ctrl.Thaw() # unfreeze the video once it loads
+        self.video_ctrl.Thaw()  # unfreeze the video once it loads
+        print("video has thawed")
         self.can_scroll = True
         self.Layout()
         event.Skip()
 
     def on_video_finished(self, event):
+        """
+            Loops the current video by seeking back to the start and replaying it.
+        :param event: The media finished event fired when a video reaches its end.
+        """
         self.video_ctrl.Seek(0)
         self.video_ctrl.Play()
         event.Skip()
 
     def on_toggle_play(self, event):
+        """
+            Toggles the video between playing and paused states,
+            updating the play button icon and label accordingly.
+        :param event: The mouse click or key event that triggered this handler, or None.
+        """
         self.is_playing = not self.is_playing
         if self.is_playing:
             self.video_ctrl.Play()
@@ -498,26 +579,36 @@ class FeedPanel(wx.Panel):
             event.Skip()
 
     def load_new_video(self, video):
+        """
+            Registers a newly received video, appends it to the video list,
+            and immediately loads it if the panel is currently waiting for one.
+        :param video: The video object received from the server.
+        """
         video_id = video.video_id
-        if video_id>0: # if not a special id
+        if video_id > 0:  # if not a special id
             self.frame.videos_details[video_id] = video
 
             if video_id not in self.videos_ids:
                 self.videos_ids.append(video_id)
 
-            if self.waiting_for_video: # checks if waiting for a video to arrive from server, if so, load it immediately
+            if self.waiting_for_video:  # checks if waiting for a video to arrive from server, if so, load it immediately
                 self.load_video(video)
                 self.video_index = self.videos_ids.index(video_id)
-                print(video_id,"video loaded at index", self.video_index)
+                print(video_id, "video loaded at index", self.video_index)
                 self.waiting_for_video = False
                 self.status_label.SetLabel("video loaded")
                 self.status_label.Layout()
 
         else:
-            self.videos_ids.append(video_id) # add 0 to indicate the end of the videos or -2 to indicate the video has been deleted
-
+            self.videos_ids.append(
+                video_id)  # add 0 to indicate the end of the videos or -2 to indicate the video has been deleted
 
     def load_video(self, video):
+        """
+            Loads and plays a video in the media control, updating all associated
+            UI elements including likes, comments, description, and creator info.
+        :param video: The video object to load and display.
+        """
         print("is it it:", self.comments_panel.comments_panel)
         video_id = video.video_id
         if video_id:
@@ -528,7 +619,7 @@ class FeedPanel(wx.Panel):
             self.Refresh()
             self.Update()
 
-            print("loading video:",video_id)
+            print("loading video:", video_id)
             self.can_scroll = False
             print("has freezed")
 
@@ -537,8 +628,7 @@ class FeedPanel(wx.Panel):
             self.comments_panel.set_video(video)
             self.status_label.SetLabel("")
 
-
-            #load actions
+            # load actions
             self.update_like_button(video.liked)
             self.update_likes_amount_label(video_id)
             self.update_comments_label(video_id)
@@ -549,6 +639,11 @@ class FeedPanel(wx.Panel):
             self.Layout()
 
     def update_creator_account_pfp_and_label(self, video):
+        """
+            Updates the creator account button bitmap and label with the video creator's
+            profile picture and username.
+        :param video: The video object whose creator info should be displayed.
+        """
         pfp_path = f"media\\{video.creator}.png"
         null_pfp_path = f"assets\\null_pfp.png"
         if os.path.isfile(pfp_path):
@@ -559,17 +654,27 @@ class FeedPanel(wx.Panel):
         self.account_label.SetLabel(video.creator)
 
     def load_new_comments(self, video_id, comments):
-        print("loading new comments for video:",video_id)
+        """
+            Adds newly received comments to the video's details and updates the
+            comments panel if the video is currently being viewed.
+        :param video_id: The ID of the video the comments belong to.
+        :param comments: A list of comment data to add.
+        """
+        print("loading new comments for video:", video_id)
         if video_id in self.frame.videos_details:
             self.frame.videos_details[video_id].add_comments(comments)
 
             if video_id == self.current_video_id:
                 self.comments_panel.add_comments(comments)
 
-
     def update_comments_label(self, video_id):
+        """
+            Updates the comments count label with the current comment count for the given video.
+        :param video_id: The ID of the video whose comment count should be displayed.
+        """
         self.comments_amount_label.SetLabel(str(self.frame.videos_details[video_id].amount_of_comments))
         print("set label to", self.frame.videos_details[video_id].amount_of_comments)
+
 
 # three parts: comments, video, video desc + video name.
 

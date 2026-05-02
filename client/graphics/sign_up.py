@@ -14,7 +14,7 @@ class SignupPanel(wx.Panel):
     RIGHT_COLOR = settings.OFF_WHITE
     SUBTITLE_COLOR = settings.SUBTITLE_COLOR
 
-    #todo change subtitle color
+    # todo change subtitle color
 
     def __init__(self, frame, parent):
         """Sign up screen initialization"""
@@ -86,7 +86,7 @@ class SignupPanel(wx.Panel):
 
         password_sizer, self.password_input_obj = self.labeled_input("Password", form, "Enter your password",
                                                                      password_icon, True)
-        self.filled_fields = {"Username":0, "Email":0, "Password":0}
+        self.filled_fields = {"Username": 0, "Email": 0, "Password": 0}
 
         # whenever one of the fields is being written to, make status message disappear
         self.username_input_obj.get_text_visible().Bind(wx.EVT_KEY_DOWN, self.entering_text)
@@ -159,19 +159,33 @@ class SignupPanel(wx.Panel):
 
         self.Hide()
 
-    def set_fields(self, username, password, email = None):
+    def set_fields(self, username, password, email=None):
+        """
+        Pre-fills the sign-up form fields with the given values.
+        :param username: The username to populate in the username field.
+        :param password: The password to populate in the password field.
+        :param email: The email to populate in the email field, if provided.
+        """
         self.username_input_obj.set_value(username)
         self.password_input_obj.set_value(password)
         if email:
             self.email_input_obj.set_value(email)
 
     def field_is_filled(self, field_name):
+        """
+        Marks a field as filled and activates the sign-up button if all fields are filled.
+        :param field_name: The name of the field that has been filled.
+        """
         self.filled_fields[field_name] = 1
         if all(self.filled_fields.values()):
             self.signup_button.set_active(True)
         self.signup_button.Refresh()
 
     def field_is_unfilled(self, field_name):
+        """
+        Marks a field as unfilled and deactivates the sign-up button.
+        :param field_name: The name of the field that has been cleared.
+        """
         self.filled_fields[field_name] = 0
         self.signup_button.set_active(False)
         self.signup_button.Refresh()
@@ -183,12 +197,15 @@ class SignupPanel(wx.Panel):
         event.Skip()
 
     def on_resize(self, event):
+        """
+        Hides the left decorative panel when the window is too narrow to display both sides.
+        :param event: The wx resize event.
+        """
         if self.GetSize()[0] - self.right.GetSize()[0] == 1:
             self.left.Hide()
         else:
             self.left.Show()
         event.Skip()
-
 
     def labeled_input(self, label_text, parent, placeholder, field_icon_bitmap, is_password=False):
         """
@@ -207,7 +224,8 @@ class SignupPanel(wx.Panel):
         font = font.Scale(1.5)
         label.SetFont(font)
 
-        text_box = rounded_input_field.RoundedInputField(self,parent, label_text,placeholder, field_icon_bitmap, is_password)
+        text_box = rounded_input_field.RoundedInputField(self, parent, label_text, placeholder, field_icon_bitmap,
+                                                         is_password)
 
         sizer.Add(label)
         sizer.Add(text_box, 0, wx.EXPAND)
@@ -255,21 +273,22 @@ class SignupPanel(wx.Panel):
         """handles response to sign up from the server, either moves to the email verification panel or shows an error message"""
         if not any(status):
             if self.frame.email_verification_panel.IsShown():
-                self.frame.email_verification_panel.status_message.SetLabel("A new email verification code has been sent to your email account")
+                self.frame.email_verification_panel.status_message.SetLabel(
+                    "A new email verification code has been sent to your email account")
             else:
                 # set fields to the temporary credentials set at the sign up, those are the credentials that were actually sent to the server
                 self.set_fields(self.temp_username, self.temp_password, self.temp_email)
-                self.frame.switch_panel(self.frame.email_verification_panel, self) # move to email verification panel
+                self.frame.switch_panel(self.frame.email_verification_panel, self)  # move to email verification panel
                 self.frame.email_verification_panel.set_email(self.temp_email)
         else:
-            if self.frame.email_verification_panel.IsShown(): # if an error response from a resent code
-                self.frame.switch_panel(self, self.frame.email_verification_panel) # return to sign up panel
+            if self.frame.email_verification_panel.IsShown():  # if an error response from a resent code
+                self.frame.switch_panel(self, self.frame.email_verification_panel)  # return to sign up panel
 
             username_status, password_status, email_status = status
             if username_status:
-                self.status_message.SetLabel("username error: "+ settings.USERNAME_ERRORS[username_status])
+                self.status_message.SetLabel("username error: " + settings.USERNAME_ERRORS[username_status])
             if password_status:
-                self.status_message.SetLabel(f"password error: "+ settings.PASSWORD_ERRORS[password_status])
+                self.status_message.SetLabel(f"password error: " + settings.PASSWORD_ERRORS[password_status])
             if email_status:
                 self.status_message.SetLabel("email error: " + settings.EMAIL_ERRORS[email_status])
 
@@ -280,5 +299,9 @@ class SignupPanel(wx.Panel):
         self.Layout()
 
     def on_move_to_log_in(self, event):
+        """
+        Switches to the login panel, carrying over the current username and password values.
+        :param event: The wx mouse click event.
+        """
         self.frame.switch_panel(self.frame.login_panel, self)
         self.frame.login_panel.set_fields(self.username_input_obj.get_value(), self.password_input_obj.get_value())

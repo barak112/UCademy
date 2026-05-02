@@ -9,7 +9,14 @@ import settings
 class CommentWidget(wx.Panel):
     BG_COLOR = settings.OFF_WHITE
     HOVER_COLOR = (220, 220, 220)
+
     def __init__(self, parent, comment):
+        """
+        Initializes the CommentWidget, building the UI with the commenter's profile picture,
+        username, timestamp, and comment text.
+        :param parent: The parent wx window this widget belongs to.
+        :param comment: A comment object containing commenter, comment, and created_at fields.
+        """
         super().__init__(parent)
 
         self.is_hovered = False
@@ -19,21 +26,16 @@ class CommentWidget(wx.Panel):
         separator_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.comment = comment
-        # pfp_path = f"..\\..\\media\\{comment.commenter}.png"
-        # if not os.path.isfile(pfp_path):
-        #     pfp_path = "\\..\\assets\\null_pfp.png"
 
         pfp_path = f"media\\{comment.commenter}.png"
         if not os.path.isfile(pfp_path):
             pfp_path = "assets\\null_pfp.png"
 
-
         pfp = wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE))
         pfp = wx.StaticBitmap(self, bitmap=pfp)
 
-        # right size
+        # right sizer
         right_sizer = wx.BoxSizer(wx.VERTICAL)
-
 
         # username label
         self.username_label = wx.TextCtrl(self, value=comment.commenter, style=wx.TE_READONLY | wx.BORDER_NONE)
@@ -41,9 +43,8 @@ class CommentWidget(wx.Panel):
         font = self.username_label.GetFont().Scale(2).Bold()
         self.username_label.SetFont(font)
 
-        # todo make this multiline
         w, h = self.username_label.GetTextExtent(self.username_label.GetValue())
-        self.username_label.SetMinSize((w+14, h))  # +4 for padding
+        self.username_label.SetMinSize((w + 14, h))
         self.username_label.SetCanFocus(False)
 
         # commented ago label
@@ -64,12 +65,11 @@ class CommentWidget(wx.Panel):
         self.comment_label.SetFont(font)
         self.comment_label.SetCanFocus(False)
 
-
-        # add to right size
+        # add to right sizer
         right_sizer.Add(username_date_sizer)
         right_sizer.Add(self.comment_label, 0, wx.EXPAND)
 
-        # add to seperator sizer
+        # add to separator sizer
         separator_sizer.Add(pfp, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 10)
         separator_sizer.Add(right_sizer, 1)
 
@@ -78,19 +78,18 @@ class CommentWidget(wx.Panel):
         main_sizer.Add(separator_sizer, 0, wx.EXPAND)
         main_sizer.Add((0, 20))
 
-
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_check_hover, self.timer)
-        self.timer.Start(100)  # Check every 100ms
+        self.timer.Start(100)
 
     def on_check_hover(self, event):
-        # Get the mouse position relative to the screen
+        """
+        Periodically checks whether the mouse is hovering over this widget and updates
+        the background color of the panel and its text controls accordingly.
+        :param event: The wx timer event fired every 100ms.
+        """
         mouse_pos = wx.GetMousePosition()
-
-        # Get the window's rectangle area on the screen
         window_rect = self.GetScreenRect()
-
-        # Check if the mouse is inside that rectangle
         is_inside_now = window_rect.Contains(mouse_pos)
 
         if is_inside_now and not self.is_hovered:
@@ -109,6 +108,10 @@ class CommentWidget(wx.Panel):
         event.Skip()
 
     def date_to_ago(self):
+        """
+        Converts the comment's creation timestamp into a human-readable relative time string
+        (e.g. "3 hours ago") and updates the commented_ago_label with it.
+        """
         created_at = self.comment.created_at
         print("created at:", created_at)
         created_at = datetime.strptime(created_at, "%d/%m/%Y %H:%M")
@@ -125,22 +128,16 @@ class CommentWidget(wx.Panel):
         months = days / 30
         years = days / 365
 
-
         if seconds < 60:
-            ago_str =  "just now"
-
+            ago_str = "just now"
         elif minutes < 60:
             ago_str = f"{int(minutes)} minutes ago"
-
         elif hours < 24:
             ago_str = f"{int(hours)} hours ago"
-
         elif days < 7:
             ago_str = f"{int(days)} days ago"
-
         elif weeks < 4:
             ago_str = f"{int(weeks)} weeks ago"
-
         elif months < 12:
             ago_str = f"{int(months)} months ago"
         else:

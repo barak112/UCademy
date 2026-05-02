@@ -15,23 +15,26 @@ class VerificationCodeCubes(wx.Panel):
     SPACING = 10
     BOXES_AMOUNT = settings.VERIFICATION_CODE_LENGTH
 
-
     def __init__(self, code_ver_panel, parent):
+        """
+        Initializes the verification code input widget with the correct number of digit boxes and key event bindings.
+        :param code_ver_panel: The email verification panel that handles code completion callbacks.
+        :param parent: The parent wx window this widget belongs to.
+        """
         super().__init__(parent)
 
         self.code_ver_panel = code_ver_panel
 
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)  # gets control of screen paint from OS
-        self.SetBackgroundColour(self.BG_COLOR) # fallback, drawing is done in on_paint
+        self.SetBackgroundColour(self.BG_COLOR)  # fallback, drawing is done in on_paint
         self.SetWindowStyleFlag(wx.WANTS_CHARS)
 
         self.code = ""
 
-
         self.Bind(wx.EVT_SIZE, self.on_resize)
         self.Bind(wx.EVT_PAINT, self.on_paint)
 
-        x_size = self.BOX_SIZE[0] * self.BOXES_AMOUNT + self.SPACING* (self.BOXES_AMOUNT-1)
+        x_size = self.BOX_SIZE[0] * self.BOXES_AMOUNT + self.SPACING * (self.BOXES_AMOUNT - 1)
         self.SetMinSize((x_size + 2, self.BOX_SIZE[1] + 2))
 
         self.start_end_spacing = self.GetClientSize()[0] - x_size
@@ -42,6 +45,10 @@ class VerificationCodeCubes(wx.Panel):
         self.text = ""
 
     def on_key_down(self, event):
+        """
+        Handles key down events, specifically intercepting Ctrl+V and Shift+Insert to support pasting a digit code from the clipboard.
+        :param event: The wx key down event.
+        """
         key = event.GetKeyCode()
         ctrl = event.ControlDown()
         shift = event.ShiftDown()
@@ -68,6 +75,10 @@ class VerificationCodeCubes(wx.Panel):
             event.Skip()
 
     def on_char_down(self, event):
+        """
+        Handles character input, appending digits to the code and removing the last digit on backspace.
+        :param event: The wx char event.
+        """
         key = event.GetKeyCode()
 
         if key == wx.WXK_BACK:
@@ -76,7 +87,7 @@ class VerificationCodeCubes(wx.Panel):
         elif key == wx.WXK_RETURN and len(self.code) == self.BOXES_AMOUNT:
             print("enter")
 
-        elif key < 256 and len(self.code)<self.BOXES_AMOUNT:
+        elif key < 256 and len(self.code) < self.BOXES_AMOUNT:
             key = chr(key)
             if key in string.digits:
                 self.code += key
@@ -90,6 +101,10 @@ class VerificationCodeCubes(wx.Panel):
         event.Skip()
 
     def on_resize(self, event):
+        """
+        Recalculates the horizontal spacing and triggers a repaint when the widget is resized.
+        :param event: The wx size event.
+        """
         self.Refresh()
         event.Skip()
         self.start_end_spacing = self.GetClientSize()[0] - self.BOXES_AMOUNT * self.BOX_SIZE[0]
@@ -97,6 +112,10 @@ class VerificationCodeCubes(wx.Panel):
         self.start_end_spacing /= 2
 
     def on_paint(self, event):
+        """
+        Draws each digit box with the appropriate background, border, and digit character based on the current code input.
+        :param event: The wx paint event.
+        """
         dc = wx.AutoBufferedPaintDC(self)
         dc.Clear()
 
@@ -122,9 +141,13 @@ class VerificationCodeCubes(wx.Panel):
                     gc.SetFont(wx.Font(settings.VERIFICATION_CODE_FONT_SIZE, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL,
                                        wx.FONTWEIGHT_BOLD, faceName="Roboto"), wx.BLACK)
                     tw, th = gc.GetTextExtent(digit)
-                    gc.DrawText(digit, x+(self.BOX_SIZE[0]-tw)/2,y +1+ (self.BOX_SIZE[1] - th) / 2)
+                    gc.DrawText(digit, x + (self.BOX_SIZE[0] - tw) / 2, y + 1 + (self.BOX_SIZE[1] - th) / 2)
 
                 x += self.BOX_SIZE[0] + self.SPACING
 
     def get_value(self):
+        """
+        Returns the current digit code entered by the user.
+        :return: The code string composed of the digits typed so far.
+        """
         return self.code

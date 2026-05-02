@@ -339,6 +339,10 @@ class DataBase:
         return results
 
     def get_deleted_videos_ids(self):
+        """
+            Retrieves the IDs of all videos marked as deleted.
+        :return: List of video IDs where deleted is set to 1.
+        """
         self.cur.execute("SELECT video_id FROM videos WHERE deleted = 1")
         return [i[0] for i in self.cur.fetchall()]
 
@@ -414,6 +418,12 @@ class DataBase:
         self.conn.commit()
 
     def search_videos(self, name_or_desc, topics):
+        """
+            Searches for videos matching a name or description, optionally filtered by topics.
+        :param name_or_desc: A string to match against video names and descriptions.
+        :param topics: List of topics to filter results by; pass an empty list for no filter.
+        :return: List of video IDs ordered by relevance score and view count.
+        """
         query = """SELECT videos.video_id,
             
             (
@@ -547,6 +557,11 @@ class DataBase:
         return comments
 
     def get_deleted_command_ids(self, video_id):
+        """
+            Retrieves the IDs of all deleted comments for a specific video.
+        :param video_id: ID of the video to check for deleted comments.
+        :return: List of comment IDs where deleted is set to 1.
+        """
         self.cur.execute("SELECT comment_id FROM comments WHERE video_id = ? AND deleted = 1", (video_id,))
         return [i[0] for i in self.cur.fetchall()]
 
@@ -917,7 +932,12 @@ class DataBase:
         return self.cur.fetchone() is not None
 
     def remove_watched_videos_for_user(self, username):
+        """
+            Removes all watched video records for a specific user.
+        :param username: Username of the user whose watch history should be cleared.
+        """
         self.cur.execute("DELETE FROM watched_videos WHERE username = ?", (username, ))
+        self.conn.commit()
 
     # ===== video hashes =====
 
