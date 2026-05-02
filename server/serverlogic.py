@@ -202,7 +202,7 @@ class ServerLogic:
                 if not any(status):  # credentials are valid:
                     self.db.add_user(username, email, self.hash_password(password))
                     self.clients[client_ip] = [username,
-                                               serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ),
+                                               serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ, client_ip),
                                                []]
                     self.pfps_sent[client_ip] = []
                     self.videos_sent[client_ip] = []
@@ -483,7 +483,7 @@ class ServerLogic:
             # send username details and pfps
             self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
         else:
-            msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
+            msg_to_send = serverProtocol.build_video_details_in_search(0, "", "", "", "", 0, 0, 0)
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
 
     def send_videos_details_and_thumbnail(self, client_ip, video_ids):  # Helper function
@@ -705,7 +705,7 @@ class ServerLogic:
         if videos_to_send:
             self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
         else:  # indicates there are no more videos to send
-            msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
+            msg_to_send = serverProtocol.build_video_details_in_profile(0, "", "", "", "", 0, 0, 0)
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
 
     def handle_user_follow_list_req(self, client_ip, data):  # command 14
@@ -762,8 +762,12 @@ class ServerLogic:
                 msg_to_send = serverProtocol.build_video_details(settings.DELETED_ID, "", "", "", "", 0, 0, 0)
                 self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
         else:
+            video_id = settings.END_OF_LIST_ID
+            if not self.db.are_there_videos():
+                video_id = settings.NO_VIDEOS_ID
+
             self.db.remove_watched_videos_for_user(username)
-            msg_to_send = serverProtocol.build_video_details(0, "", "", "", "", 0, 0, 0)
+            msg_to_send = serverProtocol.build_video_details(video_id, "", "", "", "", 0, 0, 0)
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
 
     def send_video_and_details(self, client_ip, video_id):  # helper function

@@ -30,6 +30,8 @@ class Comments(wx.Panel):
 
         self.video = None
 
+        self.comments_ids = []
+
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.SetBackgroundColour(self.BG_COLOR)
@@ -189,18 +191,16 @@ class Comments(wx.Panel):
         :param video_id: The ID of the video the comment was added to.
         :param comment: The comment object returned by the server.
         """
-        print(self.frame.videos_details)
         self.frame.videos_details[video_id].add_comment_at_start(comment)
 
         if self.video.video_id == video_id:
             # add comment visually
             comment_panel = comment_widget.CommentWidget(self.comments_panel, comment)
+
             self.comments_sizer.Insert(0, comment_panel, 0, wx.EXPAND)
             self.update_comments_label()
-            print("amount of comments:", self.video.amount_of_comments)
             self.parent.update_comments_label(video_id)
             self.Layout()
-            print("added comment ")
 
     def add_comments(self, comments):
         """
@@ -210,8 +210,10 @@ class Comments(wx.Panel):
         self.comments_panel.Freeze()
 
         for a_comment in comments:
-            comment_panel = comment_widget.CommentWidget(self.comments_panel, a_comment)
-            self.comments_sizer.Add(comment_panel, 0, wx.EXPAND)
+            if a_comment.comment_id not in self.comments_ids:  # make sure there are no duplicate comments
+                comment_panel = comment_widget.CommentWidget(self.comments_panel, a_comment)
+                self.comments_sizer.Add(comment_panel, 0, wx.EXPAND)
+                self.comments_ids.append(a_comment.comment_id)
 
         self.comments_panel.Thaw()
 
@@ -239,7 +241,10 @@ class Comments(wx.Panel):
         """
         Updates the comments count label to reflect the current number of comments on the video.
         """
-        self.comments_amount_label.SetLabel(f"{self.video.amount_of_comments} comments")
+        # using self.frame... because the video here and the video in details is a different obj. only update the obj in
+        # frame, so i am also using it when setting the label
+        self.comments_amount_label.SetLabel(
+            f"{self.frame.videos_details[self.video.video_id].amount_of_comments} comments")
 
 
 if __name__ == "__main__":

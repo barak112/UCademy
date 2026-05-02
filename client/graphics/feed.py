@@ -41,6 +41,8 @@ class FeedPanel(wx.Panel):
 
         self.current_video_id = None  # video_id
 
+        self.no_videos = False
+
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.SetBackgroundColour(self.BG_COLOR)
@@ -240,7 +242,7 @@ class FeedPanel(wx.Panel):
             main_sizer.Add(back_arrow, 0, wx.ALL, 20)
 
         # add to main_sizer
-        self.status_label = wx.StaticText(self)
+        self.status_label = wx.StaticText(self, label="Loading video")
         self.status_label.SetFont(wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
         self.status_label.SetForegroundColour(wx.Colour(wx.RED))
 
@@ -493,6 +495,12 @@ class FeedPanel(wx.Panel):
                     # all watched, and so now waiting for the new videos to arrive.
                     self.waiting_for_video = True
                     self.status_label.SetLabel("waiting for video from server...")
+                    if self.no_videos:
+                        msg = clientProtocol.build_req_video()
+                        self.frame.comm.send_msg(msg)
+
+                        self.frame.video_requests_by_feeds.append(self)
+                        self.frame.comments_requests_by_feeds.append(self)
 
             if load_a_new_video:
                 video_id = self.videos_ids[new_index]
@@ -586,6 +594,8 @@ class FeedPanel(wx.Panel):
         """
         video_id = video.video_id
         if video_id > 0:  # if not a special id
+            self.no_videos = False
+
             self.frame.videos_details[video_id] = video
 
             if video_id not in self.videos_ids:
@@ -599,9 +609,16 @@ class FeedPanel(wx.Panel):
                 self.status_label.SetLabel("video loaded")
                 self.status_label.Layout()
 
-        else:
+        elif video_id == settings.END_OF_LIST_ID:
             self.videos_ids.append(
                 video_id)  # add 0 to indicate the end of the videos or -2 to indicate the video has been deleted
+            self.frame.comments_requests_by_feeds.pop(0)
+
+        elif video_id == settings.NO_VIDEOS_ID:
+            self.frame.comments_requests_by_feeds.pop(0)
+            self.status_label.SetLabel("No videos in the system, go to your profile to upload a video")
+            self.no_videos = True
+            self.Layout()
 
     def load_video(self, video):
         """
@@ -609,7 +626,6 @@ class FeedPanel(wx.Panel):
             UI elements including likes, comments, description, and creator info.
         :param video: The video object to load and display.
         """
-        print("is it it:", self.comments_panel.comments_panel)
         video_id = video.video_id
         if video_id:
             self.current_video_id = video_id

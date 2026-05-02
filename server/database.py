@@ -362,7 +362,19 @@ class DataBase:
         :param video_id: ID of the video
         :return: True if the video exists, False otherwise
         """
-        self.cur.execute("SELECT 1 FROM videos WHERE video_id = ?", (video_id,))
+        self.cur.execute("SELECT 1 FROM videos WHERE video_id = ? and deleted = 0", (video_id,))
+        return self.cur.fetchone() is not None
+
+    def are_there_videos(self):
+        """
+        Checks if there are any non-deleted videos in the database.
+
+        This method executes a query to determine if any videos marked as not deleted
+        exist in the database.
+
+        :return: True if there are non-deleted videos in the database, False otherwise
+        """
+        self.cur.execute("SELECT 1 FROM videos WHERE deleted = 0")
         return self.cur.fetchone() is not None
 
     def get_specific_video(self, video_id, matter_deleted=True):

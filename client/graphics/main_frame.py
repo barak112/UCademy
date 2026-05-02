@@ -1,10 +1,6 @@
-import time
-
 import wx
 from pubsub import pub
-
 import clientProtocol
-import video
 from email_verification import EmailVerificationPanel
 from feed import FeedPanel
 from log_in import LoginPanel

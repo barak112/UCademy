@@ -45,6 +45,7 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         # profile info
         self.profile_info = profile_widget.ProfileWidget(self.frame, self)
+        self.profile_info.SetMinSize((800, -1))
 
         # videos grid
         videos_label_and_add_video_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
