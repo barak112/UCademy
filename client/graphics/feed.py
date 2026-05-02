@@ -247,7 +247,7 @@ class FeedPanel(wx.Panel):
             main_sizer.Add(back_arrow, 0, wx.ALL, 20)
 
         # add to main_sizer
-        self.status_label = wx.StaticText(self, label = "status")
+        self.status_label = wx.StaticText(self)
         self.status_label.SetFont(wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
         self.status_label.SetForegroundColour(wx.Colour(wx.RED))
 
@@ -464,8 +464,9 @@ class FeedPanel(wx.Panel):
                     self.frame.comments_requests_by_feeds.append(self)
 
                     self.waiting_for_video = True
-                    self.status_label.SetLabel("waiting for video from server...")
                     # if now requested video, then you need to wait for it to arrive from the server
+                    self.status_label.SetLabel("waiting for video from server...")
+        self.Layout()
         event.Skip()
 
     def on_load(self, event):
@@ -509,7 +510,7 @@ class FeedPanel(wx.Panel):
                 self.video_index = self.videos_ids.index(video_id)
                 print(video_id,"video loaded at index", self.video_index)
                 self.waiting_for_video = False
-                self.status_label.SetLabel("video_loaded!")
+                self.status_label.SetLabel("video loaded")
                 self.status_label.Layout()
 
         else:

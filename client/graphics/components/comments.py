@@ -41,6 +41,7 @@ class Comments(wx.Panel):
         font = self.comments_amount_label.GetFont().Scale(1.3)
         self.comments_amount_label.SetFont(font)
 
+
         #comments
         self.comments_panel = wx.ScrolledWindow(self)
         self.comments_panel.SetScrollRate(0, 12)
@@ -103,11 +104,15 @@ class Comments(wx.Panel):
                         self.frame.comm.send_msg(msg)
                         self.frame.comments_requests_by_feeds.append(self.parent)
                         self.waiting_for_comments = True
-                        self.frame.change_text_status("waiting for comments from server")
-                        print("req more comments")
-            elif current >= max_pos:
-                self.frame.change_text_status("no more comments to load")
+                        self.parent.status_label.SetLabel("waiting for comments from server...")
+                        self.parent.Layout()
 
+            elif current >= max_pos:
+                self.parent.status_label.SetLabel("no more comments to load")
+                self.parent.Layout()
+        else:
+            self.parent.status_label.SetLabel("")
+        #todo separate status bar
         event.Skip()
 
     def update_pfp_bitmap(self):
