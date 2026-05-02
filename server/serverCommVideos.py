@@ -35,51 +35,6 @@ class ServerCommVideos (serverComm.ServerComm):
         self.client_ip = client_ip
         self.client_cipher = None
 
-    # def _mainLoop(self):
-    #     """Continuously monitor for incoming connections and messages.
-    #
-    #     Binds the server socket, listens for new client connections, and processes
-    #     incoming messages from connected clients. Places received messages in the queue.
-    #     """
-    #     self.server_socket.bind(("0.0.0.0", self.port))
-    #     self.server_socket.listen(3)
-    #     #todo make for only one client
-    #     while True:
-    #         rlist = select.select([self.server_socket] + list(self.open_clients.keys()), [], [], 0.01)[0]
-    #         for current_socket in rlist:
-    #             if current_socket is self.server_socket:
-    #                 client, addr = self.server_socket.accept()
-    #
-    #
-    #                 if any(ip == addr[0] for ip, _ in self.open_clients.values()):
-    #                     client.close()
-    #                     print("attempted to enter through the same ip")
-    #                 else:
-    #                     print(f"{addr[0]} - connected")
-    #                     # Start a new thread to exchange keys with the new client
-    #                     threading.Thread(target=self._change_key, args=(client, addr[0])).start()
-    #
-    #             else:
-    #                 try:
-    #                     data_len = current_socket.recv(settings.MESSAGE_LENGTH_LENGTH).decode()
-    #                     data = current_socket.recv(int(data_len)).decode()
-    #                 except Exception as e:
-    #                     print("error in comm mainloop -", e)
-    #                     data = ""
-    #
-    #                 if not data:
-    #                     self._close_client(current_socket)
-    #                 else:
-    #                     ip, key = self.open_clients[current_socket]
-    #                     print(f"key: {key}, data: {data} in serverCommVideo")
-    #                     decrypted_message = key.decrypt(data)
-    #                     print("msg recved in serverCommVideo:", decrypted_message)
-    #
-    #                     if serverProtocol.is_file(decrypted_message):
-    #                         self._recv_file(current_socket, decrypted_message)
-    #                     else: # if not a file, put in recvQ, its video details
-    #                         self.recvQ.put((ip, decrypted_message))
-
     # for a single client, still is a thread
     def _mainLoop(self):
         self.server_socket.bind(("0.0.0.0", self.port))

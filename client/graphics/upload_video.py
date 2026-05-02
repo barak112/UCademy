@@ -1,18 +1,12 @@
-import json
-import math
 import os.path
-import subprocess
-
+import cv2
 import wx
 import wx.media
 from pubsub import pub
-
 import clientProtocol
-import profile_widget
 import rounded_button
 import rounded_input_field
 import settings
-import comments
 
 
 class UploadVideoPanel(wx.ScrolledWindow):
@@ -20,7 +14,7 @@ class UploadVideoPanel(wx.ScrolledWindow):
     COLUMN_WIDTH = 200
 
     RATIO = 4 / 3
-
+    #todo in the topic picking screen limit the topics to 3.
     def __init__(self, frame, parent):
         super().__init__(parent)
 
@@ -204,15 +198,14 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
     @staticmethod
     def get_duration(file_path):
-        result = subprocess.run([
-            "ffprobe", "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "json",
-            file_path
-        ], capture_output=True, text=True)
-
-        data = json.loads(result.stdout)
-        return float(data["format"]["duration"])
+        cap = cv2.VideoCapture(file_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        duration = 0
+        if frame_count > 0:
+            duration = frame_count / fps  # in seconds
+        cap.release()
+        return duration
 
     def on_upload_video(self, event):
         video_name = self.video_name_field.get_value().strip()

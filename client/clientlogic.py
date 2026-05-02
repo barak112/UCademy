@@ -40,16 +40,12 @@ class ClientLogic:
             "11": self.handle_vid_del_confirmation,
             "12": self.handle_comment_del_confirmation,
             "13": self.handle_video_details_in_profile,
-            "14":self.handle_user_details_in_follow_list,
+            "14": self.handle_user_details_in_follow_list,
             "15": self.handle_load_new_video,
             "16": self.handle_video_upload_confirmation,
             "17": self.handle_follow_status,
             "18": self.handle_like_video,
-            "19": self.update_pfp
-        }
-        self.video_commands = {
-            # "00": self.handle_video_details,
-            "01": self.handle_confirm_file_upload
+            "19": self.handle_update_pfp
         }
 
         threading.Thread(target=self.handle_msgs, daemon=True).start()
@@ -273,16 +269,8 @@ class ClientLogic:
 
         wx.CallAfter(pub.sendMessage, "video_like_ans", status = status, video_id = video_id)
 
-    def update_pfp(self, data): # command 19
+    def handle_update_pfp(self, data): # command 19
         wx.CallAfter(pub.sendMessage, "update_pfp_ans")
-
-    # called by the video_comm
-
-    # command 0 is command 6 in the regular commands
-
-    def handle_confirm_file_upload(self, data):  # command 01
-        status = data[0]
-        print(status)
 
 
 if __name__ == "__main__":

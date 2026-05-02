@@ -89,8 +89,8 @@ class ServerLogic:
             '15': self.handle_video_req,
             '16': self.handle_video_upload,
             '17': self.handle_follow_user,
-            '18': self.handle_like_video_confirmation,
-            '19': self.send_user_its_pfp,
+            '18': self.handle_like_video,
+            '19': self.send_user_his_pfp,
 
             '97': self.handle_client_disconnected,
             '98': self.handle_comment_or_video_status,
@@ -103,6 +103,7 @@ class ServerLogic:
 
         self.clients_awaiting_email_verification = {} # [client_ip] = [username, password, email, email_verification_code, time]
 
+        #todo delete this and fix all the searches to use lastid
         self.videos_to_send = {} # [client_ip] = [videos_ids]
         self.users_to_send = {} # [client_ip] = [users_names]
         self.comments_to_send = {} # [client_ip] = [comments_ids]
@@ -113,17 +114,8 @@ class ServerLogic:
 
         self.handle_msgs()
 
-    def send_user_its_pfp(self, client_ip, data):
-        if self.clients[client_ip][0] in self.pfps_sent[client_ip]:
-            self.pfps_sent[client_ip].remove(self.clients[client_ip][0])
-        print(self.pfps_sent)
-        self.send_pfp(client_ip, self.clients[client_ip][0])
-        msg = serverProtocol.build_update_pfp()
-        self.clients[client_ip][1].send_msg(client_ip, msg)
-        print("sending user pfp")
 
-
-    def handle_client_disconnected(self, client_ip, data):
+    def handle_client_disconnected(self, client_ip, data): # command 96
         """
             deletes client from all dictionaries in the logic
         :param client_ip: client_ip to delete from dictionaries
@@ -226,7 +218,7 @@ class ServerLogic:
         self.comm.send_msg(client_ip, msg)
 
     @staticmethod
-    def create_email_verification_code(length = 6):
+    def create_email_verification_code():
         """
         Generates a random numeric verification code of default 6 digits.
 
@@ -234,7 +226,7 @@ class ServerLogic:
             Defaults to 6 if not provided.
         :return: A randomly generated string consisting of numeric digits only.
         """
-        return ''.join(secrets.choice('0123456789') for _ in range(length))
+        return ''.join(secrets.choice('0123456789') for _ in range(settings.VERIFICATION_CODE_LENGTH))
 
     def send_email_verification_code(self, email_address, verification_code, username):
         self.send_email(email_address, self.EMAIL_VERIFICATION_CODE_MSG.format(verification_code, username),
@@ -330,7 +322,7 @@ class ServerLogic:
 
             self.db.set_report_notified(username, id, type)
 
-            status, created_at = self.db.get_report_status_and_created_at(username, id, type)
+            status, created_at = self.db.get_report_status_and_created_at( username, id, type)
 
             if type == settings.COMMENT_DIGIT_REPR:
 
@@ -646,7 +638,7 @@ class ServerLogic:
         videos_to_send = videos_ids[:settings.AMOUNT_OF_VIDEOS_TO_SEND]
 
         print(f"videos_to_send in creator video req: {videos_to_send}")
-        
+
         if videos_to_send:
             self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
         else: # indicates there are no more videos to send
@@ -719,16 +711,30 @@ class ServerLogic:
         msg = serverProtocol.build_video_details(video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked)
         self.clients[client_ip][1].send_msg(client_ip, msg)
 
+    def handle_video_upload(self, client_ip, data):  # command 16
+        file_content, extension, video_details = data
+        video_name, video_desc, test_link, topics = video_details
+        print("video_name", video_name, "video_desc", video_desc, "test_link", test_link, "topics", topics)
 
-        #todo maybe change so data is sent like this:
-        # video_metadata, video_file, video_details. 3 different messages.
-        #  and the details will be sent with a normal video_comm.send_msg()
-        # so that when the details arrive, the video will already be there
-        # and then when sending user info, send the pfp and then the user info after with video_comm.send_msg()
+        video_hash = self.hash_video(file_content)
+        if not self.db.hash_exists(video_hash):
+            video_id = self.db.add_video(self.clients[client_ip][0], video_name, video_desc, test_link)
+            self.db.add_video_topics(video_id, topics)
 
-        print(
-            f"sending video {video_id} to {client_ip} with creator {creator}, name {video_name}, desc {video_desc}, likes {likes_amount}, comments {comments_amount}, liked {liked}"
-        )
+            with open(f"media\\videos\\{video_id}.{extension}", 'wb') as f:
+                f.write(file_content)
+            self.db.add_video_hash(video_id, video_hash)
+            # puts the id for the thumbnail filename
+            self.clients[client_ip][1].idsQ.put(video_id)
+            print("video uploaded")
+            msg = serverProtocol.build_video_upload_confirmation(video_id)
+            self.comm.send_msg(client_ip, msg)
+        else:
+            # 0 indicates that the video already exists, so to not save the thumbnail
+            self.clients[client_ip][1].idsQ.put(0)
+            msg = serverProtocol.build_video_upload_confirmation(0)
+            self.comm.send_msg(client_ip, msg)
+            print("video already exists")
 
 
     def get_video_details(self,client_ip, video_id): # helper function
@@ -752,7 +758,7 @@ class ServerLogic:
         msg = serverProtocol.build_follow_user_status(status, followed)
         self.comm.send_msg(client_ip, msg)
 
-    def handle_like_video_confirmation(self, client_ip, data):
+    def handle_like_video(self, client_ip, data): # command 18
         video_id = data[0]
         username = self.clients[client_ip][0]
         status = 0
@@ -764,32 +770,15 @@ class ServerLogic:
         msg = serverProtocol.build_like_video_confirmation(status, video_id)
         self.comm.send_msg(client_ip, msg)
 
-    #called by video comm
+    def send_user_his_pfp(self, client_ip, data):  # command 19
+        if self.clients[client_ip][0] in self.pfps_sent[client_ip]:
+            self.pfps_sent[client_ip].remove(self.clients[client_ip][0])
+        print(self.pfps_sent)
+        self.send_pfp(client_ip, self.clients[client_ip][0])
+        msg = serverProtocol.build_update_pfp()
+        self.clients[client_ip][1].send_msg(client_ip, msg)
+        print("sending user pfp")
 
-    def handle_video_upload(self, client_ip, data):  # command 00
-        file_content, extension, video_details = data
-        video_name, video_desc, test_link, topics = video_details
-        print("video_name",video_name,"video_desc",video_desc,"test_link",test_link,"topics",topics)
-
-        video_hash = self.hash_video(file_content)
-        if not self.db.hash_exists(video_hash):
-            video_id = self.db.add_video(self.clients[client_ip][0], video_name, video_desc, test_link)
-            self.db.add_video_topics(video_id, topics)
-
-            with open(f"media\\videos\\{video_id}.{extension}", 'wb') as f:
-                f.write(file_content)
-            self.db.add_video_hash(video_id, video_hash)
-            # puts the id for the thumbnail filename
-            self.clients[client_ip][1].idsQ.put(video_id)
-            print("video uploaded")
-            msg = serverProtocol.build_video_upload_confirmation(video_id)
-            self.comm.send_msg(client_ip, msg)
-        else:
-            # 0 indicates that the video already exists, so to not save the thumbnail
-            self.clients[client_ip][1].idsQ.put(0)
-            msg = serverProtocol.build_video_upload_confirmation(0)
-            self.comm.send_msg(client_ip, msg)
-            print("video already exists")
 
     # Called by System Manager
 
@@ -867,11 +856,6 @@ class ServerLogic:
     @staticmethod
     def hash_video(path_or_content, chunk_size: int = 1024 * 1024) -> str:
         h = hashlib.sha256()
-        # if os.path.isfile(path_or_content):
-        #     with open(path_or_content, "rb") as f:
-        #         for chunk in iter(lambda: f.read(chunk_size), b""):
-        #             h.update(chunk)
-        # else:
         chunks_hashed = 0
         for chunk in iter(lambda: path_or_content[chunks_hashed*chunk_size:chunk_size*(chunks_hashed+1)], b""):
             h.update(chunk)

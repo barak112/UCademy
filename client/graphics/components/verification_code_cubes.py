@@ -13,7 +13,7 @@ class VerificationCodeCubes(wx.Panel):
     FILLED_BOX_BG = settings.BRIGHT_PINK
     BOX_SIZE = (62, 75)
     SPACING = 10
-    BOXES_AMOUNT = 6
+    BOXES_AMOUNT = settings.VERIFICATION_CODE_LENGTH
 
 
     def __init__(self, code_ver_panel, parent):

@@ -22,7 +22,6 @@ class MainFrame(wx.Frame):
     def __init__(self, comm):
         super().__init__(None, title="Ucademy", size=(1366,768))
         super().Maximize()
-        # super().ShowFullScreen(True)
 
         icon_path = "assets\\ucademy_logo.ico"
         icon = wx.Icon(icon_path, wx.BITMAP_TYPE_ICO)
@@ -101,7 +100,6 @@ class MainFrame(wx.Frame):
         correct_feed_panel.load_new_video(video)
 
     def load_new_comments(self, video_id, comments):
-        print("loading new comments:", self.comments_requests_by_feeds)
         correct_feed_panel = self.comments_requests_by_feeds.pop(0)
         correct_feed_panel.load_new_comments(video_id, comments)
 

@@ -228,6 +228,7 @@ class DataBase:
         """
         self.cur.execute("DELETE FROM users WHERE username = ? COLLATE NOCASE", (username,))
         self.conn.commit()
+        #todo dont actually delete, so that the user wont be able to sign up or in again.
 
     def user_exists(self, username):
         """
@@ -388,7 +389,7 @@ class DataBase:
         return ret_val
 
 
-    def add_video(self, creator, name, description, test_link=None):
+    def add_video(self, creator, name, description, test_link):
         """
         Adds a new video.
         :param creator: Username of the uploader
@@ -411,18 +412,6 @@ class DataBase:
         """
         self.cur.execute("UPDATE videos SET deleted = 1 WHERE video_id = ?", (video_id,))
         self.conn.commit()
-
-    def get_video_test_link(self, video_id):
-        """
-        Retrieves the test link of a video.
-        :param video_id: ID of the video
-        :return: Test link if exists, otherwise None
-        """
-        self.cur.execute("SELECT test_link FROM videos WHERE video_id = ?", (video_id,))
-        result = self.cur.fetchone()
-        if result:
-            result = result[0]
-        return result
 
     def search_videos(self, name_or_desc, topics):
         query = """SELECT videos.video_id,
@@ -559,17 +548,7 @@ class DataBase:
 
     def get_deleted_command_ids(self, video_id):
         self.cur.execute("SELECT comment_id FROM comments WHERE video_id = ? AND deleted = 1", (video_id,))
-
         return [i[0] for i in self.cur.fetchall()]
-
-    def get_comments_amount(self, video_id):
-        """
-        Counts the number of non-deleted comments for a video
-        :param video_id: ID of the video
-        :return: Number of comments for the video
-        """
-        self.cur.execute("SELECT COUNT(*) FROM comments WHERE video_id = ? and deleted = 0", (video_id,))
-        return self.cur.fetchone()[0]
 
     def delete_comment(self, comment_id):
         """
@@ -1117,7 +1096,7 @@ if __name__ == "__main__":
 
     # --- testing ---
     # print(db.search_videos("ella", []))
-    print(db.get_videos_by_creator("Barak"))
+    # print(db.get_videos_by_creator("Barak"))
 
     # # --- users ---
     # db.cur.execute("DROP TABLE IF EXISTS users")

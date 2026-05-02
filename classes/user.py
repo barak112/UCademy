@@ -37,7 +37,3 @@ class User:
 
     def get_video_amount(self):
         return len(self.videos_ids)
-
-    def __str__(self):
-        """Returns a string representation of the User object, including all its attributes."""
-        return f"username='{self.username}'\nfollowers_amount={self.followers_amount}\nfollowings_amount={self.followings_amount}\nvideos_ids={self.videos_ids}\nemail='{self.email}'\nfollowings={self.followings}\ntopics={self.topics}"

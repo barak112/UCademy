@@ -95,7 +95,6 @@ def build_like_video(video_id):
 
 # ----- Video transfer protocol -----
 
-#todo make this only file_name and file_size
 def build_file_details(file_name, file_size, video_name=None, video_description=None, test_link=None, topics = None):
     return build_command(0, [file_name, file_size, video_name, video_description, test_link, topics])
 

@@ -78,6 +78,7 @@ EMAIL_ERRORS = {
     EMAIL_ALREADY_EXISTS: "Email already exists"
 }
 
+VERIFICATION_CODE_LENGTH = 6
 EMAIL_VERIFICATION_CODE_EXPIRATION = 10 * 60 #seconds->minutes
 EMAIL_VERIFICATION_CODE_INVALID = 0
 EMAIL_VERIFICATION_SUCCESSFUL = 1
@@ -115,7 +116,6 @@ BUTTON_TEXT_FONT_SIZE = 14
 VERIFICATION_CODE_FONT_SIZE = 25
 ROUND_BORDER_RADIUS = 15
 SLIGHTLY_ROUND_BORDER_RADIUS = 10
-#prev: 50, 11
 TOPIC_WIDGET_GROWTH = 3
 MIN_TOPICS = 3
 TOPIC_WIDGET_WIDTH = 250
@@ -123,7 +123,7 @@ TOPIC_WIDGET_WIDTH = 250
 PFP_SIZE = 48
 
 # special ids:
-END_OF_LIST_ID = 0 # no more videos/user/comments
+END_OF_LIST_ID = 0 # no more videos/user/comments or that the video uploaded already exists
 END_OF_BATCH_SEND_ID = -1 # when sending each time one item, this signals the end of the sending
 DELETED_ID = -2 # indicates an item has been deleted
 

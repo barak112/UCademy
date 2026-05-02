@@ -163,7 +163,7 @@ class UserProfilePanel(wx.ScrolledWindow):
             self.waiting_for_videos = False
 
 
-        if video.video_id not in self.videos_ids:
+        elif video.video_id not in self.videos_ids:
             self.videos_ids.append(video.video_id)
 
             if self.videos_grid.GetChildren() == self.grid_columns*self.grid_rows: # if grid is full
@@ -178,8 +178,8 @@ class UserProfilePanel(wx.ScrolledWindow):
             self.Refresh()
 
     def user_info_ans(self, user):
-        if user.username != self.frame.user.username: # to not reset the info about the user that is currently logged in
-            self.frame.users[user.username] = user
+        self.frame.users[user.username] = user
+        # todo load info about user from self.frame.users when setting a new user instead of req from the server
         self.current_user = user
         self.profile_info.set_user(user)
         self.videos_ids.clear()

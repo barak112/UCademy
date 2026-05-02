@@ -68,7 +68,7 @@ def build_report_status(status, id, type, content, content_publisher, created_at
 
 
 def build_send_comments(comments):
-    # comments = [[comment_id, video_id, commenter_name, comment], ...]
+    # comments = [[comment_id, video_id, commenter_name, comment, created_at], ...]
     return build_command(10, comments)
 
 
@@ -117,17 +117,11 @@ def build_update_pfp():
 
 # ----- Video transfer protocol -----
 
-
 def build_file_details(file_name, file_size):
     return build_command(0, [file_name, file_size])
 
 def is_file(msg):
     return msg[:2] == build_file_details("", "")[:2]
-
-#todo make this only file_name and file_size
-
-def build_confirm_file(status):
-    return build_command(1, [status])
 
 
 def unpack(data):

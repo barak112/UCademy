@@ -1,21 +1,13 @@
-def unpack(data):
-    """Unpack a command string into opcode and parameters.
+import cv2
 
-    Extracts the opcode and splits parameters by '@#' delimiter if present.
+def get_duration(file_path):
+    cap = cv2.VideoCapture(file_path)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    duration = 0
+    if frame_count > 0:
+        duration = frame_count / fps  # in seconds
+    cap.release()
+    return duration
 
-    :param data: Command string to unpack.
-    :return: Tuple of (opcode, parameters list).
-    """
-    opcode = data[:2]
-    params = []
-    if len(data) > 2:
-        params = data[2:].split("@#")
-
-    for i, v in enumerate(params):
-        if "#@" in v:
-            params[i] = v.split("#@")
-
-    return opcode, params
-
-
-print(unpack("19"))
+print(get_duration("D:\\UCademy\\client\\media\\14.mp4"))

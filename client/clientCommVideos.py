@@ -60,7 +60,6 @@ class ClientCommVideos (clientComm.ClientComm):
             recvs file send from the server and saves it at media//pfps or media//videos //``file_name``
         :return: returns whether the recv was successful
         """
-        # called by handle_save_file in logic
         opcode, data = clientProtocol.unpack(msg)
         file_name, file_size = data
         file_size = int(file_size)
