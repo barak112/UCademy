@@ -1,0 +1,5 @@
+wxPython~=4.2.5
+Pypubsub~=4.0.7
+opencv-python~=4.13.0.92
+typing_extensions~=4.15.0
+pycryptodomex~=3.23.0
