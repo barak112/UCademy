@@ -3,18 +3,18 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/client" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/protocols" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/server" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/client/assets" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/classes" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/client/graphics" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/client/graphics/components" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/common_packages" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/.venv2" />
       <excludeFolder url="file://$MODULE_DIR$/.venv3" />
       <excludeFolder url="file://$MODULE_DIR$/.venv4" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.10" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.10 (UCademy)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

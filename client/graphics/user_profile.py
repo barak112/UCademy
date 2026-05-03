@@ -36,9 +36,10 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.SetSizer(main_sizer)
         self.SetBackgroundColour(self.BG_COLOR)
 
-        self.current_user = None  # current user object
+        self.current_username = None  # current user username
         self.waiting_for_videos = False
         self.videos_ids = []
+        self.videos_details = {} # [username] = [videos objects]
 
         # padded vertical sizer
         padding_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -69,9 +70,15 @@ class UserProfilePanel(wx.ScrolledWindow):
         videos_sizer.Add(videos_label_and_add_video_btn_sizer, 0, wx.BOTTOM, 10)
         videos_sizer.Add(self.videos_grid, 0)
 
+        # status label
+        self.status_label = wx.StaticText(self, label="Loading Content From Server")
+        self.status_label.SetFont(wx.Font(15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        self.status_label.SetForegroundColour(wx.RED)
+
         # add to padding_sizer
         padding_sizer.Add(self.profile_info, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 20)
         padding_sizer.Add(videos_sizer, 1, wx.ALIGN_CENTER_HORIZONTAL)
+        padding_sizer.Add(self.status_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
         # back arrow
         back_arrow = rounded_button.RoundedButton(self, "assets\\back_arrow.png", wx.WHITE, self.BG_COLOR, circle=True,
@@ -107,21 +114,25 @@ class UserProfilePanel(wx.ScrolledWindow):
         scrolling_down = event_type in (wx.wxEVT_SCROLLWIN_LINEDOWN, wx.wxEVT_SCROLLWIN_PAGEDOWN,
                                         wx.wxEVT_SCROLLWIN_THUMBTRACK)
 
-        if scrolling_down:
-            current = self.GetScrollPos(wx.VERTICAL)
-            max_pos = self.GetScrollRange(wx.VERTICAL) - self.GetScrollThumb(wx.VERTICAL)
-            if len(self.current_user.videos_ids) > len(self.videos_ids) and self.videos_ids:
-                if not self.waiting_for_videos:  # if there are more comments to req from the server
-                    if current >= max_pos - 50:
-                        msg = clientProtocol.build_req_creator_videos(self.current_user.username, self.videos_ids[-1])
-                        self.frame.comm.send_msg(msg)
-                        self.waiting_for_videos = True
-                        self.frame.change_text_status("waiting for videos from server")
-                        print("req more videos: last id:", self.videos_ids[-1], "videos ids:", self.videos_ids)
-            elif current >= max_pos:
-                self.frame.change_text_status("this user does not have more videos")
-        else:
-            self.frame.change_text_status("")
+        if self.current_username in self.frame.users:
+            if scrolling_down:
+                current = self.GetScrollPos(wx.VERTICAL)
+                max_pos = self.GetScrollRange(wx.VERTICAL) - self.GetScrollThumb(wx.VERTICAL)
+                if len(self.frame.users[self.current_username].videos_ids) > len(self.videos_ids) and self.videos_ids:
+                    if not self.waiting_for_videos:  # if there are more comments to req from the server
+                        if current >= max_pos - 50:
+                            msg = clientProtocol.build_req_creator_videos(self.current_username, self.videos_ids[-1])
+                            self.frame.comm.send_msg(msg)
+                            self.waiting_for_videos = True
+                            self.status_label.SetLabel("waiting for videos from server")
+                            self.Layout()
+                            print("req more videos: last id:", self.videos_ids[-1], "videos ids:", self.videos_ids)
+                elif current >= max_pos:
+                    self.status_label.SetLabel("this user does not have more videos")
+                    self.Layout()
+            else:
+                self.status_label.SetLabel("")
+                self.Layout()
 
         event.Skip()
 
@@ -155,7 +166,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.frame.comments_requests_by_feeds.append(self.frame.user_profile_feed_panel)
 
         # set video ids to scroll through in user_profile_feed_panel
-        self.frame.user_profile_feed_panel.videos_ids = self.current_user.videos_ids + [
+        self.frame.user_profile_feed_panel.videos_ids = self.frame.users[self.current_username].videos_ids + [
             0]  # 0 indicates the end of the ids list
         print("ids list:", self.frame.user_profile_feed_panel.videos_ids)
         # switch to feed associated with user profile
@@ -184,19 +195,23 @@ class UserProfilePanel(wx.ScrolledWindow):
         :param video: The video object received from the server.
         """
         print("got new video in profile:", video)
+        self.add_video_details(video)
 
+    def add_video_details(self, video):
         if not video.video_id:  # video_id = 0 indicates no more users videos
             self.frame.change_text_status("this user does not have more videos")
 
         elif video.video_id == settings.END_OF_BATCH_SEND_ID:
             self.waiting_for_videos = False
 
-        elif video.video_id not in self.videos_ids:
+        elif video.video_id not in self.videos_ids: # makes sure there are no dups
+            self.videos_details[video.creator].append(video)
+
             self.videos_ids.append(video.video_id)
 
             if self.videos_grid.GetChildren() == self.grid_columns * self.grid_rows:  # if grid is full
                 self.grid_rows += 1
-                self.videos_grid.SetRows(self.grid_rows + 1)
+                self.videos_grid.SetRows(self.grid_rows)
 
             thumbnail = video_widget.VideoWidget(self, video, self.COLUMN_WIDTH, self.RATIO)
             self.videos_grid.Add(thumbnail, 0, wx.EXPAND)
@@ -210,16 +225,14 @@ class UserProfilePanel(wx.ScrolledWindow):
         Handles the server response with user details and initialises the profile view for that user.
         :param user: The user object received from the server.
         """
+        self.videos_details[user.username] = []
         self.frame.users[user.username] = user
-        # todo load info about user from self.frame.users when setting a new user instead of req from the server
-        self.current_user = user
-        self.profile_info.set_user(user)
-        self.videos_ids.clear()
-        # the amount of videos to recv is either the amount of videos the user has or the limit to be sent
-        self.grid_rows = math.ceil(min(user.get_video_amount(), settings.AMOUNT_OF_VIDEOS_TO_SEND) / self.grid_columns)
-        self.videos_grid.SetRows(self.grid_rows)
 
-    def req_user_info(self, username):
+        self.set_user_details(user)
+
+        self.set_user_details(user)
+
+    def req_user_info_and_videos(self, username):
         """
         Sends requests to the server for the user's profile info and their uploaded videos.
         :param username: The username of the user whose info is being requested.
@@ -229,16 +242,43 @@ class UserProfilePanel(wx.ScrolledWindow):
         msg = clientProtocol.build_req_creator_videos(username)
         self.frame.comm.send_msg(msg)
 
-    def set_user(self, username):
+    def set_user_details(self, user):
+        """
+            set user details in this panel, called when a new user is set
+        :param user:
+        :return:
+        """
+        self.status_label.SetLabel("Loading Content")
+        self.current_username = user.username
+        self.profile_info.set_user(user)
+        self.videos_ids.clear()
+        # the amount of videos to recv is either the amount of videos the user has or the limit to be sent
+        self.grid_rows = math.ceil(
+            min(user.get_video_amount(), settings.AMOUNT_OF_VIDEOS_TO_SEND) / self.grid_columns)
+        self.videos_grid.SetRows(self.grid_rows)
+
+    def set_new_user(self, username):
         """
         Clears the current profile view and loads the profile for the given username.
         :param username: The username of the user to display.
         """
-        self.videos_grid.Clear(True)
-        self.current_user = username
-        self.req_user_info(username)
 
-        if self.current_user == self.frame.user.username:
+        self.videos_grid.Clear(True)
+        self.current_username = username
+
+        # if user already has its videos in the user profile and if its video_ids match the videos_ids stored in self.video_details
+        if username in self.videos_details.keys() and self.frame.users[username].videos_ids == [video.video_id for video in self.videos_details[username]]:
+            user = self.frame.users[username]
+            self.set_user_details(user)
+
+            for video in self.videos_details[username]:
+                self.add_video_details(video)
+
+        else:
+            self.req_user_info_and_videos(username)
+            self.status_label.SetLabel("Loading Content From Server")
+
+        if self.current_username == self.frame.user.username:
             self.add_video_btn.Show()
         else:
             self.add_video_btn.Hide()

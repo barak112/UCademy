@@ -242,7 +242,7 @@ class FeedPanel(wx.Panel):
             main_sizer.Add(back_arrow, 0, wx.ALL, 20)
 
         # add to main_sizer
-        self.status_label = wx.StaticText(self, label="Loading video")
+        self.status_label = wx.StaticText(self, label="Loading Video From Server...")
         self.status_label.SetFont(wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
         self.status_label.SetForegroundColour(wx.Colour(wx.RED))
 
@@ -291,7 +291,7 @@ class FeedPanel(wx.Panel):
             Navigates to the current video's creator profile page.
         :param event: The mouse click event that triggered this handler.
         """
-        self.frame.user_profile_panel.set_user(self.frame.videos_details[self.current_video_id].creator)
+        self.frame.user_profile_panel.set_new_user(self.frame.videos_details[self.current_video_id].creator)
         self.frame.switch_panel(self.frame.user_profile_panel, self)
         event.Skip()
 
@@ -308,7 +308,7 @@ class FeedPanel(wx.Panel):
             Navigates back to the current user's profile page.
         :param event: The mouse click event that triggered this handler.
         """
-        self.frame.user_profile_panel.set_user(self.frame.user.username)
+        self.frame.user_profile_panel.set_new_user(self.frame.user.username)
         self.frame.switch_panel(self.frame.user_profile_panel, self)
         event.Skip()
 
@@ -317,7 +317,7 @@ class FeedPanel(wx.Panel):
             Navigates to the logged-in user's own profile page.
         :param event: The mouse click event that triggered this handler.
         """
-        self.frame.user_profile_panel.set_user(self.frame.user.username)
+        self.frame.user_profile_panel.set_new_user(self.frame.user.username)
         self.frame.switch_panel(self.frame.user_profile_panel, self)
         event.Skip()
 
@@ -553,7 +553,7 @@ class FeedPanel(wx.Panel):
         self.video_ctrl.Play()
         self.video_ctrl.SetVolume(FeedPanel.volume)
         self.video_ctrl.Thaw()  # unfreeze the video once it loads
-        print("video has thawed")
+        self.status_label.SetLabel("")
         self.can_scroll = True
         self.Layout()
         event.Skip()
@@ -606,7 +606,6 @@ class FeedPanel(wx.Panel):
                 self.video_index = self.videos_ids.index(video_id)
                 print(video_id, "video loaded at index", self.video_index)
                 self.waiting_for_video = False
-                self.status_label.SetLabel("video loaded")
                 self.status_label.Layout()
 
         elif video_id == settings.END_OF_LIST_ID:
@@ -629,7 +628,7 @@ class FeedPanel(wx.Panel):
         video_id = video.video_id
         if video_id:
             self.current_video_id = video_id
-
+            self.status_label.SetLabel("Loading video...")
             self.video_ctrl.Freeze()
             self.Layout()
             self.Refresh()

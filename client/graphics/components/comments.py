@@ -216,6 +216,7 @@ class Comments(wx.Panel):
                 self.comments_ids.append(a_comment.comment_id)
 
         self.comments_panel.Thaw()
+        self.parent.status_label.SetLabel("")
 
         self.waiting_for_comments = False
         self.Layout()
