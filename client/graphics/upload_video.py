@@ -38,6 +38,18 @@ class UploadVideoPanel(wx.ScrolledWindow):
         font = upload_video_label.GetFont().Scale(2).Bold()
         upload_video_label.SetFont(font)
 
+        # status label
+        # self.status_label = wx.StaticText(self)
+        # self.status_label.SetFont(wx.Font(15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        # self.status_label.SetForegroundColour(wx.RED)
+
+        # upload_video_label_and_status_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        #
+        # upload_video_label_and_status_sizer.Add(upload_video_label)
+        # upload_video_label_and_status_sizer.AddStretchSpacer()
+        # upload_video_label_and_status_sizer.Add(self.status_label)
+
+
         labels_font = wx.Font(wx.FontInfo(14).Bold())
 
         # fields
@@ -124,7 +136,8 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
         # add to padded_sizer
         padded_sizer.AddSpacer(20)
-        padded_sizer.Add(upload_video_label, 0, wx.TOP | wx.BOTTOM, 20)
+        # padded_sizer.Add(upload_video_label_and_status_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 20)
+        padded_sizer.Add(upload_video_label, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 20)
         padded_sizer.Add(video_name_sizer, 0, wx.EXPAND | wx.BOTTOM, 20)
         padded_sizer.Add(description_sizer, 2, wx.EXPAND | wx.BOTTOM, 20)
         padded_sizer.Add(test_link_sizer, 0, wx.EXPAND | wx.BOTTOM, 20)
