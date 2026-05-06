@@ -167,12 +167,10 @@ class MainFrame(wx.Frame):
     def comm_disconnected(self):
         self.change_text_status("Disconnected from server, Closing application in 5 seconds.")
 
-        for item in self.sizer.GetChildren():
-            panel = item.GetWindow()
-            if panel.IsShown():
-                if hasattr(panel, "status_label"):
-                    panel.status_label.SetLabel("Disconnected from server, Closing application in 5 seconds.")
-                    panel.Layout()
+        for status_label in self.status_labels:
+            status_label.SetLabel("Disconnected from server, Closing application in 5 seconds.")
+
+        self.Layout()
         wx.CallLater(5000, self.Close)
 
     def status_label_dots_animation(self, event):

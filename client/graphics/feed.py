@@ -305,6 +305,7 @@ class FeedPanel(wx.Panel):
             self.status_label.SetLabel("No test link for this video")
         self.Layout()
         event.Skip()
+        #todo test this
 
     def on_key_down(self, event):
         """

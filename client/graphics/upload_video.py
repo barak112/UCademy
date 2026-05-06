@@ -41,7 +41,7 @@ class UploadVideoPanel(wx.ScrolledWindow):
         upload_video_label.SetFont(font)
 
         # status label
-        self.status_label = wx.StaticText(self, label="Status")
+        self.status_label = wx.StaticText(self)
         self.frame.status_labels.append(self.status_label)
 
         self.status_label.SetFont(
@@ -361,15 +361,6 @@ class UploadVideoPanel(wx.ScrolledWindow):
                 self.thumbnail_path = ""
                 self.pick_thumbnail_btn.label_or_path = "Error loading thumbnail, pick another one"
 
-            if len(description)>settings.MAX_VIDEO_DESC_LENGTH:
-                description = ""
-                self.description_status_label.SetLabel(f"Description is too long, a description cannot exceed {settings.MAX_VIDEO_DESC_LENGTH} characters")
-
-            if len(video_name) > settings.MAX_VIDEO_NAME_LENGTH:
-                video_name = ""
-                self.video_name_status_label.SetLabel(
-                    f"Video name is too long, a video name cannot exceed {settings.MAX_VIDEO_NAME_LENGTH} characters")
-
             if not os.path.isfile(self.video_path):
                 self.video_path = ""
                 self.pick_video_btn.label_or_path = "Error loading video, pick another one"
@@ -380,17 +371,11 @@ class UploadVideoPanel(wx.ScrolledWindow):
                     self.pick_video_btn.label_or_path = "Click to upload video"
                     self.upload_video_btn.label_or_path = f"Video length is too long, pick another one under {settings.MAX_VIDEO_LENGTH} minutes"
 
-            if test_link:
-                if not self.is_valid_gforms_url(test_link):
-                    self.test_link_status_label.SetLabel("google forms test link is not valid")
-                    test_link = ""
-
-            if self.thumbnail_path and self.video_path and description and video_name and test_link is not None:
+            if self.thumbnail_path and self.video_path:
                 self.upload_video_btn.label_or_path = "Uploading"
-                self.status_label.SetLabel("Uploading")
-                # self.frame.video_comm.send_file("0.mp4", self.video_path, video_name, description, test_link,
-                #                                 self.topic_ids)
-                # self.frame.video_comm.send_file("0.png", self.thumbnail_path)
+                self.frame.video_comm.send_file("0.mp4", self.video_path, video_name, description, test_link,
+                                                self.topic_ids)
+                self.frame.video_comm.send_file("0.png", self.thumbnail_path)
 
         self.Layout()
         event.Skip()
@@ -409,7 +394,6 @@ class UploadVideoPanel(wx.ScrolledWindow):
         print("video uploaded", video_id)
         if video_id:
             self.upload_video_btn.label_or_path = "Video uploaded"
-            self.status_label.SetLabel("")
             self.test_link_field.set_value("")
             self.description_field.set_value("")
             self.video_name_field.set_value("")
