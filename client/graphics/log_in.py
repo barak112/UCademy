@@ -91,12 +91,12 @@ class LoginPanel(wx.Panel):
         self.password_input_obj.get_text_hidden().Bind(wx.EVT_KEY_DOWN, self.entering_text)
 
         # status message
-        self.status_message = wx.StaticText(form)
-        font = self.status_message.GetFont()
-        font = font.Scale(1.5)
-        self.status_message.SetForegroundColour(wx.Colour(self.SUBTITLE_COLOR))
-        self.status_message.SetFont(font)
-        self.status_message.SetForegroundColour(wx.RED)
+        self.status_label = wx.StaticText(form)
+        self.frame.status_labels.append(self.status_label)
+        self.status_label.SetFont(
+            wx.Font(settings.status_label_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        self.status_label.SetForegroundColour(wx.Colour(self.SUBTITLE_COLOR))
+        self.status_label.SetForegroundColour(wx.RED)
 
 
         # login button
@@ -124,7 +124,7 @@ class LoginPanel(wx.Panel):
 
         form_sizer.Add(password_sizer, 0, wx.EXPAND)
 
-        form_sizer.Add(self.status_message, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, 40)
+        form_sizer.Add(self.status_label, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, 40)
 
         form_sizer.Add(self.login_button, 0, wx.EXPAND)
 
@@ -173,7 +173,7 @@ class LoginPanel(wx.Panel):
 
     def entering_text(self, event):
         """whenever one of the credentials fields is being written to, deletes status message"""
-        self.status_message.SetLabel("")
+        self.status_label.SetLabel("")
         event.Skip()
 
     def labeled_input(self, label_text, parent, placeholder, field_icon_bitmap, is_password = False):
@@ -231,10 +231,10 @@ class LoginPanel(wx.Panel):
                 if not self.waiting_for_server_response:
                     msg2send = clientProtocol.build_sign_in(username_or_email, password)
                     self.frame.comm.send_msg(msg2send)
-                    self.status_message.SetLabel("sending credentials to the server...")
+                    self.status_label.SetLabel("sending credentials to the server")
                     self.waiting_for_server_response = True
             else:
-                self.status_message.SetLabel("you must enter both username/email and password to log in")
+                self.status_label.SetLabel("you must enter both username/email and password to log in")
         self.Layout()
         if event:
             event.Skip()
@@ -263,7 +263,7 @@ class LoginPanel(wx.Panel):
             print("in login resp,", self.frame.user)
 
         else:
-            self.status_message.SetLabel("username or password incorrect")
+            self.status_label.SetLabel("username or password incorrect")
             self.Layout()
         self.waiting_for_server_response = False
 

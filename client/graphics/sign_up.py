@@ -96,12 +96,12 @@ class SignupPanel(wx.Panel):
         self.password_input_obj.get_text_hidden().Bind(wx.EVT_KEY_DOWN, self.entering_text)
 
         # status message
-        self.status_message = wx.StaticText(form)
-        font = self.status_message.GetFont()
-        font = font.Scale(1.5)
-        self.status_message.SetForegroundColour(wx.Colour(self.SUBTITLE_COLOR))
-        self.status_message.SetFont(font)
-        self.status_message.SetForegroundColour(wx.RED)
+        self.status_label = wx.StaticText(form)
+        self.frame.status_labels.append(self.status_label)
+        self.status_label.SetFont(
+            wx.Font(settings.status_label_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        self.status_label.SetForegroundColour(wx.Colour(self.SUBTITLE_COLOR))
+        self.status_label.SetForegroundColour(wx.RED)
 
         # signup button
         self.signup_button = rounded_button.RoundedButton(form, "Sign up", settings.UNACTIVE_BUTTON)
@@ -127,7 +127,7 @@ class SignupPanel(wx.Panel):
         form_sizer.Add(email_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 30)
         form_sizer.Add(password_sizer, 0, wx.EXPAND)
 
-        form_sizer.Add(self.status_message, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, 20)
+        form_sizer.Add(self.status_label, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, 20)
 
         form_sizer.Add(self.signup_button, 0, wx.EXPAND)
 
@@ -193,7 +193,7 @@ class SignupPanel(wx.Panel):
     def entering_text(self, event):
         """whenever one of the credentials fields is being written to, deletes status message"""
         if not any((self.temp_username, self.temp_email, self.temp_password)):
-            self.status_message.SetLabel("")
+            self.status_label.SetLabel("")
         event.Skip()
 
     def on_resize(self, event):
@@ -256,13 +256,13 @@ class SignupPanel(wx.Panel):
                 if not any((self.temp_username, self.temp_email, self.temp_password)):
                     msg2send = clientProtocol.build_sign_up(username, password, email)
                     self.frame.comm.send_msg(msg2send)
-                    self.status_message.SetLabel("sending credentials to the server...")
+                    self.status_label.SetLabel("sending credentials to the server")
 
                     self.temp_username = username
                     self.temp_email = email
                     self.temp_password = password
             else:
-                self.status_message.SetLabel("you must enter all credentials to sign up")
+                self.status_label.SetLabel("you must enter all credentials to sign up")
 
         self.Layout()
 
@@ -273,7 +273,7 @@ class SignupPanel(wx.Panel):
         """handles response to sign up from the server, either moves to the email verification panel or shows an error message"""
         if not any(status):
             if self.frame.email_verification_panel.IsShown():
-                self.frame.email_verification_panel.status_message.SetLabel(
+                self.frame.email_verification_panel.status_label.SetLabel(
                     "A new email verification code has been sent to your email account")
             else:
                 # set fields to the temporary credentials set at the sign up, those are the credentials that were actually sent to the server
@@ -286,11 +286,11 @@ class SignupPanel(wx.Panel):
 
             username_status, password_status, email_status = status
             if username_status:
-                self.status_message.SetLabel("username error: " + settings.USERNAME_ERRORS[username_status])
+                self.status_label.SetLabel("username error: " + settings.USERNAME_ERRORS[username_status])
             if password_status:
-                self.status_message.SetLabel(f"password error: " + settings.PASSWORD_ERRORS[password_status])
+                self.status_label.SetLabel(f"password error: " + settings.PASSWORD_ERRORS[password_status])
             if email_status:
-                self.status_message.SetLabel("email error: " + settings.EMAIL_ERRORS[email_status])
+                self.status_label.SetLabel("email error: " + settings.EMAIL_ERRORS[email_status])
 
         # delete temporary credentials set at the sign up
         self.temp_username = ""

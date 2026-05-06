@@ -117,7 +117,7 @@ class Comments(wx.Panel):
                         self.frame.comm.send_msg(msg)
                         self.frame.comments_requests_by_feeds.append(self.parent)
                         self.waiting_for_comments = True
-                        self.parent.status_label.SetLabel("waiting for comments from server...")
+                        self.parent.status_label.SetLabel("waiting for comments from server")
                         self.parent.Layout()
 
             elif current >= max_pos:

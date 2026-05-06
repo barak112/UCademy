@@ -30,7 +30,7 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         self.frame = frame
         self.parent = parent
-        self.SetScrollRate(0, 12)
+        self.SetScrollRate(0, 18)
 
         main_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(main_sizer)
@@ -65,6 +65,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.grid_rows = 1
 
         self.videos_grid = wx.GridSizer(self.grid_rows, self.grid_columns, 20, 20)
+        # self.videos_grid = wx.GridSizer(self.grid_rows, self.grid_columns, 20, 20)
 
         videos_sizer = wx.BoxSizer(wx.VERTICAL)
         videos_sizer.Add(videos_label_and_add_video_btn_sizer, 0, wx.BOTTOM, 10)
@@ -72,12 +73,14 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         # status label
         self.status_label = wx.StaticText(self, label="Loading Content From Server")
-        self.status_label.SetFont(wx.Font(15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        self.frame.status_labels.append(self.status_label)
+        self.status_label.SetFont(
+            wx.Font(settings.status_label_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
         self.status_label.SetForegroundColour(wx.RED)
 
         # add to padding_sizer
         padding_sizer.Add(self.profile_info, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 20)
-        padding_sizer.Add(videos_sizer, 1, wx.ALIGN_CENTER_HORIZONTAL)
+        padding_sizer.Add(videos_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
         padding_sizer.Add(self.status_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
         # back arrow
@@ -132,7 +135,6 @@ class UserProfilePanel(wx.ScrolledWindow):
                     self.Layout()
             else:
                 self.status_label.SetLabel("")
-                self.Layout()
 
         event.Skip()
 
@@ -201,8 +203,9 @@ class UserProfilePanel(wx.ScrolledWindow):
         if not video.video_id:  # video_id = 0 indicates no more users videos
             self.frame.change_text_status("this user does not have more videos")
 
-        elif video.video_id == settings.END_OF_BATCH_SEND_ID:
+        elif video.video_id == settings.END_OF_BATCH_SEND_ID: # ready for a new videos batch send
             self.waiting_for_videos = False
+            self.status_label.SetLabel("")
 
         elif video.video_id not in self.videos_ids: # makes sure there are no dups
             self.videos_details[video.creator].append(video)

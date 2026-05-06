@@ -71,6 +71,7 @@ class ClientComm:
                 data = self.my_socket.recv(data_len).decode()
             except Exception as e:
                 print(f"Error in mainLoop: {e}")
+                self.recvQ.put("97")
                 self._close_client()
 
             if not data:

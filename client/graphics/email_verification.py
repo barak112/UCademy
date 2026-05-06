@@ -91,12 +91,11 @@ class EmailVerificationPanel(wx.Panel):
         self.ver_code_cubes = verification_code_cubes.VerificationCodeCubes(self, form)
 
         # status message
-        self.status_message = wx.StaticText(form)
-        font = self.status_message.GetFont()
-        font = font.Scale(1.5)
-        self.status_message.SetForegroundColour(wx.Colour(self.SUBTITLE_COLOR))
-        self.status_message.SetFont(font)
-        self.status_message.SetForegroundColour(wx.RED)
+        self.status_label = wx.StaticText(form)
+        self.frame.status_labels.append(self.status_label)
+        self.status_label.SetFont(
+            wx.Font(settings.status_label_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        self.status_label.SetForegroundColour(wx.RED)
 
         # verify email button
         self.verify_email_button = rounded_button.RoundedButton(form, "Verify Email",
@@ -138,7 +137,7 @@ class EmailVerificationPanel(wx.Panel):
 
         form_sizer.Add(self.ver_code_cubes, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
-        form_sizer.Add(self.status_message, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, 35)
+        form_sizer.Add(self.status_label, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP | wx.BOTTOM, 35)
 
         form_sizer.Add(self.verify_email_button, 0, wx.EXPAND)
 
@@ -211,7 +210,7 @@ class EmailVerificationPanel(wx.Panel):
         self.verify_email_button.set_background_color(settings.UNACTIVE_BUTTON)
         self.verify_email_button.Refresh()
         if not self.waiting_for_server_response:
-            self.status_message.SetLabel("")
+            self.status_label.SetLabel("")
 
     def on_back_to_sign_up(self, event):
         """
@@ -233,7 +232,7 @@ class EmailVerificationPanel(wx.Panel):
             Sends the entered verification code to the server for validation.
         :param event: The mouse click or key event that triggered this handler.
         """
-        self.status_message.SetLabel("Sending verification code...")
+        self.status_label.SetLabel("Sending verification code")
         self.Layout()
         if not self.waiting_for_server_response:
             msg = clientProtocol.build_email_verification_code(self.ver_code_cubes.get_value())
@@ -256,7 +255,7 @@ class EmailVerificationPanel(wx.Panel):
             self.frame.user = user
             self.frame.switch_panel(self.frame.pick_topics_panel, self)
         else:
-            self.status_message.SetLabel(settings.EMAIL_VERIFICATION_ERRORS[status])
+            self.status_label.SetLabel(settings.EMAIL_VERIFICATION_ERRORS[status])
             if status in [settings.EMAIL_VERIFICATION_CODE_EXPIRED, settings.EMAIL_VERIFICATION_CREDENTIALS_TAKEN]:
                 time.sleep(2)
                 self.frame.switch_panel(self.frame.signup_panel, self)
@@ -268,5 +267,5 @@ class EmailVerificationPanel(wx.Panel):
             Triggers a resend of the verification code by re-submitting the sign-up form.
         :param event: The mouse click event that triggered this handler.
         """
-        self.status_message.SetLabel("Resending code...")
+        self.status_label.SetLabel("Resending code")
         self.frame.signup_panel.on_signup(None)

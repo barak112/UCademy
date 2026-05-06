@@ -1,4 +1,6 @@
 import os.path
+import re
+
 import cv2
 import wx
 import wx.media
@@ -39,24 +41,27 @@ class UploadVideoPanel(wx.ScrolledWindow):
         upload_video_label.SetFont(font)
 
         # status label
-        # self.status_label = wx.StaticText(self)
-        # self.status_label.SetFont(wx.Font(15, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
-        # self.status_label.SetForegroundColour(wx.RED)
+        self.status_label = wx.StaticText(self, label="Status")
+        self.frame.status_labels.append(self.status_label)
 
-        # upload_video_label_and_status_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        #
-        # upload_video_label_and_status_sizer.Add(upload_video_label)
-        # upload_video_label_and_status_sizer.AddStretchSpacer()
-        # upload_video_label_and_status_sizer.Add(self.status_label)
+        self.status_label.SetFont(
+            wx.Font(settings.status_label_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        self.status_label.SetForegroundColour(wx.RED)
+
+        upload_video_label_and_status_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        upload_video_label_and_status_sizer.Add(upload_video_label)
+        upload_video_label_and_status_sizer.AddStretchSpacer()
+        upload_video_label_and_status_sizer.Add(self.status_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP, 5)
 
 
         labels_font = wx.Font(wx.FontInfo(14).Bold())
 
         # fields
-        self.filled_fields = {"video_name": False, "thumbnail": False, "video": False}  # [field_name] = True/False
-        self.optional_fields = ["test_link", "video_description"]
-        self.thumbnail_path = None
-        self.video_path = None
+        self.filled_fields = {"video_name": False, "video_description":False, "test_link":True, "thumbnail": False, "video": False}  # [field_name] = True/False
+        self.optional_fields = ["test_link"]
+        self.thumbnail_path = ""
+        self.video_path = ""
         self.topic_names = []
         self.topic_ids = []
 
@@ -68,8 +73,21 @@ class UploadVideoPanel(wx.ScrolledWindow):
         self.video_name_field = rounded_input_field.RoundedInputField(self, self, "video_name", "Enter video name",
                                                                       background_color=self.BG_COLOR)
 
-        video_name_sizer.Add(video_name_label, 0, wx.BOTTOM, 10)
+        # video name status and label
+        video_name_status_and_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        # video name status label
+        self.video_name_status_label = wx.StaticText(self)
+        self.video_name_status_label.SetFont(wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        self.video_name_status_label.SetForegroundColour(wx.RED)
+
+        video_name_status_and_label_sizer.Add(video_name_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+        video_name_status_and_label_sizer.Add(self.video_name_status_label,0, wx.ALIGN_CENTER_VERTICAL)
+
+        # add to video_name_sizer
+        video_name_sizer.Add(video_name_status_and_label_sizer, 0, wx.BOTTOM, 10)
         video_name_sizer.Add(self.video_name_field, 0, wx.EXPAND)
+
 
         # description label and field
 
@@ -78,10 +96,24 @@ class UploadVideoPanel(wx.ScrolledWindow):
         description_label.SetFont(labels_font)
 
         self.description_field = rounded_input_field.RoundedInputField(self, self, "video_description",
-                                                                       "Enter video description (optional)",
+                                                                       "Enter video description",
                                                                        multiline=True,
                                                                        background_color=self.BG_COLOR)
-        description_sizer.Add(description_label, 0, wx.BOTTOM, 10)
+
+        # video name status and label
+        description_status_and_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        # video name status label
+        self.description_status_label = wx.StaticText(self)
+        self.description_status_label.SetFont(
+            wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        self.description_status_label.SetForegroundColour(wx.RED)
+
+        description_status_and_label_sizer.Add(description_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+        description_status_and_label_sizer.Add(self.description_status_label, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        # add to description_sizer
+        description_sizer.Add(description_status_and_label_sizer, 0, wx.BOTTOM, 10)
         description_sizer.Add(self.description_field, 1, wx.EXPAND)
 
         # test link field and button
@@ -91,9 +123,22 @@ class UploadVideoPanel(wx.ScrolledWindow):
         test_link_label.SetFont(labels_font)
 
         self.test_link_field = rounded_input_field.RoundedInputField(self, self, "test_link",
-                                                                     "Enter test link (optional)",
+                                                                     "Enter google forms test link (optional)",
                                                                      background_color=self.BG_COLOR)
-        test_link_sizer.Add(test_link_label, 0, wx.BOTTOM, 10)
+
+        test_link_status_and_label_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        # video name status label
+        self.test_link_status_label = wx.StaticText(self)
+        self.test_link_status_label.SetFont(
+            wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        self.test_link_status_label.SetForegroundColour(wx.RED)
+
+        test_link_status_and_label_sizer.Add(test_link_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
+        test_link_status_and_label_sizer.Add(self.test_link_status_label, 0, wx.ALIGN_CENTER_VERTICAL)
+        
+        
+        test_link_sizer.Add(test_link_status_and_label_sizer, 0, wx.BOTTOM, 10)
         test_link_sizer.Add(self.test_link_field, 0, wx.EXPAND)
 
         # thumbnail label and button
@@ -136,8 +181,8 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
         # add to padded_sizer
         padded_sizer.AddSpacer(20)
-        # padded_sizer.Add(upload_video_label_and_status_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 20)
-        padded_sizer.Add(upload_video_label, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 20)
+        padded_sizer.Add(upload_video_label_and_status_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 20)
+        # padded_sizer.Add(upload_video_label, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 20)
         padded_sizer.Add(video_name_sizer, 0, wx.EXPAND | wx.BOTTOM, 20)
         padded_sizer.Add(description_sizer, 2, wx.EXPAND | wx.BOTTOM, 20)
         padded_sizer.Add(test_link_sizer, 0, wx.EXPAND | wx.BOTTOM, 20)
@@ -183,9 +228,40 @@ class UploadVideoPanel(wx.ScrolledWindow):
         Marks a field as filled and activates the upload button if all required fields are filled.
         :param field_name: The name of the field that was just filled.
         """
-        self.filled_fields[field_name] = True
+        valid_val = True
+
+        if field_name == "test_link":
+            if self.is_valid_gforms_url(self.test_link_field.get_value()):
+                self.test_link_status_label.SetLabel("")
+            else:
+                self.test_link_status_label.SetLabel("google forms test link is not valid")
+                self.filled_fields[field_name] = False
+                valid_val = False
+
+        elif field_name == "video_description":
+            if len(self.description_field.get_value()) > settings.MAX_VIDEO_DESC_LENGTH:
+                self.description_status_label.SetLabel(
+                    f"Description is too long, a description cannot exceed {settings.MAX_VIDEO_DESC_LENGTH} characters")
+                valid_val = False
+            else:
+                self.description_status_label.SetLabel("")
+
+        elif field_name == "video_name":
+            if len(self.video_name_field.get_value()) > settings.MAX_VIDEO_NAME_LENGTH:
+                self.video_name_status_label.SetLabel(f"Video name is too long, a video name cannot exceed {settings.MAX_VIDEO_NAME_LENGTH} characters")
+                valid_val = False
+
+            else:
+                self.video_name_status_label.SetLabel("")
+
+
+        self.filled_fields[field_name] = valid_val
         if all(self.filled_fields.values()):
             self.upload_video_btn.set_active(True)
+        else:
+            self.upload_video_btn.set_active(False)
+
+        self.Layout()
         self.Refresh()
 
     def field_is_unfilled(self, field_name):
@@ -193,11 +269,25 @@ class UploadVideoPanel(wx.ScrolledWindow):
         Marks a required field as unfilled and deactivates the upload button.
         :param field_name: The name of the field that was cleared.
         """
-        if field_name not in self.optional_fields:
+        if field_name == "test_link":
+            self.test_link_status_label.SetLabel("")
+        elif field_name == "video_description":
+            self.description_status_label.SetLabel("Description is required")
+        elif field_name == "video_name":
+            self.video_name_status_label.SetLabel("Video name is required")
+
+        self.filled_fields[field_name] = False
+
+        if field_name in self.optional_fields:
+            self.filled_fields[field_name] = True
+
+        if all(self.filled_fields.values()):
+            self.upload_video_btn.set_active(True)
+        else:
             self.upload_video_btn.set_active(False)
-            self.filled_fields[field_name] = False
-            self.upload_video_btn.set_active(False)
-            self.Refresh()
+
+        self.Refresh()
+        self.Layout()
 
     def on_pick_thumbnail(self, event):
         """opens file dialog to pick thumbnail image"""
@@ -261,31 +351,54 @@ class UploadVideoPanel(wx.ScrolledWindow):
         then sends the video and thumbnail files to the server.
         :param event: The wx mouse event triggered by the button click.
         """
-        video_name = self.video_name_field.get_value().strip()
-        description = self.description_field.get_value().strip()
-        test_link = self.test_link_field.get_value().strip()
-        if video_name and description and self.thumbnail_path and self.video_path:
+
+        if all(self.filled_fields.values()):
+            video_name = self.video_name_field.get_value().strip()
+            description = self.description_field.get_value().strip()
+            test_link = self.test_link_field.get_value().strip()
+
             if not os.path.isfile(self.thumbnail_path):
-                self.thumbnail_path = None
+                self.thumbnail_path = ""
                 self.pick_thumbnail_btn.label_or_path = "Error loading thumbnail, pick another one"
 
+            if len(description)>settings.MAX_VIDEO_DESC_LENGTH:
+                description = ""
+                self.description_status_label.SetLabel(f"Description is too long, a description cannot exceed {settings.MAX_VIDEO_DESC_LENGTH} characters")
+
+            if len(video_name) > settings.MAX_VIDEO_NAME_LENGTH:
+                video_name = ""
+                self.video_name_status_label.SetLabel(
+                    f"Video name is too long, a video name cannot exceed {settings.MAX_VIDEO_NAME_LENGTH} characters")
+
             if not os.path.isfile(self.video_path):
-                self.video_path = None
+                self.video_path = ""
                 self.pick_video_btn.label_or_path = "Error loading video, pick another one"
             else:
                 duration = self.get_duration(self.video_path)
                 if duration / 60 > settings.MAX_VIDEO_LENGTH:
-                    self.video_path = None
+                    self.video_path = ""
                     self.pick_video_btn.label_or_path = "Click to upload video"
                     self.upload_video_btn.label_or_path = f"Video length is too long, pick another one under {settings.MAX_VIDEO_LENGTH} minutes"
 
-            if self.thumbnail_path and self.video_path:
-                self.upload_video_btn.label_or_path = "Uploading..."
-                self.frame.video_comm.send_file("0.mp4", self.video_path, video_name, description, test_link,
-                                                self.topic_ids)
-                self.frame.video_comm.send_file("0.png", self.thumbnail_path)
+            if test_link:
+                if not self.is_valid_gforms_url(test_link):
+                    self.test_link_status_label.SetLabel("google forms test link is not valid")
+                    test_link = ""
 
+            if self.thumbnail_path and self.video_path and description and video_name and test_link is not None:
+                self.upload_video_btn.label_or_path = "Uploading"
+                self.status_label.SetLabel("Uploading")
+                # self.frame.video_comm.send_file("0.mp4", self.video_path, video_name, description, test_link,
+                #                                 self.topic_ids)
+                # self.frame.video_comm.send_file("0.png", self.thumbnail_path)
+
+        self.Layout()
         event.Skip()
+
+    @staticmethod
+    def is_valid_gforms_url(url):
+        pattern = r'(https?://)?docs\.google\.com/forms/d/[a-zA-Z0-9_-]+(/.*)?'
+        return bool(re.match(pattern, url))
 
     def on_video_upload_ans(self, video_id):
         """
@@ -296,7 +409,7 @@ class UploadVideoPanel(wx.ScrolledWindow):
         print("video uploaded", video_id)
         if video_id:
             self.upload_video_btn.label_or_path = "Video uploaded"
-
+            self.status_label.SetLabel("")
             self.test_link_field.set_value("")
             self.description_field.set_value("")
             self.video_name_field.set_value("")

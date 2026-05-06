@@ -44,7 +44,9 @@ class ClientLogic:
             "16": self.handle_video_upload_confirmation,
             "17": self.handle_follow_status,
             "18": self.handle_like_video_confirmation,
-            "19": self.handle_update_pfp
+            "19": self.handle_update_pfp,
+
+            "97": self.comm_disconnected
         }
 
         threading.Thread(target=self.handle_msgs, daemon=True).start()
@@ -362,6 +364,8 @@ class ClientLogic:
         """
         wx.CallAfter(pub.sendMessage, "update_pfp_ans")
 
+    def comm_disconnected(self, data): # command 20
+        wx.CallAfter(pub.sendMessage, "comm_disconnected")
 
 if __name__ == "__main__":
     """Main entry point to run the client."""

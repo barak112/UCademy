@@ -1,5 +1,7 @@
 import os.path
+import webbrowser
 
+import requests
 import wx
 import wx.media
 from pubsub import pub
@@ -242,8 +244,9 @@ class FeedPanel(wx.Panel):
             main_sizer.Add(back_arrow, 0, wx.ALL, 20)
 
         # add to main_sizer
-        self.status_label = wx.StaticText(self, label="Loading Video From Server...")
-        self.status_label.SetFont(wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        self.status_label = wx.StaticText(self, label="Loading Video From Server")
+        self.frame.status_labels.append(self.status_label)
+        self.status_label.SetFont(wx.Font(settings.status_label_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
         self.status_label.SetForegroundColour(wx.Colour(wx.RED))
 
         main_sizer.AddSpacer(25)
@@ -259,12 +262,14 @@ class FeedPanel(wx.Panel):
         video_sizer.SetMinSize((100, -1))
         self.desc_and_name_panel.SetMinSize((100, -1))
 
+        # actions binds
         self.personal_account_btn.Bind(wx.EVT_LEFT_UP, self.on_personal_account)
         self.like_btn.Bind(wx.EVT_LEFT_UP, self.on_like_video)
         self.open_comments_btn.Bind(wx.EVT_LEFT_UP, self.on_open_comments)
         self.sound_btn.Bind(wx.EVT_LEFT_UP, self.on_toggle_sound)
         self.play_btn.Bind(wx.EVT_LEFT_UP, self.on_toggle_play)
         self.account_btn.Bind(wx.EVT_LEFT_UP, self.on_move_to_creator_account)
+        self.test_btn.Bind(wx.EVT_LEFT_UP, self.on_open_test)
 
         self.Bind(wx.EVT_MOUSEWHEEL, self.on_scroll)
         self.Bind(wx.EVT_SIZE, self.on_resize)
@@ -276,6 +281,30 @@ class FeedPanel(wx.Panel):
         desc_panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
 
         self.Hide()
+
+    def does_gform_exists(self, url):
+        #todo add requests and webbrowser to tik project
+        ret_val = False
+        try:
+            response = requests.head(url, timeout=5, allow_redirects=True)
+            ret_val = response.status_code == 200
+        except requests.RequestException:
+            pass
+
+        return ret_val
+
+    def on_open_test(self, event):
+        test_link = self.frame.videos_details[self.current_video_id].test_link
+        if test_link:
+            if self.does_gform_exists(test_link):
+                self.status_label.SetLabel("Opening test link in broswer")
+                webbrowser.open(test_link)
+            else:
+                self.status_label.SetLabel("This video's test link is invalid")
+        else:
+            self.status_label.SetLabel("No test link for this video")
+        self.Layout()
+        event.Skip()
 
     def on_key_down(self, event):
         """
@@ -494,7 +523,7 @@ class FeedPanel(wx.Panel):
                     # in the feed, the amount settings.VIDEOS_TO_REQ of videos that was req from the server were
                     # all watched, and so now waiting for the new videos to arrive.
                     self.waiting_for_video = True
-                    self.status_label.SetLabel("waiting for video from server...")
+                    self.status_label.SetLabel("waiting for video from server")
                     if self.no_videos:
                         msg = clientProtocol.build_req_video()
                         self.frame.comm.send_msg(msg)
@@ -508,7 +537,7 @@ class FeedPanel(wx.Panel):
                 if not video_id:  # no more videos, either watched them all or no more in search/profile
                     # reset videos so the user could watch them again
                     if isinstance(self.associated_panel, FeedPanel):
-                        self.status_label.SetLabel("Watched all videos, reseting watched history")
+                        self.status_label.SetLabel("Watched all videos, resetting watched history")
 
                         self.videos_ids = []
                         self.video_index = 0
@@ -540,7 +569,7 @@ class FeedPanel(wx.Panel):
 
                     self.waiting_for_video = True
                     # if now requested video, then you need to wait for it to arrive from the server
-                    self.status_label.SetLabel("waiting for video from server...")
+                    self.status_label.SetLabel("waiting for video from server")
         self.Layout()
         event.Skip()
 
@@ -628,7 +657,7 @@ class FeedPanel(wx.Panel):
         video_id = video.video_id
         if video_id:
             self.current_video_id = video_id
-            self.status_label.SetLabel("Loading video...")
+            self.status_label.SetLabel("Loading video")
             self.video_ctrl.Freeze()
             self.Layout()
             self.Refresh()

@@ -41,6 +41,17 @@ class MainFrame(wx.Frame):
         self.comment_requests_by_feeds = []  # [feed_panel]
         self.like_requests_by_feeds = []  # [feed_panel]
 
+        self.status_labels = [] # list of all status labels
+        self.animated_dot_labels = ["waiting for video from server", "Loading video", "Sending verification code",
+                                    "waiting for comments from server", "Loading Video From Server", "Loading Content",
+                                    "Uploading", "Resending code", "sending credentials to the server",
+                                    "Loading Content From Server", "waiting for videos from server",
+                                    "Disconnected from server, Closing application in 5 seconds"]
+
+        self.dots_animation_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.status_label_dots_animation, self.dots_animation_timer)
+        self.dots_animation_timer.Start(500)  # every half a minute
+
         self.CreateStatusBar()
 
         self.container = wx.Panel(self)
@@ -71,13 +82,16 @@ class MainFrame(wx.Frame):
 
         self.container.SetSizer(self.sizer)
 
-        self.login_panel.Show()
         # self.signup_panel.Show()
         # self.email_verification_panel.Show()
         # self.pick_topics_panel.Show()
+        # self.user_profile_panel.Show()
 
+        # self.login_panel.Show()
         # msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
         # self.comm.send_msg(msg)
+        self.upload_video_panel.Show()
+        # self.feed_panel.Hide()
         # # time.sleep(1)
         # self.feed_panel.Show()
 
@@ -94,6 +108,8 @@ class MainFrame(wx.Frame):
         pub.subscribe(self.on_like_video_ans, "video_like_ans")
 
         pub.subscribe(self.on_add_comment_ans, "added_comment")
+
+        pub.subscribe(self.comm_disconnected, "comm_disconnected")
 
     def load_new_video(self, video):
         """
@@ -148,6 +164,24 @@ class MainFrame(wx.Frame):
         """Event handler to update the status bar text."""
         self.SetStatusText(text, 0)
 
+    def comm_disconnected(self):
+        self.change_text_status("Disconnected from server, Closing application in 5 seconds.")
+
+        for item in self.sizer.GetChildren():
+            panel = item.GetWindow()
+            if panel.IsShown():
+                if hasattr(panel, "status_label"):
+                    panel.status_label.SetLabel("Disconnected from server, Closing application in 5 seconds.")
+                    panel.Layout()
+        wx.CallLater(5000, self.Close)
+
+    def status_label_dots_animation(self, event):
+        for status_label in self.status_labels:
+            if status_label.GetLabel().strip(".") in self.animated_dot_labels:
+                if status_label.GetLabel()[-3:] == "...":
+                    status_label.SetLabel(status_label.GetLabel()[:-3])
+                else:
+                    status_label.SetLabel(status_label.GetLabel() + ".")
 
 # ----------------------------
 # App Entry Point
