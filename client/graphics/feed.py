@@ -1,10 +1,10 @@
 import os.path
+import re
 import webbrowser
 
 import requests
 import wx
 import wx.media
-from pubsub import pub
 
 import clientProtocol
 import rounded_button
@@ -282,14 +282,22 @@ class FeedPanel(wx.Panel):
 
         self.Hide()
 
-    def does_gform_exists(self, url):
-        #todo add requests and webbrowser to tik project
+    @staticmethod
+    def gform_exists(url):
+        """
+        Determines whether a given URL corresponds to an existing Google Form.
+
+        :param url: The URL to verify as a valid and existing Google Form.
+        :return: True if the URL corresponds to an existing Google Form, False otherwise.
+        """
+        pattern = r'(https?://)?docs\.google\.com/forms/d/[a-zA-Z0-9_-]+(/.*)?'
         ret_val = False
-        try:
-            response = requests.head(url, timeout=5, allow_redirects=True)
-            ret_val = response.status_code == 200
-        except requests.RequestException:
-            pass
+        if bool(re.match(pattern, url)):  # makes sure the url is a Google form
+            try:  # makes sure the Google form is reachable
+                response = requests.head(url, timeout=5, allow_redirects=True)
+                ret_val = response.status_code == 200
+            except requests.RequestException:
+                pass
 
         return ret_val
 

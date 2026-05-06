@@ -2,6 +2,7 @@ import os.path
 import re
 
 import cv2
+import requests
 import wx
 import wx.media
 from pubsub import pub
@@ -213,6 +214,9 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
         pub.subscribe(self.on_video_upload_ans, "video_upload_ans")
 
+        self.dots_animation_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.uploading_dots_animation, self.dots_animation_timer)
+
         self.Hide()
 
     def on_back_arrow(self, event):
@@ -231,7 +235,7 @@ class UploadVideoPanel(wx.ScrolledWindow):
         valid_val = True
 
         if field_name == "test_link":
-            if self.is_valid_gforms_url(self.test_link_field.get_value()):
+            if self.gform_valid_form(self.test_link_field.get_value()):
                 self.test_link_status_label.SetLabel("")
             else:
                 self.test_link_status_label.SetLabel("google forms test link is not valid")
@@ -356,6 +360,12 @@ class UploadVideoPanel(wx.ScrolledWindow):
             video_name = self.video_name_field.get_value().strip()
             description = self.description_field.get_value().strip()
             test_link = self.test_link_field.get_value().strip()
+            test_link_valid = True
+
+            if self.test_link_field.get_value():
+                if not self.gform_exists(self.test_link_field.get_value()):
+                    self.test_link_status_label.SetLabel("google forms test link is not valid")
+                    test_link_valid = False
 
             if not os.path.isfile(self.thumbnail_path):
                 self.thumbnail_path = ""
@@ -371,8 +381,10 @@ class UploadVideoPanel(wx.ScrolledWindow):
                     self.pick_video_btn.label_or_path = "Click to upload video"
                     self.upload_video_btn.label_or_path = f"Video length is too long, pick another one under {settings.MAX_VIDEO_LENGTH} minutes"
 
-            if self.thumbnail_path and self.video_path:
+            if self.thumbnail_path and self.video_path and test_link_valid:
                 self.upload_video_btn.label_or_path = "Uploading"
+                self.dots_animation_timer.Start(500)  # every half a minute
+
                 self.frame.video_comm.send_file("0.mp4", self.video_path, video_name, description, test_link,
                                                 self.topic_ids)
                 self.frame.video_comm.send_file("0.png", self.thumbnail_path)
@@ -381,9 +393,28 @@ class UploadVideoPanel(wx.ScrolledWindow):
         event.Skip()
 
     @staticmethod
-    def is_valid_gforms_url(url):
+    def gform_valid_form(url):
         pattern = r'(https?://)?docs\.google\.com/forms/d/[a-zA-Z0-9_-]+(/.*)?'
         return bool(re.match(pattern, url))
+
+    @staticmethod
+    def gform_exists(url):
+        """
+        Determines whether a given URL corresponds to an existing Google Form.
+
+        :param url: The URL to verify as a valid and existing Google Form.
+        :return: True if the URL corresponds to an existing Google Form, False otherwise.
+        """
+        pattern = r'(https?://)?docs\.google\.com/forms/d/[a-zA-Z0-9_-]+(/.*)?'
+        ret_val = False
+        if bool(re.match(pattern, url)):  # makes sure the url is a google form
+            try:  # makes sure the google form is reachable
+                response = requests.head(url, timeout=5, allow_redirects=True)
+                ret_val = response.status_code == 200
+            except requests.RequestException:
+                pass
+
+        return ret_val
 
     def on_video_upload_ans(self, video_id):
         """
@@ -393,10 +424,12 @@ class UploadVideoPanel(wx.ScrolledWindow):
         """
         print("video uploaded", video_id)
         if video_id:
+            self.dots_animation_timer.Stop()
             self.upload_video_btn.label_or_path = "Video uploaded"
             self.test_link_field.set_value("")
             self.description_field.set_value("")
             self.video_name_field.set_value("")
+            self.test_link_status_label.SetLabel("")
             self.pick_thumbnail_btn.label_or_path = "Click to upload thumbnail"
             self.pick_video_btn.label_or_path = "Click to upload video"
             self.pick_topics_btn.label_or_path = "Choose Topics"
@@ -417,8 +450,20 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
         else:
             self.upload_video_btn.label_or_path = "Video file already exists, upload a different one"
+            self.video_path = None
+            self.upload_video_btn.set_active(False)
+            self.filled_fields["video"] = False
 
         self.Refresh()
+
+    def uploading_dots_animation(self, event):
+        if self.upload_video_btn.label_or_path.strip(".") == "Uploading":
+            if self.upload_video_btn.label_or_path[-3:] == "...":
+                self.upload_video_btn.label_or_path = self.upload_video_btn.label_or_path[:-3]
+            else:
+                self.upload_video_btn.label_or_path = self.upload_video_btn.label_or_path + "."
+
+        self.upload_video_btn.Refresh()
 
     def scale_thumbnail(self, thumbnail_image):
         """
