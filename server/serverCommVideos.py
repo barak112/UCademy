@@ -115,10 +115,6 @@ class ServerCommVideos (serverComm.ServerComm):
 
         opcode, data = serverProtocol.unpack(decrypted_message)
 
-        #todo get details, add to db, add to queue the id twice (once for video and once for thumbnail)
-        # and then when video and thumbnail arrives, assign id to video and thumbnail
-        # check if video is valid, if is, store it, if not, delete from db using the id.
-
         file_name, file_size, *video_details = data
         file_size = int(file_size)
         print("file_size:", file_size, "file_name:", file_name, "video_details:", video_details)

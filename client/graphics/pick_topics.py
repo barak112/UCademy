@@ -35,10 +35,17 @@ class PickTopicsPanel(wx.ScrolledWindow):
         if panel_set_topics_handler is None:
             panel_set_topics_handler = self
 
+        self.meets_max_and_min = True
+
         # set title and subtitle according to panel handler
         if isinstance(panel_set_topics_handler, PickTopicsPanel):
             self.title = self.USER_TOPICS_TITLE
             self.subtitle = self.USER_TOPICS_SUBTITLE
+
+            self.min_topics = 3
+            self.max_topics = len(settings.TOPICS)
+            self.meets_max_and_min = False
+
             # if user topics, also subscribe to set topics ans
             pub.subscribe(self.on_set_topics_ans, "set_topics_ans")
 
@@ -46,9 +53,15 @@ class PickTopicsPanel(wx.ScrolledWindow):
             self.title = self.FILTER_TITLE
             self.subtitle = self.FILTER_SUBTITLE
 
+            self.min_topics = 0
+            self.max_topics = len(settings.TOPICS)
+
         elif isinstance(panel_set_topics_handler, upload_video.UploadVideoPanel):
             self.title = self.VIDEO_TOPICS_TITLE
             self.subtitle = self.VIDEO_TOPICS_SUBTITLE
+            self.min_topics = 0
+            self.max_topics = 3
+
 
         # scroll attributes
         self.SetScrollRate(0, 7)
@@ -78,7 +91,8 @@ class PickTopicsPanel(wx.ScrolledWindow):
         self.spacer = vbox.Add((0, 100))
         vbox.Add(self.grid, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
-        self.continue_btn = rounded_button.RoundedButton(self, "Continue", settings.BRIGHT_UNACTIVE_BUTTON,
+        start_btn_color = settings.THEME_COLOR if self.meets_max_and_min else settings.BRIGHT_UNACTIVE_BUTTON
+        self.continue_btn = rounded_button.RoundedButton(self, "Continue", start_btn_color,
                                                          (204, 223, 252), 25, 13)
         self.continue_btn.SetMinSize((140, 60))
         vbox.Add(self.continue_btn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 40)
@@ -134,9 +148,9 @@ class PickTopicsPanel(wx.ScrolledWindow):
         Converts selected topic names to indices and delegates to the panel handler.
         :param event: The wx button click event.
         """
-        topics = [settings.TOPICS.index(topic) for topic in self.selected_topics]
-        print(topics)
-        self.panel_set_topics_handler.handle_set_topics(topics)
+        if self.meets_max_and_min:
+            topics = [settings.TOPICS.index(topic) for topic in self.selected_topics] # transforms the topics from names to ids
+            self.panel_set_topics_handler.handle_set_topics(topics)
         event.Skip()
 
     def on_set_topics_ans(self, topics):
@@ -161,19 +175,30 @@ class PickTopicsPanel(wx.ScrolledWindow):
         :param topic_name: The name of the topic to toggle.
         """
         # print("topic_name:",topic_name, "selected:", topic_name in self.selected_topics)
+
+        # get widget item
+        item = self.grid.GetItem(self.topics[topic_name])
+
         if topic_name in self.selected_topics:
+            self.topics[topic_name].selected_ans_from_parent(False)
+
             self.selected_topics.remove(topic_name)
             for i in range(1, settings.TOPIC_WIDGET_GROWTH + 1):
-                self.grid.GetItem(self.topics[topic_name]).SetBorder(i)
-                self.Layout()
-        else:
-            self.selected_topics.append(topic_name)
-            for i in range(1, settings.TOPIC_WIDGET_GROWTH + 1):
-                self.grid.GetItem(self.topics[topic_name]).SetBorder(settings.TOPIC_WIDGET_GROWTH - i)
+                item.SetBorder(i)
                 self.Layout()
 
+        elif len(self.selected_topics) < self.max_topics:
+            self.topics[topic_name].selected_ans_from_parent(True)
+
+            self.selected_topics.append(topic_name)
+            for i in range(1, settings.TOPIC_WIDGET_GROWTH + 1):
+                item.SetBorder(settings.TOPIC_WIDGET_GROWTH - i)
+                self.Layout()
+
+        self.meets_max_and_min = self.max_topics >= len(self.selected_topics) >= self.min_topics
+        print(self.max_topics, len(self.selected_topics), self.min_topics, self.meets_max_and_min)
+        self.continue_btn.set_active(self.meets_max_and_min)
         self.Refresh()
-        self.continue_btn.set_active(len(self.selected_topics) >= settings.MIN_TOPICS)
 
     @staticmethod
     def calc_columns(event):
@@ -261,7 +286,6 @@ class PickTopicsPanel(wx.ScrolledWindow):
                 # topics selected text
                 gc.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL), wx.BLACK)
                 topics_selected_text = f"{len(self.selected_topics)} topics selected"
-                print(f"active_topics = {self.selected_topics}")
                 tw, th = gc.GetTextExtent(topics_selected_text)
                 gc.DrawText(topics_selected_text, (w - tw) // 2,
                             self.grid_start_pos + self.grid.GetSize().GetHeight() + 20)

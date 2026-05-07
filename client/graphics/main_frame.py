@@ -88,9 +88,9 @@ class MainFrame(wx.Frame):
         # self.user_profile_panel.Show()
 
         # self.login_panel.Show()
-        # msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
-        # self.comm.send_msg(msg)
-        self.upload_video_panel.Show()
+        msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
+        self.comm.send_msg(msg)
+        # self.upload_video_panel.Show()
         # self.feed_panel.Hide()
         # # time.sleep(1)
         # self.feed_panel.Show()

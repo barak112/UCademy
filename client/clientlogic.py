@@ -183,14 +183,14 @@ class ClientLogic:
         :param data: A list containing video ID, creator, name, description, creation date, likes amount, comments amount, and liked status.
         :return: A Video object populated with the provided data.
         """
-        video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = data
+        video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked, test_link = data
         print("video_id:", video_id, "comments amount:", comments_amount)
         video_id = int(video_id)
         comments_amount = int(comments_amount)
         likes_amount = int(likes_amount)
         liked = bool(int(liked))
         video_details = video.Video(video_id, creator, video_name, video_desc, created_at, likes_amount,
-                                    comments_amount, liked)
+                                    comments_amount, liked, test_link)
         return video_details
 
     def handle_video_comment_confirmation(self, data):  # command 7
@@ -320,6 +320,7 @@ class ClientLogic:
         :param data: The response data containing video details.
         """
         video_obj = self.get_video_obj(data)
+        print(video_obj.video_id,"new video's test link:", video_obj.test_link)
         wx.CallAfter(pub.sendMessage, "load_new_video", video=video_obj)
 
     def handle_video_upload_confirmation(self, data):  # command 16

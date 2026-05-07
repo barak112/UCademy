@@ -103,11 +103,6 @@ class ServerLogic:
 
         self.clients_awaiting_email_verification = {}  # [client_ip] = [username, password, email, email_verification_code, time]
 
-        # todo delete this and fix all the searches to use lastid
-        self.videos_to_send = {}  # [client_ip] = [videos_ids]
-        self.users_to_send = {}  # [client_ip] = [users_names]
-        self.comments_to_send = {}  # [client_ip] = [comments_ids]
-
         self.pfps_sent = {}  # [client_ip] = [users_names]
         self.videos_sent = {}  # [client_ip] = [videos_ids]
         self.thumbnails_sent = {}  # [client_ip] = [videos_ids]
@@ -122,9 +117,6 @@ class ServerLogic:
         """
         self.clients.pop(client_ip, None)
         self.clients_awaiting_email_verification.pop(client_ip, None)
-        self.videos_to_send.pop(client_ip, None)
-        self.users_to_send.pop(client_ip, None)
-        self.comments_to_send.pop(client_ip, None)
 
         self.pfps_sent.pop(client_ip, None)
         self.videos_sent.pop(client_ip, None)
@@ -222,9 +214,6 @@ class ServerLogic:
     def create_email_verification_code():
         """
         Generates a random numeric verification code of default 6 digits.
-
-        :param length: Specifies the number of digits for the generated code.
-            Defaults to 6 if not provided.
         :return: A randomly generated string consisting of numeric digits only.
         """
         return ''.join(secrets.choice('0123456789') for _ in range(settings.VERIFICATION_CODE_LENGTH))
@@ -400,21 +389,26 @@ class ServerLogic:
         :param data: A tuple containing the search username and a flag indicating if the
                      next batch of usernames should be sent.
         """
-        username, is_next_send = data[0]
+        username, last_username = data[0]
 
-        is_next_send = int(is_next_send)
+        usernames = self.db.get_similar_usernames(username)
 
-        if is_next_send:
-            usernames = self.users_to_send[client_ip]
-        else:
-            usernames = self.db.get_similar_usernames(username)
+        start_index = 0
+
+        if last_username:
+            start_index = usernames.index(last_username) + 1
+
+        usernames = usernames[start_index:]
+
+        deleted_usernames = self.db.get_deleted_usernames()
+
+        usernames = [i for i in usernames if i not in deleted_usernames]
+
+        usernames = usernames[:settings.AMOUNT_OF_USERS_TO_SEND]
 
         # send username details and pfps
-        users = usernames[:settings.AMOUNT_OF_USERS_TO_SEND]
-        self.users_to_send[client_ip] = usernames[settings.AMOUNT_OF_USERS_TO_SEND:]
-
-        if users:
-            self.send_users_details(client_ip, users)
+        if usernames:
+            self.send_users_details(client_ip, usernames)
         else:  # no more users to send
             msg_to_send = serverProtocol.build_user_details_in_search("", 0, 0, 0)
             self.comm.send_msg(client_ip, msg_to_send)
@@ -483,7 +477,7 @@ class ServerLogic:
             # send username details and pfps
             self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
         else:
-            msg_to_send = serverProtocol.build_video_details_in_search(0, "", "", "", "", 0, 0, 0)
+            msg_to_send = serverProtocol.build_video_details_in_search(0, "", "", "", "", 0, 0, 0, "")
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
 
     def send_videos_details_and_thumbnail(self, client_ip, video_ids):  # Helper function
@@ -495,7 +489,7 @@ class ServerLogic:
         """
         for video_id in video_ids:
             if self.db.video_exists(video_id):
-                video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = self.get_video_details(
+                video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked, test_link = self.get_video_details(
                     client_ip, video_id)
 
                 if video_id not in self.thumbnails_sent[client_ip]:
@@ -505,12 +499,12 @@ class ServerLogic:
 
                 msg = serverProtocol.build_video_details_in_profile(video_id, creator, video_name, video_desc,
                                                                     created_at,
-                                                                    likes_amount, comments_amount, liked)
+                                                                    likes_amount, comments_amount, liked, test_link)
 
                 self.clients[client_ip][1].send_msg(client_ip, msg)
 
         # to indicate end of videos sending
-        msg = serverProtocol.build_video_details_in_profile(settings.END_OF_BATCH_SEND_ID, "", "", "", "", 0, 0, 0)
+        msg = serverProtocol.build_video_details_in_profile(settings.END_OF_BATCH_SEND_ID, "", "", "", "", 0, 0, 0, "")
         self.clients[client_ip][1].send_msg(client_ip, msg)
 
     def handle_video_comment(self, client_ip, data):  # command 7
@@ -705,7 +699,7 @@ class ServerLogic:
         if videos_to_send:
             self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
         else:  # indicates there are no more videos to send
-            msg_to_send = serverProtocol.build_video_details_in_profile(0, "", "", "", "", 0, 0, 0)
+            msg_to_send = serverProtocol.build_video_details_in_profile(0, "", "", "", "", 0, 0, 0, "")
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
 
     def handle_user_follow_list_req(self, client_ip, data):  # command 14
@@ -759,7 +753,7 @@ class ServerLogic:
                     self.db.add_watched_video(username, video_id)
             else:
                 # if video requested has been deleted
-                msg_to_send = serverProtocol.build_video_details(settings.DELETED_ID, "", "", "", "", 0, 0, 0)
+                msg_to_send = serverProtocol.build_video_details(settings.DELETED_ID, "", "", "", "", 0, 0, 0, "")
                 self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
         else:
             video_id = settings.END_OF_LIST_ID
@@ -767,7 +761,7 @@ class ServerLogic:
                 video_id = settings.NO_VIDEOS_ID
 
             self.db.remove_watched_videos_for_user(username)
-            msg_to_send = serverProtocol.build_video_details(video_id, "", "", "", "", 0, 0, 0)
+            msg_to_send = serverProtocol.build_video_details(video_id, "", "", "", "", 0, 0, 0, "")
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
 
     def send_video_and_details(self, client_ip, video_id):  # helper function
@@ -777,7 +771,7 @@ class ServerLogic:
         :param client_ip: The ip of the client requesting the video.
         :param video_id: The unique identifier of the video to be sent to the client.
         """
-        video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked = self.get_video_details(
+        video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked, test_link = self.get_video_details(
             client_ip, video_id)
 
         self.send_pfp(client_ip, creator)  # sends creator's pfp if the clients doesnt already have it
@@ -788,7 +782,7 @@ class ServerLogic:
             self.clients[client_ip][1].send_file(file_path)
 
         msg = serverProtocol.build_video_details(video_id, creator, video_name, video_desc, created_at, likes_amount,
-                                                 comments_amount, liked)
+                                                 comments_amount, liked, test_link)
         self.clients[client_ip][1].send_msg(client_ip, msg)
 
     def handle_video_upload(self, client_ip, data):  # command 16
@@ -830,11 +824,11 @@ class ServerLogic:
         :param video_id: The ID of the video to retrieve details for.
         :return: A tuple of (video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked).
         """
-        creator, video_name, video_desc, created_at, likes_amount, comments_amount = self.db.get_specific_video(
+        creator, video_name, video_desc, created_at, likes_amount, comments_amount, test_link = self.db.get_specific_video(
             video_id)
         liked = self.db.is_liked_by_user(video_id, self.clients[client_ip][0])
         liked = int(liked)
-        return video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked
+        return video_id, creator, video_name, video_desc, created_at, likes_amount, comments_amount, liked, test_link
 
     def handle_follow_user(self, client_ip, data):  # command 17
         """

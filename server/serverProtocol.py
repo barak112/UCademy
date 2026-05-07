@@ -93,7 +93,7 @@ def build_user_details_in_search(username, followers_amount, followings_amount, 
 
 
 def build_video_details_in_search(video_id, creator_name, video_name, video_desc, created_at, likes_amount,
-                                  comments_amount, liked):
+                                  comments_amount, liked, test_link):
     """
         Builds a response command containing a video's details for display in search results.
     :param video_id: The unique ID of the video.
@@ -104,12 +104,13 @@ def build_video_details_in_search(video_id, creator_name, video_name, video_desc
     :param likes_amount: The number of likes the video has received.
     :param comments_amount: The number of comments on the video.
     :param liked: Integer indicating whether the requesting user has liked the video (1 or 0).
+    :param test_link: video's google form test link
     :return: Formatted video-details-in-search command string.
     """
     return build_command(
         6,
         [video_id, creator_name, video_name, video_desc, created_at, likes_amount,
-         comments_amount, liked]
+         comments_amount, liked, test_link]
     )
 
 
@@ -183,7 +184,7 @@ def build_del_comment_confirmation(video_id=0, comment_id=0):
 
 
 def build_video_details_in_profile(video_id, creator_name, video_name, video_desc, created_at, likes_amount,
-                                   comments_amount, liked):
+                                   comments_amount, liked, test_link):
     """
         Builds a response command containing a video's details for display on a creator's profile.
     :param video_id: The unique ID of the video.
@@ -194,12 +195,14 @@ def build_video_details_in_profile(video_id, creator_name, video_name, video_des
     :param likes_amount: The number of likes the video has received.
     :param comments_amount: The number of comments on the video.
     :param liked: Integer indicating whether the requesting user has liked the video (1 or 0).
+    :param test_link: video's google form test link
+
     :return: Formatted video-details-in-profile command string.
     """
     return build_command(
         13,
         [video_id, creator_name, video_name, video_desc, created_at, likes_amount,
-         comments_amount, liked]
+         comments_amount, liked, test_link]
     )
 
 
@@ -219,7 +222,7 @@ def build_user_details_follow_list(username, followers_amount, followings_amount
 
 
 def build_video_details(video_id, creator_name, video_name, video_desc, created_at, likes_amount,
-                        comments_amount, liked):
+                        comments_amount, liked, test_link):
     """
         Builds a response command containing a video's full details for playback.
     :param video_id: The unique ID of the video.
@@ -230,12 +233,14 @@ def build_video_details(video_id, creator_name, video_name, video_desc, created_
     :param likes_amount: The number of likes the video has received.
     :param comments_amount: The number of comments on the video.
     :param liked: Integer indicating whether the requesting user has liked the video (1 or 0).
+    :param test_link: video's google form test link
+
     :return: Formatted video-details command string.
     """
     return build_command(
         15,
         [video_id, creator_name, video_name, video_desc, created_at, likes_amount,
-         comments_amount, liked]
+         comments_amount, liked, test_link]
     )
 
 

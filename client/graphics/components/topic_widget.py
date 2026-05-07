@@ -53,10 +53,12 @@ class TopicWidget(wx.Panel):
         Toggles the selected state of the widget and notifies the parent panel.
         :param event: The wx mouse up event.
         """
-        self.selected = not self.selected
         self.parent.topic_selected(self.topic_name)
         self.Refresh()
         event.Skip()
+
+    def selected_ans_from_parent(self, selected):
+        self.selected = selected
 
     def on_hover(self, event):
         """

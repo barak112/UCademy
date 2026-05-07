@@ -303,8 +303,9 @@ class FeedPanel(wx.Panel):
 
     def on_open_test(self, event):
         test_link = self.frame.videos_details[self.current_video_id].test_link
+        print("test link:", test_link)
         if test_link:
-            if self.does_gform_exists(test_link):
+            if self.gform_exists(test_link):
                 self.status_label.SetLabel("Opening test link in broswer")
                 webbrowser.open(test_link)
             else:
@@ -313,7 +314,6 @@ class FeedPanel(wx.Panel):
             self.status_label.SetLabel("No test link for this video")
         self.Layout()
         event.Skip()
-        #todo test this
 
     def on_key_down(self, event):
         """
@@ -639,7 +639,8 @@ class FeedPanel(wx.Panel):
             if video_id not in self.videos_ids:
                 self.videos_ids.append(video_id)
 
-            if self.waiting_for_video:  # checks if waiting for a video to arrive from server, if so, load it immediately
+            # not self.IsFrozen() makes sure i dont load a new video before finishing loading the last one, to avoid screen freezing
+            if self.waiting_for_video and not self.IsFrozen():  # checks if waiting for a video to arrive from server, if so, load it immediately
                 self.load_video(video)
                 self.video_index = self.videos_ids.index(video_id)
                 print(video_id, "video loaded at index", self.video_index)
@@ -648,7 +649,12 @@ class FeedPanel(wx.Panel):
 
         elif video_id == settings.END_OF_LIST_ID:
             self.videos_ids.append(
-                video_id)  # add 0 to indicate the end of the videos or -2 to indicate the video has been deleted
+                video_id)  # add 0 to indicate the end of the videos
+            self.frame.comments_requests_by_feeds.pop(0)
+
+        elif video_id == settings.DELETED_ID:
+            self.videos_ids.append(
+                video_id)  # -2 to indicate the video has been deleted
             self.frame.comments_requests_by_feeds.pop(0)
 
         elif video_id == settings.NO_VIDEOS_ID:
@@ -667,6 +673,9 @@ class FeedPanel(wx.Panel):
         if video_id:
             self.current_video_id = video_id
             self.status_label.SetLabel("Loading video")
+            test_btn_color = wx.WHITE if video.test_link else settings.UNACTIVE_BUTTON
+            self.test_btn.set_background_color(test_btn_color)
+
             self.video_ctrl.Freeze()
             self.Layout()
             self.Refresh()
@@ -674,7 +683,6 @@ class FeedPanel(wx.Panel):
 
             print("loading video:", video_id)
             self.can_scroll = False
-            print("has freezed")
 
             self.video_ctrl.Load(f"media\\{video_id}.mp4")
             self.video_ctrl.SetInitialSize((500, 500))

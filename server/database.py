@@ -221,6 +221,8 @@ class DataBase:
 
     # ===== users =====
 
+    def get_deleted_usernames(self):
+
     def remove_user(self, username):
         """
         Removes a user from the database.
@@ -390,7 +392,8 @@ class DataBase:
                                 videos.description,
                                 strftime('%d/%m/%Y %H:%M', videos.created_at),
                                (SELECT COUNT(*) FROM likes WHERE video_id = videos.video_id) AS likes_count,
-                               (SELECT COUNT(*) FROM comments WHERE video_id = videos.video_id) AS comments_count
+                               (SELECT COUNT(*) FROM comments WHERE video_id = videos.video_id) AS comments_count,
+                               test_link
                          FROM videos
 
                          WHERE videos.video_id = ?
@@ -1129,6 +1132,14 @@ if __name__ == "__main__":
     # --- testing ---
     # print(db.search_videos("ella", []))
     # print(db.get_videos_by_creator("Barak"))
+
+    print(db.get_specific_video(1))
+
+    url = "https://docs.google.com/forms/d/e/1FAIpQLSeeLKW194zHPY5cGo2Z07guNfkpsVPajbKYhgeQF7o4aot7ww/viewform?usp=dialog"
+    # url = ""
+    # db.cur.execute("UPDATE videos SET test_link = ?", (url,))
+    db.cur.execute("UPDATE videos SET test_link = ? WHERE video_id = 3", (url,))
+    db.conn.commit()
 
     # # --- users ---
     # db.cur.execute("DROP TABLE IF EXISTS users")
