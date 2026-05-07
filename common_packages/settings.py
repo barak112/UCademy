@@ -5,8 +5,8 @@ P_SIZE = len(str(P))
 
 G = 327
 
-SERVER_IP = "127.0.0.1"
-# SERVER_IP = "192.168.4.94"
+# SERVER_IP = "127.0.0.1"
+SERVER_IP = "192.168.4.94"
 
 
 PORT = 1000

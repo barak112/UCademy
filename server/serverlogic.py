@@ -295,6 +295,9 @@ class ServerLogic:
         username = self.db.get_username(username_or_email)
         print(f"trying to sign in user: {username} ")
 
+        #todo dont let users connect through multiple computers.
+        # check if there is a connected client with the same name and if so, return a message to the client
+
         if self.db.is_correct_username_and_password_hash(username, self.hash_password(password)):
             status = 1
 
@@ -863,6 +866,7 @@ class ServerLogic:
         :param client_ip: The IP address of the client making the request.
         :param data: A list containing the video ID to like or unlike.
         """
+        #todo for each change in a video, update every client that already has that video.
         video_id = data[0]
         username = self.clients[client_ip][0]
         status = 0
