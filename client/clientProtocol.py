@@ -67,27 +67,27 @@ def build_set_filter(topics):
     return build_command(4, topics)
 
 
-def build_search_creators(creator_name, send_next: bool = False):
+def build_search_creators(creator_name, last_username = ""):
     """
         Builds a command to search for creators by name.
     :param creator_name: The name or partial name of the creator to search for.
-    :param send_next: Whether to fetch the next page of results.
+    :param last_username: username of last user sent
     :return: Formatted search-creators command string.
     """
-    return build_command(5, [creator_name, int(send_next)])
+    return build_command(5, [creator_name, last_username])
 
 
-def build_search_videos(video_name_or_desc, topics=None, send_next: bool = False):
+def build_search_videos(video_name_or_desc, topics=None, last_id = 0):
     """
         Builds a command to search for videos by name or description.
     :param video_name_or_desc: The name or description to search for.
     :param topics: Optional list of topics to filter results by.
-    :param send_next: Whether to fetch the next page of results.
+    :param last_id: last video's id.
     :return: Formatted search-videos command string.
     """
     if not topics:
         topics = []
-    return build_command(6, [video_name_or_desc, topics, int(send_next)])
+    return build_command(6, [video_name_or_desc, topics, last_id])
 
 
 def build_comment(video_id, comment):
@@ -158,15 +158,15 @@ def build_req_creator_videos(username, last_id=0):
 
 
 def build_req_user_follow_list(username, follow_type,
-                               send_next: bool = False):  # follow_type: 0 - followings, 1 - followers
+                               last_username = ""):  # follow_type: 0 - followings, 1 - followers
     """
         Builds a command to request a user's following or followers list.
     :param username: The username of the user whose follow list to retrieve.
     :param follow_type: The type of list to fetch — 0 for followings, 1 for followers.
-    :param send_next: Whether to fetch the next page of results.
+    :param last_username: username of last sent user
     :return: Formatted request-follow-list command string.
     """
-    return build_command(14, [username, follow_type, int(send_next)])
+    return build_command(14, [username, follow_type, last_username])
 
 
 def build_req_video(video_id=0):

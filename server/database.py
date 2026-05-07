@@ -58,6 +58,7 @@ class DataBase:
             username TEXT PRIMARY KEY,
             email TEXT,
             password_hash TEXT
+            deleted INTEGER DEFAULT 0
         ) """)
         self.conn.commit()
 
@@ -222,15 +223,20 @@ class DataBase:
     # ===== users =====
 
     def get_deleted_usernames(self):
+        """
+            returns every username of a user that has been deleted
+        :return: list of deleted usernames
+        """
+        self.cur.execute("SELECT username FROM users WHERE deleted = 1 ")
+        return [i[0] for i in self.cur.fetchall()]
 
-    def remove_user(self, username):
+    def delete_user(self, username):
         """
         Removes a user from the database.
         :param username: Username of the user to delete
         """
-        self.cur.execute("DELETE FROM users WHERE username = ? COLLATE NOCASE", (username,))
+        self.cur.execute("UPDATE users SET deleted = 1 WHERE username = ? COLLATE NOCASE", (username,))
         self.conn.commit()
-        #todo dont actually delete, so that the user wont be able to sign up or in again.
 
     def user_exists(self, username):
         """
@@ -283,7 +289,7 @@ class DataBase:
         :param username: Username to check
         :return: List of matching usernames
         """
-        self.cur.execute("SELECT username FROM users WHERE username LIKE ? COLLATE NOCASE", ("%" + username + "%",))
+        self.cur.execute("SELECT username FROM users WHERE username LIKE ? COLLATE NOCASE AND deleted = 0", ("%" + username + "%",))
         res = self.cur.fetchall()
         if res:
             res = [i[0] for i in res]

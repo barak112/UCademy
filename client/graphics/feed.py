@@ -61,7 +61,7 @@ class FeedPanel(wx.Panel):
 
         # actions
         actions_sizer = wx.BoxSizer(wx.VERTICAL)
-        video_sizer.Add(actions_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 20)
+        video_sizer.Add(actions_sizer, 0, wx.EXPAND | wx.LEFT, 20)
 
         # personal account
         personal_account_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -84,6 +84,20 @@ class FeedPanel(wx.Panel):
 
         search_sizer.Add(self.search_btn)
         search_sizer.Add(self.search_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        
+        # delete
+        delete_video_sizer = wx.BoxSizer(wx.VERTICAL)
+        img_path = "assets\\delete_video_icon.png"
+        self.delete_video_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
+                                                       self.BG_COLOR, circle=True, use_image=True)
+        self.delete_video_btn.SetMinSize((50, 50))
+        self.delete_video_label = wx.StaticText(self, label="delete")
+
+        delete_video_sizer.Add(self.delete_video_btn)
+        delete_video_sizer.Add(self.delete_video_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        self.delete_video_btn.Hide()
+        self.delete_video_label.Hide()
 
         # play/pause
         play_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -172,8 +186,9 @@ class FeedPanel(wx.Panel):
         actions_sizer.Add(personal_account_sizer)
         actions_sizer.Add(search_sizer, 0, wx.TOP, 10)
 
-        actions_sizer.AddSpacer(150)
+        actions_sizer.AddStretchSpacer()
 
+        actions_sizer.Add(delete_video_sizer)
         actions_sizer.Add(play_sizer, 0, wx.TOP, 10)
         actions_sizer.Add(sound_sizer, 0, wx.TOP, 10)
         actions_sizer.Add(like_sizer, 0, wx.TOP, 10)
@@ -267,6 +282,7 @@ class FeedPanel(wx.Panel):
         self.like_btn.Bind(wx.EVT_LEFT_UP, self.on_like_video)
         self.open_comments_btn.Bind(wx.EVT_LEFT_UP, self.on_open_comments)
         self.sound_btn.Bind(wx.EVT_LEFT_UP, self.on_toggle_sound)
+        self.delete_video_btn.Bind(wx.EVT_LEFT_UP, self.on_delete_video)
         self.play_btn.Bind(wx.EVT_LEFT_UP, self.on_toggle_play)
         self.account_btn.Bind(wx.EVT_LEFT_UP, self.on_move_to_creator_account)
         self.test_btn.Bind(wx.EVT_LEFT_UP, self.on_open_test)
@@ -281,6 +297,39 @@ class FeedPanel(wx.Panel):
         desc_panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
 
         self.Hide()
+
+    def on_delete_video(self, event):
+        self.status_label.SetLabel("sending delete req to server")
+        if self.frame.videos_details[self.current_video_id].creator == self.frame.user.username:
+            msg = clientProtocol.build_del_video(self.current_video_id)
+            self.frame.comm.send_msg(msg)
+            print("deleting video as creator")
+        else:
+            msg = clientProtocol.build_comment_or_video_status(self.current_video_id, settings.VIDEO_DIGIT_REPR, settings.REPORT_ACCEPTED)
+            self.frame.comm.send_msg(msg)
+
+        self.frame.delete_video_requests_by_feeds.append(self)
+
+        self.Layout()
+        event.Skip()
+
+    def delete_video_ans(self, video_id):
+
+        if video_id:
+            self.status_label.SetLabel("Video successfully deleted, scroll to switch to a new video")
+            if video_id in self.videos_ids:
+                self.videos_ids.remove(video_id)
+
+                if not self.videos_ids: # if videos_ids is now empty
+                    self.status_label.SetLabel("Video successfully deleted, waiting for video from the server")
+                else:
+                    self.video_index = max(0, self.video_index-1)
+                    print("deleted video:", video_id, "new index:", self.video_index, "video ids:", self.videos_ids, "videos details:", self.frame.videos_details)
+                    self.load_video(self.frame.videos_details[self.videos_ids[self.video_index]])
+
+        self.Layout()
+
+
 
     @staticmethod
     def gform_exists(url):
@@ -563,6 +612,10 @@ class FeedPanel(wx.Panel):
 
                         print("This user does not have more videos")
 
+                elif video_id == settings.DELETED_ID: # if video has been deleted, write it has been deleted and on next scroll continue to next video
+                    self.status_label = "This video has been deleted"
+                    self.videos_ids.remove(video_id)
+
                 elif video_id in self.frame.videos_details:
                     video_to_load = self.frame.videos_details[self.videos_ids[new_index]]
                     print("loading video:", video_id, 'comments', video_to_load.get_comments())
@@ -676,7 +729,15 @@ class FeedPanel(wx.Panel):
             test_btn_color = wx.WHITE if video.test_link else settings.UNACTIVE_BUTTON
             self.test_btn.set_background_color(test_btn_color)
 
-            self.video_ctrl.Freeze()
+            if video.creator == self.frame.user.username:
+                self.delete_video_btn.Show()
+                self.delete_video_label.Show()
+            else:
+                self.delete_video_btn.Hide()
+                self.delete_video_label.Hide()
+
+            if not self.video_ctrl.IsFrozen():
+                self.video_ctrl.Freeze()
             self.Layout()
             self.Refresh()
             self.Update()

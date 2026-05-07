@@ -40,6 +40,7 @@ class MainFrame(wx.Frame):
         self.comments_requests_by_feeds = []  # [feed_panel]
         self.comment_requests_by_feeds = []  # [feed_panel]
         self.like_requests_by_feeds = []  # [feed_panel]
+        self.delete_video_requests_by_feeds = [] # [feed_panel]
 
         self.status_labels = [] # list of all status labels
         self.animated_dot_labels = ["waiting for video from server", "Loading video", "Sending verification code",
@@ -101,6 +102,8 @@ class MainFrame(wx.Frame):
         # self.feed_panel.load_video(demo_video)
         # self.comm.send_msg(msg)
 
+        pub.subscribe(self.video_deleted_ans, "video_deleted_ans")
+
         pub.subscribe(self.load_new_video, "load_new_video")
 
         pub.subscribe(self.load_new_comments, "load_new_comments")
@@ -110,6 +113,11 @@ class MainFrame(wx.Frame):
         pub.subscribe(self.on_add_comment_ans, "added_comment")
 
         pub.subscribe(self.comm_disconnected, "comm_disconnected")
+
+
+    def video_deleted_ans(self, video_id):
+        correct_feed_panel = self.delete_video_requests_by_feeds.pop(0)
+        correct_feed_panel.delete_video_ans(video_id)
 
     def load_new_video(self, video):
         """

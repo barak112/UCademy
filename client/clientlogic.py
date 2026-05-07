@@ -281,7 +281,7 @@ class ClientLogic:
         else:
             print("video deletion failed")
 
-        wx.CallAfter(pub.sendMessage, "video_del_ans", video_id=video_id)
+        wx.CallAfter(pub.sendMessage, "video_deleted_ans", video_id=video_id)
 
     def handle_comment_del_confirmation(self, data):  # command 12
         """Handles the server's confirmation of a comment deletion and notifies the UI.
@@ -296,7 +296,7 @@ class ClientLogic:
         else:
             print("comment deletion failed")
 
-        wx.CallAfter(pub.sendMessage, "video_del_ans", video_id=video_id)
+        wx.CallAfter(pub.sendMessage, "comment_deleted_ans", video_id=video_id)
 
     def handle_video_details_in_profile(self, data):  # command 13
         """Handles video details received for a profile view and notifies the UI.

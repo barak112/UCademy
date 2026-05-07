@@ -455,22 +455,26 @@ class ServerLogic:
         :param data: A tuple containing the search parameters:
                      - video_name_or_desc: The name or description of the video to search for.
                      - topics: A list of topics to filter the search.
-                     - is_next_send: Indicates if the next set of results should be sent.
+                     - last_id: id of last video sent.
         """
-        video_name_or_desc, topics, is_next_send = data
+        video_name_or_desc, topics, last_id = data
 
         print("topics in videos_search: ", topics)
 
-        is_next_send = int(is_next_send)
-        if is_next_send:
-            videos_ids = self.videos_to_send[client_ip]
+        last_id = int(last_id)
 
-        else:
-            videos_ids = self.db.search_videos(video_name_or_desc, topics)
+        videos_ids = self.db.search_videos(video_name_or_desc, topics)
+
+        start_index = 0
+        if last_id:
+            start_index = videos_ids.index(last_id) + 1
+
+        videos_ids = videos_ids[start_index:]
+        deleted_videos_ids = self.db.get_deleted_videos_ids()
+
+        videos_ids = [i for i in videos_ids if i not in deleted_videos_ids]
 
         videos_to_send = videos_ids[:settings.AMOUNT_OF_VIDEOS_TO_SEND]
-        self.videos_to_send[client_ip] = videos_ids[settings.AMOUNT_OF_VIDEOS_TO_SEND:]
-
         print("videos_to_send in videos_search after last_id", videos_to_send)
 
         if videos_to_send:
@@ -652,7 +656,7 @@ class ServerLogic:
         msg = serverProtocol.build_del_video_confirmation(0)
         if client_ip in self.clients and self.db.is_the_video_creator(video_id, self.clients[client_ip][0]):
             self.db.delete_video(video_id)
-            self.delete_video_file(video_id)
+            self.delete_video_files(video_id)
             msg = serverProtocol.build_del_video_confirmation(video_id)
 
         self.comm.send_msg(client_ip, msg)
@@ -712,22 +716,25 @@ class ServerLogic:
         """
         username, follow_type, last_follow_name = data
 
-        if last_follow_name and last_follow_name in self.users_to_send[client_ip]:
-            starting_index = self.users_to_send[client_ip].index(last_follow_name) + 1
-            users_to_send = self.users_to_send[client_ip]
+        if follow_type:  # follow_type: 0 - followings, 1 - followers
+            users_to_send = self.db.get_followers(username)
         else:
-            follow_type = int(follow_type)
-            starting_index = 0
-            if follow_type:  # follow_type: 0 - followings, 1 - followers
-                users_to_send = self.db.get_followers(username)
-            else:
-                users_to_send = self.db.get_followings(username)
-            self.users_to_send[client_ip] = users_to_send
+            users_to_send = self.db.get_followings(username)
 
+        start_index = 0
+
+        if last_follow_name:
+            start_index = users_to_send.index(last_follow_name) + 1
+
+        users_to_send = users_to_send[start_index:]
+
+        deleted_usernames = self.db.get_deleted_usernames()
+        users_to_send = [i for i in users_to_send if i not in deleted_usernames]
+
+        users_to_send = users_to_send[:settings.AMOUNT_OF_USERS_TO_SEND]
         print("users to send in follow list req", users_to_send)
 
         if users_to_send:
-            users_to_send = users_to_send[starting_index:starting_index + settings.AMOUNT_OF_USERS_TO_SEND]
             self.send_users_details(client_ip, users_to_send)
         else:
             msg_to_send = serverProtocol.build_user_details_follow_list("", 0, 0, 0)
@@ -912,7 +919,7 @@ class ServerLogic:
                         creator, video_name, desc, created_at = self.db.get_specific_video(id)[:4]
                         self.db.delete_video(id)
                         self.db.remove_video_hash(id)
-                        self.delete_video_file(id)
+                        self.delete_video_files(id)
                         self.send_email(creator,
                                         self.EMAIL_VIDEO_REMOVE_MSG.format(video_name, desc, created_at, creator),
                                         self.EMAIL_VIDEO_REMOVE_SUBJECT)
@@ -933,7 +940,7 @@ class ServerLogic:
         else:
             print("not a system manager")
 
-    def delete_video_file(self, video_id):
+    def delete_video_files(self, video_id):
         """
             Deletes a video's file from disk and removes its hash from the database.
         :param video_id: The ID of the video whose file should be deleted.
@@ -942,6 +949,11 @@ class ServerLogic:
         if os.path.isfile(file_path):
             os.remove(file_path)
         self.db.remove_video_hash(video_id)
+
+        file_path = f"media\\videos\\{video_id}.png"
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+
 
     def handle_user_kick(self, client_ip, data):  # command 99
         """
@@ -952,7 +964,7 @@ class ServerLogic:
         """
         username = data[0]
         if self.db.is_system_manager(self.clients[client_ip][0]):
-            self.db.remove_user(username)
+            self.db.delete_user(username)
             email_address = self.db.get_user_email(username)
             self.send_email(email_address, self.EMAIL_USER_KICK_MSG.format(username), self.EMAIL_USER_KICK_SUBJECT)
 

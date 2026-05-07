@@ -125,7 +125,6 @@ class Comments(wx.Panel):
                 self.parent.Layout()
         else:
             self.parent.status_label.SetLabel("")
-        # todo separate status bar
         event.Skip()
 
     def update_pfp_bitmap(self):

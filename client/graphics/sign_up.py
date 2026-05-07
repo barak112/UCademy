@@ -14,8 +14,6 @@ class SignupPanel(wx.Panel):
     RIGHT_COLOR = settings.OFF_WHITE
     SUBTITLE_COLOR = settings.SUBTITLE_COLOR
 
-    # todo change subtitle color
-
     def __init__(self, frame, parent):
         """Sign up screen initialization"""
         super().__init__(parent)

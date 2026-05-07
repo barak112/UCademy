@@ -18,7 +18,6 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
     RATIO = 4 / 3
 
-    # todo in the topic picking screen limit the topics to 3.
     def __init__(self, frame, parent):
         """
         Initializes the UploadVideoPanel, building all UI elements and binding events.
