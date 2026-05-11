@@ -109,7 +109,7 @@ class ClientLogic:
         status = int(data[0])
 
         print("sign in status:", status)
-        if status:
+        if status == settings.LOG_IN_SUCCESSFUL:
             video_port, username, followers_amount, followings_amount, videos_ids, email, topics, followings_names = data[
                 1:]
 

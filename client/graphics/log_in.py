@@ -247,7 +247,7 @@ class LoginPanel(wx.Panel):
         :param video_comm: video comm object
         :param user: user object
         """
-        if status:
+        if status == settings.LOG_IN_SUCCESSFUL:
             self.frame.video_comm = video_comm
             self.frame.user = user
 
@@ -262,9 +262,14 @@ class LoginPanel(wx.Panel):
 
             print("in login resp,", self.frame.user)
 
-        else:
+        elif status == settings.LOG_IN_FAILED:
             self.status_label.SetLabel("username or password incorrect")
             self.Layout()
+
+        elif status == settings.USER_ALREADY_LOGGED_IN:
+            self.status_label.SetLabel("user is already logged in, log in through another user")
+            self.Layout()
+
         self.waiting_for_server_response = False
 
     def on_move_to_sign_up(self, event):

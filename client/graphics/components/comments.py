@@ -51,7 +51,7 @@ class Comments(wx.Panel):
 
         # comments
         self.comments_panel = wx.ScrolledWindow(self)
-        self.comments_panel.SetScrollRate(0, 12)
+        self.comments_panel.SetScrollRate(0, 15)
 
         self.comments_sizer = wx.BoxSizer(wx.VERTICAL)
         self.comments_panel.SetSizer(self.comments_sizer)
@@ -161,13 +161,21 @@ class Comments(wx.Panel):
         Activates the add-comment button when the comment input field has content.
         :param field_name: The name of the field that became filled.
         """
-        self.add_comment_button.set_active(True)
+
+        if len(self.add_comment_field.get_value().strip()) > settings.MAX_COMMENT_LENGTH:
+            self.add_comment_button.set_active(False)
+            self.parent.status_label.SetLabel(f"comment is too long, change comment to be less than {settings.MAX_COMMENT_LENGTH} characters")
+            self.parent.Layout()
+        else:
+            self.add_comment_button.set_active(True)
+            self.parent.status_label.SetLabel("")
 
     def field_is_unfilled(self, field_name):
         """
         Deactivates the add-comment button when the comment input field is empty.
         :param field_name: The name of the field that was cleared.
         """
+
         self.add_comment_button.set_active(False)
 
     def on_add_comment(self, event):
@@ -177,10 +185,15 @@ class Comments(wx.Panel):
         """
         comment = self.add_comment_field.get_value().strip()
         if comment and self.video:
-            msg = clientProtocol.build_comment(self.video.video_id, comment)
-            self.frame.comm.send_msg(msg)
-            self.frame.comment_requests_by_feeds.append(self.parent)
-            self.add_comment_field.set_value("")
+            if len(comment) < settings.MAX_COMMENT_LENGTH:
+                msg = clientProtocol.build_comment(self.video.video_id, comment)
+                self.frame.comm.send_msg(msg)
+                self.frame.comment_requests_by_feeds.append(self.parent)
+                self.add_comment_field.set_value("")
+            else:
+                self.parent.status_label.SetLabel(f"comment is too long, change comment to be less than {settings.MAX_COMMENT_LENGTH} characters")
+                self.parent.Layout()
+
         if event:
             event.Skip()
 

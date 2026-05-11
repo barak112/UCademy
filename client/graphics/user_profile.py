@@ -196,12 +196,21 @@ class UserProfilePanel(wx.ScrolledWindow):
         Handles an incoming video detail response and adds the video thumbnail to the grid if it is new.
         :param video: The video object received from the server.
         """
-        print("got new video in profile:", video)
+        print("got new video in profile:", video.video_id)
         self.add_video_details(video)
 
     def add_video_details(self, video):
+        print(video.video_id)
         if not video.video_id:  # video_id = 0 indicates no more users videos
-            self.frame.change_text_status("this user does not have more videos")
+            self.waiting_for_videos = False
+            if not self.videos_ids:
+                if self.current_username == self.frame.user.username:
+                    self.status_label.SetLabel("You do not have any content yet, upload one to get started!")
+                else:
+                    self.status_label.SetLabel("This user does not have any content")
+            else:
+                self.status_label.SetLabel("this user does not have more videos")
+            self.Layout()
 
         elif video.video_id == settings.END_OF_BATCH_SEND_ID: # ready for a new videos batch send
             self.waiting_for_videos = False
@@ -270,12 +279,32 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.current_username = username
 
         # if user already has its videos in the user profile and if its video_ids match the videos_ids stored in self.video_details
-        if username in self.videos_details.keys() and self.frame.users[username].videos_ids == [video.video_id for video in self.videos_details[username]]:
-            user = self.frame.users[username]
-            self.set_user_details(user)
+        print("first:", username in self.videos_details.keys(),)
+        if username in self.videos_details.keys():
+            print("second:",
+                  self.frame.users[username].videos_ids == [video.video_id for video
+                                                            in self.videos_details[
+                                                                username]])
+            print(self.frame.users[username].videos_ids, "   ", [video.video_id for video
+                                                                 in self.videos_details[
+                                                                     username]])
+        if username in self.videos_details.keys() and self.frame.users[username].videos_ids == [video.video_id for video
+                                                                                                in self.videos_details[
+                                                                                                    username]]:
+                user = self.frame.users[username]
+                self.set_user_details(user)
 
-            for video in self.videos_details[username]:
-                self.add_video_details(video)
+                print("user:",user.username, "videos ids:", user.videos_ids)
+                if not user.videos_ids:
+                    if self.frame.user.username == user.username:
+                        self.status_label.SetLabel("You do not have any content yet, upload one to get started!")
+                    else:
+                        self.status_label.SetLabel("This user does not have any content")
+                    self.Layout()
+
+                for video in self.videos_details[username]:
+                    self.add_video_details(video)
+
 
         else:
             self.req_user_info_and_videos(username)

@@ -1139,13 +1139,17 @@ if __name__ == "__main__":
     # print(db.search_videos("ella", []))
     # print(db.get_videos_by_creator("Barak"))
 
-    print(db.get_specific_video(1))
 
-    url = "https://docs.google.com/forms/d/e/1FAIpQLSeeLKW194zHPY5cGo2Z07guNfkpsVPajbKYhgeQF7o4aot7ww/viewform?usp=dialog"
-    # url = ""
-    # db.cur.execute("UPDATE videos SET test_link = ?", (url,))
-    db.cur.execute("UPDATE videos SET test_link = ? WHERE video_id = 3", (url,))
-    db.conn.commit()
+    # db.cur.execute("DELETE FROM users WHERE email = ?", ("bbmalt9@gmail.com", ))
+    # db.conn.commit()
+
+    # print(db.get_specific_video(1))
+
+    # url = "https://docs.google.com/forms/d/e/1FAIpQLSeeLKW194zHPY5cGo2Z07guNfkpsVPajbKYhgeQF7o4aot7ww/viewform?usp=dialog"
+    # # url = ""
+    # # db.cur.execute("UPDATE videos SET test_link = ?", (url,))
+    # db.cur.execute("UPDATE videos SET test_link = ? WHERE video_id = 3", (url,))
+    # db.conn.commit()
 
     # # --- users ---
     # db.cur.execute("DROP TABLE IF EXISTS users")

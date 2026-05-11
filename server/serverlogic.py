@@ -290,35 +290,36 @@ class ServerLogic:
         :param data: A list containing the username or email and the password.
         """
         username_or_email, password = data
-        msg = serverProtocol.build_sign_in_status(0)
-        status = 0
+        status = settings.LOG_IN_FAILED
+        msg = serverProtocol.build_sign_in_status(status)
         username = self.db.get_username(username_or_email)
         print(f"trying to sign in user: {username} ")
 
-        #todo dont let users connect through multiple computers.
-        # check if there is a connected client with the same name and if so, return a message to the client
-
         if self.db.is_correct_username_and_password_hash(username, self.hash_password(password)):
-            status = 1
+            if username in [i[0] for i in self.clients.values()]: # if user already logged in
+                status = settings.USER_ALREADY_LOGGED_IN
+                msg = serverProtocol.build_sign_in_status(status)
+            else:
+                status = settings.LOG_IN_SUCCESSFUL
 
-            followers_amount = self.db.get_followers_amount(username)
-            followings_amount = self.db.get_following_amount(username)
-            videos_ids = self.db.get_videos_by_creator(username)
+                followers_amount = self.db.get_followers_amount(username)
+                followings_amount = self.db.get_following_amount(username)
+                videos_ids = self.db.get_videos_by_creator(username)
 
-            topics = self.db.get_user_topics(username)
-            email = self.db.get_user_email(username)
-            followings_names = self.db.get_followings(username)
-            msg = serverProtocol.build_sign_in_status(1, self.current_video_port, username, followers_amount,
-                                                      followings_amount, videos_ids, email, topics, followings_names)
-            self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ,
-                                                                                   client_ip), []]
-            self.pfps_sent[client_ip] = []
-            self.videos_sent[client_ip] = []
-            self.thumbnails_sent[client_ip] = []
-            self.current_video_port += 1
+                topics = self.db.get_user_topics(username)
+                email = self.db.get_user_email(username)
+                followings_names = self.db.get_followings(username)
+                msg = serverProtocol.build_sign_in_status(status, self.current_video_port, username, followers_amount,
+                                                          followings_amount, videos_ids, email, topics, followings_names)
+                self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ,
+                                                                                       client_ip), []]
+                self.pfps_sent[client_ip] = []
+                self.videos_sent[client_ip] = []
+                self.thumbnails_sent[client_ip] = []
+                self.current_video_port += 1
 
         self.comm.send_msg(client_ip, msg)
-        if status:
+        if status == settings.LOG_IN_SUCCESSFUL:
             reports = self.db.get_not_notified_reports(username)
             for i, report in enumerate(reports):
                 reports[i] = (*report, client_ip)

@@ -378,8 +378,9 @@ class FeedPanel(wx.Panel):
             Navigates to the current video's creator profile page.
         :param event: The mouse click event that triggered this handler.
         """
-        self.frame.user_profile_panel.set_new_user(self.frame.videos_details[self.current_video_id].creator)
-        self.frame.switch_panel(self.frame.user_profile_panel, self)
+        if self.current_video_id in self.frame.videos_details:
+            self.frame.user_profile_panel.set_new_user(self.frame.videos_details[self.current_video_id].creator)
+            self.frame.switch_panel(self.frame.user_profile_panel, self)
         event.Skip()
 
     def on_add_comment_ans(self, video_id, comment):
@@ -395,7 +396,7 @@ class FeedPanel(wx.Panel):
             Navigates back to the current user's profile page.
         :param event: The mouse click event that triggered this handler.
         """
-        self.frame.user_profile_panel.set_new_user(self.frame.user.username)
+        # self.frame.user_profile_panel.set_new_user(self.frame.user.username)
         self.frame.switch_panel(self.frame.user_profile_panel, self)
         event.Skip()
 

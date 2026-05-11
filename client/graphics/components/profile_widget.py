@@ -34,7 +34,7 @@ class ProfileWidget(wx.Panel):
         # profile info
         profile_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        pfp = wx.Bitmap(wx.Image("assets\\null_pfp_2.png").Scale(128, 128, wx.IMAGE_QUALITY_HIGH))
+        pfp = wx.Bitmap(wx.Image("assets\\null_pfp_high_quality.png").Scale(128, 128, wx.IMAGE_QUALITY_HIGH))
         self.pfp = wx.StaticBitmap(self, bitmap=pfp)
 
         username_and_info_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -100,8 +100,13 @@ class ProfileWidget(wx.Panel):
             pfp_path = f"media\\{self.current_user.username}.png"
             if os.path.isfile(pfp_path):
                 pfp = wx.Bitmap(wx.Image(pfp_path).Scale(128, 128))
-                self.pfp.SetBitmap(pfp)
-        print("updated pfp")
+            else:
+                pfp = wx.Bitmap("assets\\null_pfp_high_quality.png")
+
+            self.pfp.SetBitmap(pfp)
+            self.pfp.Refresh()
+
+        print("updated pfp in profile widget")
 
     def set_user(self, user):
         """
