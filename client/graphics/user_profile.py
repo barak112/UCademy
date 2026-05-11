@@ -106,6 +106,7 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         self.Hide()
         # todo be able to change topics
+        # todo make sure that if i have only one video and i delete it, it writes that i do not have any videos. could also move it to my profile_panel
 
     def on_scroll(self, event):
         """

@@ -162,7 +162,7 @@ class Comments(wx.Panel):
         :param field_name: The name of the field that became filled.
         """
 
-        if len(self.add_comment_field.get_value().strip()) > settings.MAX_COMMENT_LENGTH:
+        if len(self.add_comment_field.get_value().strip()) >= settings.MAX_COMMENT_LENGTH:
             self.add_comment_button.set_active(False)
             self.parent.status_label.SetLabel(f"comment is too long, change comment to be less than {settings.MAX_COMMENT_LENGTH} characters")
             self.parent.Layout()
