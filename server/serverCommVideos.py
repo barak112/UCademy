@@ -42,8 +42,10 @@ class ServerCommVideos (serverComm.ServerComm):
 
         while True:
             client_socket, addr = self.server_socket.accept()
-            if addr[0] == self.client_ip:
-                break
+            #todo return this
+            # if addr[0] == self.client_ip:
+            #     break
+            break
             client_socket.close()
 
         self.client_socket = client_socket

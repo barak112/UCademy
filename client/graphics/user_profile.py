@@ -198,6 +198,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         :param video: The video object received from the server.
         """
         print("got new video in profile:", video.video_id)
+        self.status_label.SetLabel("Loading Content")
         self.add_video_details(video)
 
     def add_video_details(self, video):
@@ -222,7 +223,7 @@ class UserProfilePanel(wx.ScrolledWindow):
 
             self.videos_ids.append(video.video_id)
 
-            if self.videos_grid.GetChildren() == self.grid_columns * self.grid_rows:  # if grid is full
+            if len(self.videos_grid.GetChildren()) == self.grid_columns * self.grid_rows:  # if grid is full
                 self.grid_rows += 1
                 self.videos_grid.SetRows(self.grid_rows)
 
@@ -243,8 +244,6 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         self.set_user_details(user)
 
-        self.set_user_details(user)
-
     def req_user_info_and_videos(self, username):
         """
         Sends requests to the server for the user's profile info and their uploaded videos.
@@ -261,14 +260,13 @@ class UserProfilePanel(wx.ScrolledWindow):
         :param user:
         :return:
         """
-        self.status_label.SetLabel("Loading Content")
         self.current_username = user.username
         self.profile_info.set_user(user)
         self.videos_ids.clear()
         # the amount of videos to recv is either the amount of videos the user has or the limit to be sent
-        self.grid_rows = math.ceil(
-            min(user.get_video_amount(), settings.AMOUNT_OF_VIDEOS_TO_SEND) / self.grid_columns)
-        self.videos_grid.SetRows(self.grid_rows)
+        # self.grid_rows = math.ceil(
+        #     min(user.get_video_amount(), settings.AMOUNT_OF_VIDEOS_TO_SEND) / self.grid_columns)
+        # self.videos_grid.SetRows(self.grid_rows)
 
     def set_new_user(self, username):
         """
@@ -277,21 +275,13 @@ class UserProfilePanel(wx.ScrolledWindow):
         """
 
         self.videos_grid.Clear(True)
+        self.videos_grid.SetRows(1)
+        self.grid_rows = 1
+
         self.current_username = username
 
-        # if user already has its videos in the user profile and if its video_ids match the videos_ids stored in self.video_details
-        print("first:", username in self.videos_details.keys(),)
+        # if user already has some of his videos in the user profile
         if username in self.videos_details.keys():
-            print("second:",
-                  self.frame.users[username].videos_ids == [video.video_id for video
-                                                            in self.videos_details[
-                                                                username]])
-            print(self.frame.users[username].videos_ids, "   ", [video.video_id for video
-                                                                 in self.videos_details[
-                                                                     username]])
-        if username in self.videos_details.keys() and self.frame.users[username].videos_ids == [video.video_id for video
-                                                                                                in self.videos_details[
-                                                                                                    username]]:
                 user = self.frame.users[username]
                 self.set_user_details(user)
 
