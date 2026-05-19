@@ -61,11 +61,10 @@ class UserProfilePanel(wx.ScrolledWindow):
         videos_label_and_add_video_btn_sizer.Add(videos_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 10)
         videos_label_and_add_video_btn_sizer.Add(self.add_video_btn, 0, wx.ALIGN_CENTER_VERTICAL)
 
-        self.grid_columns = 4
-        self.grid_rows = 1
+        grid_columns = 4
+        grid_rows = 1
 
-        self.videos_grid = wx.GridSizer(self.grid_rows, self.grid_columns, 20, 20)
-        # self.videos_grid = wx.GridSizer(self.grid_rows, self.grid_columns, 20, 20)
+        self.videos_grid = wx.GridSizer(grid_rows, grid_columns, 20, 20)
 
         videos_sizer = wx.BoxSizer(wx.VERTICAL)
         videos_sizer.Add(videos_label_and_add_video_btn_sizer, 0, wx.BOTTOM, 10)
@@ -223,9 +222,8 @@ class UserProfilePanel(wx.ScrolledWindow):
 
             self.videos_ids.append(video.video_id)
 
-            if len(self.videos_grid.GetChildren()) == self.grid_columns * self.grid_rows:  # if grid is full
-                self.grid_rows += 1
-                self.videos_grid.SetRows(self.grid_rows)
+            if len(self.videos_grid.GetChildren()) == self.videos_grid.GetCols() * self.videos_grid.GetRows():  # if grid is full
+                self.videos_grid.SetRows(self.videos_grid.GetRows() + 1)
 
             thumbnail = video_widget.VideoWidget(self, video, self.COLUMN_WIDTH, self.RATIO)
             self.videos_grid.Add(thumbnail, 0, wx.EXPAND)
@@ -263,10 +261,6 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.current_username = user.username
         self.profile_info.set_user(user)
         self.videos_ids.clear()
-        # the amount of videos to recv is either the amount of videos the user has or the limit to be sent
-        # self.grid_rows = math.ceil(
-        #     min(user.get_video_amount(), settings.AMOUNT_OF_VIDEOS_TO_SEND) / self.grid_columns)
-        # self.videos_grid.SetRows(self.grid_rows)
 
     def set_new_user(self, username):
         """
@@ -276,7 +270,6 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         self.videos_grid.Clear(True)
         self.videos_grid.SetRows(1)
-        self.grid_rows = 1
 
         self.current_username = username
 
