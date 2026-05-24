@@ -157,7 +157,24 @@ class MainFrame(wx.Frame):
         """
         correct_feed_panel = self.comment_requests_by_feeds.pop(0)
 
+        index = 0
+        if not comment.commenter == self.user.username: # add comment first
+            index = self.get_last_comment_index_by_user(self.videos_details[video_id], comment.commenter) + 1
+
+        self.videos_details[video_id].add_comment_at_index(comment, index)
         correct_feed_panel.on_add_comment_ans(video_id, comment)
+
+    @staticmethod
+    def get_last_comment_index_by_user(video, username):
+        comments = video.get_comments()
+        commenter_names = [c.commenter for c in comments]
+        if username in commenter_names:
+            index = commenter_names.index(username)
+        else:
+            index = 0
+        print("index:", index, "commenter_names:", commenter_names)
+        return index
+
 
     def switch_panel(self, new_panel, old_panel):
         """

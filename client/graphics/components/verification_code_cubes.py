@@ -1,0 +1,153 @@
+import string
+
+import wx
+
+import settings
+
+
+class VerificationCodeCubes(wx.Panel):
+    BG_COLOR = wx.WHITE
+    # BG_COLOR = settings.OFF_WHITE
+    BORDER_COLOR = settings.BORDER_COLOR
+    FOCUSED_BORDER_COLOR = settings.THEME_COLOR
+    FILLED_BOX_BG = settings.BRIGHT_PINK
+    BOX_SIZE = (62, 75)
+    SPACING = 10
+    BOXES_AMOUNT = settings.VERIFICATION_CODE_LENGTH
+
+    def __init__(self, code_ver_panel, parent):
+        """
+        Initializes the verification code input widget with the correct number of digit boxes and key event bindings.
+        :param code_ver_panel: The email verification panel that handles code completion callbacks.
+        :param parent: The parent wx window this widget belongs to.
+        """
+        super().__init__(parent)
+
+        self.code_ver_panel = code_ver_panel
+
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)  # gets control of screen paint from OS
+        self.SetBackgroundColour(self.BG_COLOR)  # fallback, drawing is done in on_paint
+        self.SetWindowStyleFlag(wx.WANTS_CHARS)
+
+        self.code = ""
+
+        self.Bind(wx.EVT_SIZE, self.on_resize)
+        self.Bind(wx.EVT_PAINT, self.on_paint)
+
+        x_size = self.BOX_SIZE[0] * self.BOXES_AMOUNT + self.SPACING * (self.BOXES_AMOUNT - 1)
+        self.SetMinSize((x_size + 2, self.BOX_SIZE[1] + 2))
+
+        self.start_end_spacing = self.GetClientSize()[0] - x_size
+        self.start_end_spacing /= 2
+
+        self.Bind(wx.EVT_CHAR, self.on_char_down)
+        self.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.text = ""
+
+    def on_key_down(self, event):
+        """
+        Handles key down events, specifically intercepting Ctrl+V and Shift+Insert to support pasting a digit code from the clipboard.
+        :param event: The wx key down event.
+        """
+        key = event.GetKeyCode()
+        ctrl = event.ControlDown()
+        shift = event.ShiftDown()
+
+        # Detect Ctrl+V or Shift+Insert
+        if (ctrl and key == ord('V')) or (shift and key == wx.WXK_INSERT):
+            pasted_text = ""
+            if wx.TheClipboard.Open():
+                if wx.TheClipboard.IsSupported(wx.DataFormat(wx.DF_TEXT)):
+                    data = wx.TextDataObject()
+                    wx.TheClipboard.GetData(data)
+                    pasted_text = data.GetText()
+                wx.TheClipboard.Close()
+
+            if pasted_text.isdigit():
+                self.code = pasted_text
+                if len(self.code) == self.BOXES_AMOUNT:
+                    self.code_ver_panel.verification_code_full()
+                else:
+                    self.code_ver_panel.verification_code_not_full()
+
+            self.Refresh()
+        else:
+            event.Skip()
+
+    def on_char_down(self, event):
+        """
+        Handles character input, appending digits to the code and removing the last digit on backspace.
+        :param event: The wx char event.
+        """
+        key = event.GetKeyCode()
+
+        if key == wx.WXK_BACK:
+            self.code = self.code[:-1]
+
+        elif key == wx.WXK_RETURN and len(self.code) == self.BOXES_AMOUNT:
+            print("enter")
+
+        elif key < 256 and len(self.code) < self.BOXES_AMOUNT:
+            key = chr(key)
+            if key in string.digits:
+                self.code += key
+
+        if len(self.code) == self.BOXES_AMOUNT:
+            self.code_ver_panel.verification_code_full()
+        else:
+            self.code_ver_panel.verification_code_not_full()
+
+        self.Refresh()
+        event.Skip()
+
+    def on_resize(self, event):
+        """
+        Recalculates the horizontal spacing and triggers a repaint when the widget is resized.
+        :param event: The wx size event.
+        """
+        self.Refresh()
+        event.Skip()
+        self.start_end_spacing = self.GetClientSize()[0] - self.BOXES_AMOUNT * self.BOX_SIZE[0]
+        self.start_end_spacing -= self.SPACING * (self.BOXES_AMOUNT - 1)
+        self.start_end_spacing /= 2
+
+    def on_paint(self, event):
+        """
+        Draws each digit box with the appropriate background, border, and digit character based on the current code input.
+        :param event: The wx paint event.
+        """
+        dc = wx.AutoBufferedPaintDC(self)
+        dc.Clear()
+
+        gc = wx.GraphicsContext.Create(dc)
+        if gc:
+            x, y = self.start_end_spacing, 1
+            for box_index in range(self.BOXES_AMOUNT):
+                background_color = self.FILLED_BOX_BG if len(self.code) > box_index else self.BG_COLOR
+
+                gc.SetBrush(wx.Brush(background_color))
+                gc.SetPen(wx.NullGraphicsPen)
+                gc.DrawRoundedRectangle(x, y, self.BOX_SIZE[0], self.BOX_SIZE[1], settings.ROUND_BORDER_RADIUS)
+
+                border_color = self.FOCUSED_BORDER_COLOR if len(self.code) == box_index else self.BORDER_COLOR
+
+                gc.SetBrush(wx.TRANSPARENT_BRUSH)
+                gc.SetPen(wx.Pen(border_color, 2))
+                gc.DrawRoundedRectangle(x, y, self.BOX_SIZE[0], self.BOX_SIZE[1], settings.ROUND_BORDER_RADIUS)
+
+                # draw digit
+                if len(self.code) > box_index:
+                    digit = self.code[box_index]
+                    gc.SetFont(wx.Font(settings.VERIFICATION_CODE_FONT_SIZE, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL,
+                                       wx.FONTWEIGHT_BOLD, faceName="Roboto"), wx.BLACK)
+                    tw, th = gc.GetTextExtent(digit)
+                    gc.DrawText(digit, x + (self.BOX_SIZE[0] - tw) / 2, y + 1 + (self.BOX_SIZE[1] - th) / 2)
+
+                x += self.BOX_SIZE[0] + self.SPACING
+
+    def get_value(self):
+        """
+        Returns the current digit code entered by the user.
+        :return: The code string composed of the digits typed so far.
+        """
+        return self.code
