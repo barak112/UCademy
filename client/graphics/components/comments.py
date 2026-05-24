@@ -188,7 +188,6 @@ class Comments(wx.Panel):
             if len(comment) < settings.MAX_COMMENT_LENGTH:
                 msg = clientProtocol.build_comment(self.video.video_id, comment)
                 self.frame.comm.send_msg(msg)
-                self.frame.comment_requests_by_feeds.append(self.parent)
                 self.add_comment_field.set_value("")
             else:
                 self.parent.status_label.SetLabel(f"comment is too long, change comment to be less than {settings.MAX_COMMENT_LENGTH} characters")
@@ -197,19 +196,18 @@ class Comments(wx.Panel):
         if event:
             event.Skip()
 
-    def on_add_comment_ans(self, video_id, comment):
+    def on_a_user_added_comment(self, video_id, comment, index):
         """
         Handles the server's confirmation of an added comment and inserts it at the top of the comments list.
         :param video_id: The ID of the video the comment was added to.
         :param comment: The comment object returned by the server.
         """
-        # self.frame.videos_details[video_id].add_comment_at_start(comment)
 
-        if self.video.video_id == video_id:
+        if self.video and self.video.video_id == video_id:
             # add comment visually
             comment_panel = comment_widget.CommentWidget(self.comments_panel, comment)
 
-            self.comments_sizer.Insert(0, comment_panel, 0, wx.EXPAND)
+            self.comments_sizer.Insert(index, comment_panel, 0, wx.EXPAND)
             self.update_comments_label()
             self.parent.update_comments_label(video_id)
             self.Layout()
@@ -241,6 +239,8 @@ class Comments(wx.Panel):
         """
         self.video = video
         self.comments_sizer.Clear(True)  # clears prev comments
+        self.comments_ids = []
+
         print("video_id in set_video:", video.video_id, "comments:", video.comments)
 
         self.add_comments(video.get_comments())  # if comments already exist with the video (the video already existed)

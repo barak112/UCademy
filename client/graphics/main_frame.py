@@ -31,14 +31,13 @@ class MainFrame(wx.Frame):
         self.video_comm = None
         self.user = None
 
-        # video_details only contains videos with a video file
+        # video_details only contains videos with a video file, only relevant for feed panels
         self.videos_details = {}  # [video_id] = video_object
 
         self.users = {}  # [username] = user_object
 
         self.video_requests_by_feeds = []  # [feed_panel]
         self.comments_requests_by_feeds = []  # [feed_panel]
-        self.comment_requests_by_feeds = []  # [feed_panel]
         self.like_requests_by_feeds = []  # [feed_panel]
         self.delete_video_requests_by_feeds = [] # [feed_panel]
 
@@ -89,11 +88,11 @@ class MainFrame(wx.Frame):
         # self.user_profile_panel.Show()
 
         # self.login_panel.Show()
-        # msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
-        # self.comm.send_msg(msg)
-
-        msg = clientProtocol.build_sign_in("bbmalt9@gmail.com", "password")
+        msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
         self.comm.send_msg(msg)
+
+        # msg = clientProtocol.build_sign_in("bbmalt9@gmail.com", "password")
+        # self.comm.send_msg(msg)
 
         # self.upload_video_panel.Show()
         # self.feed_panel.Hide()
@@ -114,7 +113,7 @@ class MainFrame(wx.Frame):
 
         pub.subscribe(self.on_like_video_ans, "video_like_ans")
 
-        pub.subscribe(self.on_add_comment_ans, "added_comment")
+        pub.subscribe(self.on_a_user_added_comment, "added_comment")
 
         pub.subscribe(self.comm_disconnected, "comm_disconnected")
 
@@ -149,29 +148,32 @@ class MainFrame(wx.Frame):
         correct_feed_panel = self.like_requests_by_feeds.pop(0)
         correct_feed_panel.on_like_video_ans(status, video_id)
 
-    def on_add_comment_ans(self, video_id, comment):
+    def on_a_user_added_comment(self, video_id, comment):
         """
         Routes an add-comment response from the server to the feed panel that sent the request.
         :param video_id: The ID of the video the comment was added to.
         :param comment: The comment object returned by the server.
         """
-        correct_feed_panel = self.comment_requests_by_feeds.pop(0)
-
         index = 0
-        if not comment.commenter == self.user.username: # add comment first
-            index = self.get_last_comment_index_by_user(self.videos_details[video_id], comment.commenter) + 1
+        if not comment.commenter == self.user.username: # if the comment is not from the current user, add it after the last comment by the user
+            index = self.get_last_comment_index_by_user(self.videos_details[video_id], self.user.username) + 1
 
-        self.videos_details[video_id].add_comment_at_index(comment, index)
-        correct_feed_panel.on_add_comment_ans(video_id, comment)
+        if video_id in self.videos_details: # if the client has the video's file (if it has appeared in the feed)
+            self.videos_details[video_id].add_comment_at_index(comment, index)
+            self.user_profile_feed_panel.on_a_user_added_comment(video_id, comment, index)
+            self.feed_panel.on_a_user_added_comment(video_id, comment, index)
+
+        # update the video's comments amount in the user profile panel
+        self.user_profile_panel.on_a_user_added_comment(video_id)
 
     @staticmethod
     def get_last_comment_index_by_user(video, username):
         comments = video.get_comments()
         commenter_names = [c.commenter for c in comments]
         if username in commenter_names:
-            index = commenter_names.index(username)
+            index = len(commenter_names) - 1 - commenter_names[::-1].index(username)
         else:
-            index = 0
+            index = -1
         print("index:", index, "commenter_names:", commenter_names)
         return index
 

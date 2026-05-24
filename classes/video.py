@@ -29,13 +29,18 @@ class Video:
         self.liked = liked
         self.test_link = test_link
 
-    def add_comment_at_start(self, comment : comment.Comment):
-        """adds a comment to this video's comments list"""
-        self.comments = {
-            comment.comment_id: comment,
-            **self.comments
-        }
-        self.amount_of_comments+=1
+    def add_comment_at_index(self, comment: comment.Comment, index: int):
+        """Adds a comment at a specific index"""
+
+        items = list(self.comments.items())
+
+        items.insert(index, (comment.comment_id, comment))
+
+        self.comments = dict(items)
+
+        self.amount_of_comments += 1
+
+        print(self.comments.items())
 
     def add_comments(self, comments : list[comment.Comment]):
         """adds multiple comments to this video's comments list"""

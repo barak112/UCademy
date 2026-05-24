@@ -38,7 +38,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.current_username = None  # current user username
         self.waiting_for_videos = False
         self.videos_ids = []
-        self.videos_details = {} # [username] = [videos objects]
+        self.videos_details = {} # [creator_username] = [videos objects]
 
         # padded vertical sizer
         padding_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -120,8 +120,8 @@ class UserProfilePanel(wx.ScrolledWindow):
             if scrolling_down:
                 current = self.GetScrollPos(wx.VERTICAL)
                 max_pos = self.GetScrollRange(wx.VERTICAL) - self.GetScrollThumb(wx.VERTICAL)
-                if len(self.frame.users[self.current_username].videos_ids) > len(self.videos_ids) and self.videos_ids:
-                    if not self.waiting_for_videos:  # if there are more comments to req from the server
+                if len(self.frame.users[self.current_username].videos_ids) > len(self.videos_ids) and self.videos_ids:  # if there are more comments to req from the server
+                    if not self.waiting_for_videos:
                         if current >= max_pos - 50:
                             msg = clientProtocol.build_req_creator_videos(self.current_username, self.videos_ids[-1])
                             self.frame.comm.send_msg(msg)
@@ -309,6 +309,31 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.Refresh()
         event.Skip()
 
+    def on_a_user_added_comment(self, video_id):
+        print("a user added a comment to a video in profile:")
+
+        videos = []
+        for videos_list in self.videos_details.values():
+            videos.extend(videos_list)
+
+        for video in videos:
+            if video.video_id == video_id:
+                video.amount_of_comments += 1
+                break
+
+        #update the video comments amount label
+        if video_id in self.videos_ids:
+            self.Refresh() # refresh if the video is currently on screen
+
+            # thumbnails = self.videos_grid.GetChildren()
+
+            # for thumbnail in thumbnails:
+            #     thumbnail = thumbnail.GetWindow()
+            #
+            #     if thumbnail.video.video_id == video_id: # refresh the thumbnail whose comments amount has changed
+            #
+            #         print("refreshed thumbnail:", thumbnail.video.video_id)
+            #         break
 
 if __name__ == "__main__":
     app = wx.App()

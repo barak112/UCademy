@@ -383,13 +383,13 @@ class FeedPanel(wx.Panel):
             self.frame.switch_panel(self.frame.user_profile_panel, self)
         event.Skip()
 
-    def on_add_comment_ans(self, video_id, comment):
+    def on_a_user_added_comment(self, video_id, comment, index):
         """
             Forwards a new comment confirmation to the comments panel.
         :param video_id: The ID of the video the comment was posted on.
         :param comment: The comment data to display.
         """
-        self.comments_panel.on_add_comment_ans(video_id, comment)
+        self.comments_panel.on_a_user_added_comment(video_id, comment, index)
 
     def on_back_arrow(self, event):
         """
