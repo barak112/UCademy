@@ -208,6 +208,9 @@ class Comments(wx.Panel):
             comment_panel = comment_widget.CommentWidget(self.comments_panel, comment)
 
             self.comments_sizer.Insert(index, comment_panel, 0, wx.EXPAND)
+            if comment.commenter == self.frame.user.username:
+                self.comments_panel.Scroll(0,0)
+
             self.update_comments_label()
             self.parent.update_comments_label(video_id)
             self.Layout()

@@ -529,7 +529,7 @@ class ServerLogic:
             print("id, created:", comment_id, created_at)
             msg = serverProtocol.build_comment_status(comment_id, video_id, commenter_name, comment, created_at)
 
-            # every client that has received this video in user_panel
+            # every client that has received this video in user_panel or in feed
             video_id = int(video_id)
             clients_to_send = [ip for ip in self.clients.keys() if video_id in (self.videos_sent[ip] + self.thumbnails_sent[ip])]
             for client_ip in clients_to_send:
