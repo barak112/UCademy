@@ -26,6 +26,7 @@ class CommentWidget(wx.Panel):
         separator_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.comment = comment
+        self.parent = parent
 
         pfp_path = f"media\\{comment.commenter}.png"
         if not os.path.isfile(pfp_path):
@@ -33,6 +34,7 @@ class CommentWidget(wx.Panel):
 
         pfp = wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE))
         pfp = wx.StaticBitmap(self, bitmap=pfp)
+        pfp.SetCursor(wx.Cursor(wx.CURSOR_HAND))
 
         # right sizer
         right_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -81,6 +83,13 @@ class CommentWidget(wx.Panel):
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_check_hover, self.timer)
         self.timer.Start(100)
+
+        pfp.Bind(wx.EVT_LEFT_UP, self.move_to_commenter_profile)
+
+    def move_to_commenter_profile(self, event):
+        self.parent.GetParent().frame.user_profile_panel.set_new_user(self.comment.commenter)
+        self.parent.GetParent().frame.switch_panel(self.parent.GetParent().frame.user_profile_panel, self.parent.GetParent().parent)
+        event.Skip()
 
     def on_check_hover(self, event):
         """

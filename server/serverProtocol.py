@@ -244,13 +244,14 @@ def build_video_details(video_id, creator_name, video_name, video_desc, created_
     )
 
 
-def build_video_upload_confirmation(video_id):
+def build_video_upload_confirmation(video_id, username):
     """
         Builds a response command confirming the result of a video upload.
     :param video_id: The ID of the newly uploaded video, or 0 if the video already exists.
+    :param username: video creator
     :return: Formatted video-upload confirmation command string.
     """
-    return build_command(16, [video_id])
+    return build_command(16, [video_id, username])
 
 
 def build_follow_user_status(status, followed):

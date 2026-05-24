@@ -45,7 +45,7 @@ class MainFrame(wx.Frame):
                                     "waiting for comments from server", "Loading Video From Server", "Loading Content",
                                     "Uploading", "Resending code", "sending credentials to the server",
                                     "Loading Content From Server", "waiting for videos from server",
-                                    "Disconnected from server, Closing application in 5 seconds"]
+                                    "Disconnected from server, Closing application in 5 seconds", "Creator uploaded a new video, loading it now from server"]
 
         self.dots_animation_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.status_label_dots_animation, self.dots_animation_timer)
@@ -119,6 +119,7 @@ class MainFrame(wx.Frame):
 
         pub.subscribe(self.comm_disconnected, "comm_disconnected")
 
+        pub.subscribe(self.on_a_user_upload_video, "video_upload_ans")
 
     def video_deleted_ans(self, video_id):
         correct_feed_panel = self.delete_video_requests_by_feeds.pop(0)
@@ -184,6 +185,16 @@ class MainFrame(wx.Frame):
             index = -1
         print("index:", index, "commenter_names:", commenter_names)
         return index
+
+    def on_a_user_upload_video(self, video_id, username):
+        if username in self.users:
+            self.users[username].videos_ids.insert(0, video_id)
+
+        if username == self.user.username:
+            self.upload_video_panel.on_video_upload_ans(video_id)
+            self.user.videos_ids.insert(0, video_id)
+
+        self.user_profile_panel.on_a_user_upload_video(video_id, username)
 
 
     def switch_panel(self, new_panel, old_panel):

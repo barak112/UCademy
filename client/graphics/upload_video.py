@@ -211,8 +211,6 @@ class UploadVideoPanel(wx.ScrolledWindow):
         self.upload_video_btn.Bind(wx.EVT_LEFT_DOWN, self.on_upload_video)
         back_arrow.Bind(wx.EVT_LEFT_DOWN, self.on_back_arrow)
 
-        pub.subscribe(self.on_video_upload_ans, "video_upload_ans")
-
         self.dots_animation_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.uploading_dots_animation, self.dots_animation_timer)
 

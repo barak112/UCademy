@@ -323,10 +323,10 @@ class DataBase:
 
     def get_videos_by_creator(self, username, matter_deleted=True):
         """
-        Retrieves video IDs created by a specific user ordered by views.
+        Retrieves video IDs created by a specific user ordered by date.
         :param matter_deleted: whether to exclude deleted videos in the results
         :param username: Creator username
-        :return: List of video IDs sorted by number of views
+        :return: List of video IDs sorted by date
         """
 
         query = """
@@ -1136,6 +1136,10 @@ if __name__ == "__main__":
     print("\n\n")
 
     # --- testing ---
+
+    db.cur.execute("DELETE FROM video_hashes")
+    db.conn.commit()
+
     # print(db.search_videos("ella", []))
     # print(db.get_videos_by_creator("Barak"))
 

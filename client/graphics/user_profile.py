@@ -200,32 +200,41 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.add_video_details(video)
 
     def add_video_details(self, video):
-        print(video.video_id)
-        if not video.video_id:  # video_id = 0 indicates no more users videos
-            self.waiting_for_videos = False
-            if not self.videos_ids:
-                if self.current_username == self.frame.user.username:
-                    self.status_label.SetLabel("You do not have any content yet, upload one to get started!")
+        print("video in add_video_details:", video.video_id, video.creator)
+        if video.creator == self.current_username: # if video arriving belongs to user shown on screen
+            if not video.video_id:  # video_id = 0 indicates no more users videos
+                self.waiting_for_videos = False
+                if not self.videos_ids:
+                    if self.current_username == self.frame.user.username:
+                        self.status_label.SetLabel("You do not have any content yet, upload one to get started!")
+                        print("You do not have any content yet, upload one to get started!")
+                    else:
+                        self.status_label.SetLabel("This user does not have any content")
                 else:
-                    self.status_label.SetLabel("This user does not have any content")
-            else:
-                self.status_label.SetLabel("this user does not have more videos")
-            self.Layout()
+                    self.status_label.SetLabel("this user does not have more videos")
+                self.Layout()
 
-        elif video.video_id == settings.END_OF_BATCH_SEND_ID: # ready for a new videos batch send
-            self.waiting_for_videos = False
-            self.status_label.SetLabel("")
+            elif video.video_id == settings.END_OF_BATCH_SEND_ID: # ready for a new videos batch send
+                self.waiting_for_videos = False
+                self.status_label.SetLabel("")
 
-        elif video.video_id not in self.videos_ids: # makes sure there are no dups
-            self.videos_details[video.creator].append(video)
+            elif video.video_id not in self.videos_ids: # makes sure there are no dups
+                index = self.frame.users[video.creator].videos_ids.index(
+                    video.video_id)  # if a creator added video, insert it at index 0
+                self.videos_details[video.creator].insert(index, video)
 
-            self.videos_ids.append(video.video_id)
+                self.videos_ids.insert(index, video.video_id)
 
-            if len(self.videos_grid.GetChildren()) == self.videos_grid.GetCols() * self.videos_grid.GetRows():  # if grid is full
-                self.videos_grid.SetRows(self.videos_grid.GetRows() + 1)
+                if len(self.videos_grid.GetChildren()) == self.videos_grid.GetCols() * self.videos_grid.GetRows():  # if grid is full
+                    self.videos_grid.SetRows(self.videos_grid.GetRows() + 1)
 
-            thumbnail = video_widget.VideoWidget(self, video, self.COLUMN_WIDTH, self.RATIO)
-            self.videos_grid.Add(thumbnail, 0, wx.EXPAND)
+                thumbnail = video_widget.VideoWidget(self, video, self.COLUMN_WIDTH, self.RATIO)
+                self.videos_grid.Add(thumbnail, 0, wx.EXPAND)
+
+            elif video.video_id not in self.videos_ids and video.video_id>0: # still save the video locally so can be loaded later
+                index = self.frame.users[video.creator].videos_ids.index(video.video_id) # if a creator added video, insert it at index 0
+                self.videos_details[video.creator].insert(index, video)
+
 
             self.FitInside()
             self.Layout()
@@ -259,7 +268,6 @@ class UserProfilePanel(wx.ScrolledWindow):
         """
         self.current_username = user.username
         self.profile_info.set_user(user)
-        self.videos_ids.clear()
 
     def set_new_user(self, username):
         """
@@ -268,8 +276,9 @@ class UserProfilePanel(wx.ScrolledWindow):
         """
         # todo: delete all info until new info arrives. update instantly when user info arrives
 
-
+        self.waiting_for_videos = False
         self.videos_grid.Clear(True)
+        self.videos_ids.clear()
         self.videos_grid.SetRows(1)
 
         self.current_username = username
@@ -335,6 +344,22 @@ class UserProfilePanel(wx.ScrolledWindow):
         # update the video comments amount label
         if video_id in self.videos_ids:
             self.Refresh()  # refresh if the video is currently on screen
+
+    def on_a_user_upload_video(self, video_id, username):
+        print("creator has uploaded new video:",username)
+        msg = clientProtocol.build_req_creator_videos(username)
+        self.frame.comm.send_msg(msg)
+
+        if self.current_username == username:
+            self.waiting_for_videos = True
+            self.videos_grid.Clear(True)
+            self.videos_ids.clear()
+
+            if username == self.frame.user.username:
+                self.status_label.SetLabel("You have uploaded a new video, loading it now from server")
+            else:
+                self.status_label.SetLabel("This creator uploaded a new video, loading it now from server")
+            self.Layout()
 
 if __name__ == "__main__":
     app = wx.App()

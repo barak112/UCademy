@@ -205,7 +205,7 @@ class Comments(wx.Panel):
 
         if self.video and self.video.video_id == video_id:
             # add comment visually
-            comment_panel = comment_widget.CommentWidget(self.comments_panel, comment)
+            comment_panel = comment_widget.CommentWidget( self.comments_panel, comment)
 
             self.comments_sizer.Insert(index, comment_panel, 0, wx.EXPAND)
             if comment.commenter == self.frame.user.username:

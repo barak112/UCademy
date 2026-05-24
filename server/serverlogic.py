@@ -104,6 +104,7 @@ class ServerLogic:
         self.clients_awaiting_email_verification = {}  # [client_ip] = [username, password, email, email_verification_code, time]
 
         self.pfps_sent = {}  # [client_ip] = [users_names]
+        self.creator_videos_sent = {} # [client_ip] = [users_names]
         self.videos_sent = {}  # [client_ip] = [videos_ids]
         self.thumbnails_sent = {}  # [client_ip] = [videos_ids]
 
@@ -119,6 +120,7 @@ class ServerLogic:
         self.clients_awaiting_email_verification.pop(client_ip, None)
 
         self.pfps_sent.pop(client_ip, None)
+        self.creator_videos_sent.pop(client_ip, None)
         self.videos_sent.pop(client_ip, None)
         self.thumbnails_sent.pop(client_ip, None)
 
@@ -197,6 +199,7 @@ class ServerLogic:
                                                serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ, client_ip),
                                                []]
                     self.pfps_sent[client_ip] = []
+                    self.creator_videos_sent[client_ip] = []
                     self.videos_sent[client_ip] = []
                     self.thumbnails_sent[client_ip] = []
 
@@ -314,6 +317,7 @@ class ServerLogic:
                 self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ,
                                                                                        client_ip), []]
                 self.pfps_sent[client_ip] = []
+                self.creator_videos_sent[client_ip] = []
                 self.videos_sent[client_ip] = []
                 self.thumbnails_sent[client_ip] = []
                 self.current_video_port += 1
@@ -511,10 +515,6 @@ class ServerLogic:
 
                 self.clients[client_ip][1].send_msg(client_ip, msg)
 
-        # to indicate end of videos sending
-        msg = serverProtocol.build_video_details_in_profile(settings.END_OF_BATCH_SEND_ID, "", "", "", "", 0, 0, 0, "")
-        self.clients[client_ip][1].send_msg(client_ip, msg)
-
     def handle_video_comment(self, client_ip, data):  # command 7
         """
             Handles a request from a client to post a comment on a video.
@@ -697,6 +697,7 @@ class ServerLogic:
         last_id = int(last_id)
 
         videos_ids = self.db.get_videos_by_creator(username, False)
+        print("videos_ids by creator in creator videos req:", videos_ids)
         start_index = 0
         if last_id:
             start_index = videos_ids.index(last_id) + 1
@@ -710,10 +711,19 @@ class ServerLogic:
 
         print(f"videos_to_send in creator video req: {videos_to_send}")
 
+        if not username in self.creator_videos_sent:
+            self.creator_videos_sent[client_ip].append(username)
+
         if videos_to_send:
             self.send_videos_details_and_thumbnail(client_ip, videos_to_send)
+
+            #indicate end of list
+            msg = serverProtocol.build_video_details_in_profile(settings.END_OF_BATCH_SEND_ID, username, "", "", "", 0,
+                                                                0, 0, "")
+            self.clients[client_ip][1].send_msg(client_ip, msg)
+
         else:  # indicates there are no more videos to send
-            msg_to_send = serverProtocol.build_video_details_in_profile(0, "", "", "", "", 0, 0, 0, "")
+            msg_to_send = serverProtocol.build_video_details_in_profile(0, username, "", "", "", 0, 0, 0, "")
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
 
     def handle_user_follow_list_req(self, client_ip, data):  # command 14
@@ -814,9 +824,11 @@ class ServerLogic:
         video_name, video_desc, test_link, topics = video_details
         print("video_name", video_name, "video_desc", video_desc, "test_link", test_link, "topics", topics)
 
+        username = self.clients[client_ip][0]
+
         video_hash = self.hash_video(file_content)
         if not self.db.hash_exists(video_hash):
-            video_id = self.db.add_video(self.clients[client_ip][0], video_name, video_desc, test_link)
+            video_id = self.db.add_video(username, video_name, video_desc, test_link)
             self.db.add_video_topics(video_id, topics)
 
             with open(f"media\\videos\\{video_id}.{extension}", 'wb') as f:
@@ -825,12 +837,21 @@ class ServerLogic:
             # puts the id for the thumbnail filename
             self.clients[client_ip][1].idsQ.put(video_id)
             print("video uploaded")
-            msg = serverProtocol.build_video_upload_confirmation(video_id)
-            self.comm.send_msg(client_ip, msg)
+
+            msg = serverProtocol.build_video_upload_confirmation(video_id, username)
+
+            # video_id = int(video_id)
+            clients_to_send = [ip for ip in self.clients.keys() if
+                               username in self.creator_videos_sent[ip]]
+            print("clients_to_send in video_upload:",clients_to_send)
+            print("self.creator_videos_send[ip] in video_upload:", self.creator_videos_sent, "username:", username)
+            for client in clients_to_send:
+                self.comm.send_msg(client, msg)
+
         else:
             # 0 indicates that the video already exists, so to not save the thumbnail
             self.clients[client_ip][1].idsQ.put(0)
-            msg = serverProtocol.build_video_upload_confirmation(0)
+            msg = serverProtocol.build_video_upload_confirmation(0, username)
             self.comm.send_msg(client_ip, msg)
             print("video already exists")
 

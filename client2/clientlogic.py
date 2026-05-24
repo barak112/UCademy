@@ -328,9 +328,9 @@ class ClientLogic:
 
         :param data: The response data containing the newly assigned video ID.
         """
-        video_id = data[0]
+        video_id, username = data
         video_id = int(video_id)
-        wx.CallAfter(pub.sendMessage, "video_upload_ans", video_id=video_id)
+        wx.CallAfter(pub.sendMessage, "video_upload_ans", video_id=video_id, username = username)
 
     def handle_follow_status(self, data):  # command 17
         """Handles the server's response to a follow request and notifies the UI.

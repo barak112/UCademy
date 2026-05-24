@@ -1,7 +1,6 @@
 import os
 import wx.svg
 import wx
-import clientProtocol
 import settings
 
 
@@ -41,6 +40,7 @@ class VideoWidget(wx.Panel):
 
         self.hovering = False
 
+        #todo make sure you cant enter a broken video (a video without a thumbnail)
         thumbnail_path = f"media\\{video.video_id}.png"
         if not os.path.isfile(thumbnail_path):
             thumbnail_path = "assets\\no_thumbnail.png"
