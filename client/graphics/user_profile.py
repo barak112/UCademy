@@ -10,7 +10,6 @@ import clientProtocol
 import profile_widget
 import rounded_button
 import settings
-import comments
 import video_widget
 
 

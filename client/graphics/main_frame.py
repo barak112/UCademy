@@ -156,6 +156,7 @@ class MainFrame(wx.Frame):
         :param comment: The comment object returned by the server.
         """
         correct_feed_panel = self.comment_requests_by_feeds.pop(0)
+
         correct_feed_panel.on_add_comment_ans(video_id, comment)
 
     def switch_panel(self, new_panel, old_panel):
