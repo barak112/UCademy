@@ -173,6 +173,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         # switch to feed associated with user profile
         self.frame.user_profile_feed_panel.video_ctrl.Hide()
         self.frame.switch_panel(self.frame.user_profile_feed_panel, self)
+        #todo add a black screen video with unavailable for videos which dont exists. and deleted for deleted videos (ID = -2)
 
     def on_back_arrow(self, event):
         """
