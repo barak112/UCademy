@@ -350,13 +350,13 @@ class ClientLogic:
     def handle_like_video_confirmation(self, data):  # command 18
         """Handles the server's response to a video like action and notifies the UI.
 
-        :param data: The response data containing the like status and the video ID.
+        :param data: The response data containing the like status and the video ID and the username of the liker.
         """
-        status, video_id = data
+        status, video_id, username = data
         status = int(status)
         video_id = int(video_id)
 
-        wx.CallAfter(pub.sendMessage, "video_like_ans", status=status, video_id=video_id)
+        wx.CallAfter(pub.sendMessage, "video_like_ans", status=status, video_id=video_id, username = username)
 
     def handle_update_pfp(self, data):  # command 19
         """Handles the server's confirmation of a profile picture update and notifies the UI.

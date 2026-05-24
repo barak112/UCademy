@@ -38,7 +38,6 @@ class MainFrame(wx.Frame):
 
         self.video_requests_by_feeds = []  # [feed_panel]
         self.comments_requests_by_feeds = []  # [feed_panel]
-        self.like_requests_by_feeds = []  # [feed_panel]
         self.delete_video_requests_by_feeds = [] # [feed_panel]
 
         self.status_labels = [] # list of all status labels
@@ -88,15 +87,18 @@ class MainFrame(wx.Frame):
         # self.user_profile_panel.Show()
 
         # self.login_panel.Show()
-        msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
-        self.comm.send_msg(msg)
+        import __main__
 
-        # msg = clientProtocol.build_sign_in("bbmalt9@gmail.com", "password")
-        # self.comm.send_msg(msg)
+        if __main__.__file__ == "D:\\UCademy\client\clientlogic.py":
+            msg = clientProtocol.build_sign_in("bbmalt9@gmail.com", "password")
+            self.comm.send_msg(msg)
+        else:
+            msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
+            self.comm.send_msg(msg)
 
         # self.upload_video_panel.Show()
         # self.feed_panel.Hide()
-        # # time.sleep(1)
+        # time.sleep(1)
         # self.feed_panel.Show()
 
         # time.sleep(5)
@@ -139,15 +141,21 @@ class MainFrame(wx.Frame):
         correct_feed_panel = self.comments_requests_by_feeds.pop(0)
         correct_feed_panel.load_new_comments(video_id, comments)
 
-    def on_like_video_ans(self, status, video_id):
+    def on_like_video_ans(self, status, video_id, username):
         """
         Routes a like response from the server to the feed panel that sent the like request.
         :param status: The success or failure status of the like action.
         :param video_id: The ID of the video that was liked.
+        :param username: The username of the user that has liked or unliked the video
         """
-        correct_feed_panel = self.like_requests_by_feeds.pop(0)
-        correct_feed_panel.on_like_video_ans(status, video_id)
 
+        if video_id in self.videos_details:  # if the client has the video's file (if it has appeared in the feed)
+            self.videos_details[video_id].amount_of_likes += 1 if status else -1  # either adds or removes a like from the video
+            self.user_profile_feed_panel.on_a_user_liked_video(status, video_id, username)
+            self.feed_panel.on_a_user_liked_video(status, video_id, username)
+
+        # update the video's comments amount in the user profile panel
+        self.user_profile_panel.on_a_user_liked_video(status, video_id)
     def on_a_user_added_comment(self, video_id, comment):
         """
         Routes an add-comment response from the server to the feed panel that sent the request.

@@ -532,8 +532,8 @@ class ServerLogic:
             # every client that has received this video in user_panel or in feed
             video_id = int(video_id)
             clients_to_send = [ip for ip in self.clients.keys() if video_id in (self.videos_sent[ip] + self.thumbnails_sent[ip])]
-            for client_ip in clients_to_send:
-                self.comm.send_msg(client_ip, msg)
+            for client in clients_to_send:
+                self.comm.send_msg(client, msg)
 
 
     def handle_user_details_req(self, client_ip, data):  # command 8
@@ -873,7 +873,6 @@ class ServerLogic:
         :param client_ip: The IP address of the client making the request.
         :param data: A list containing the video ID to like or unlike.
         """
-        #todo for each change in a video, update every client that already has that video.
         video_id = data[0]
         username = self.clients[client_ip][0]
         status = 0
@@ -882,8 +881,14 @@ class ServerLogic:
         else:
             status = 1
             self.db.add_video_like(video_id, username)
-        msg = serverProtocol.build_like_video_confirmation(status, video_id)
-        self.comm.send_msg(client_ip, msg)
+        msg = serverProtocol.build_like_video_confirmation(status, video_id, username)
+
+        video_id = int(video_id)
+        clients_to_send = [ip for ip in self.clients.keys() if
+                           video_id in (self.videos_sent[ip] + self.thumbnails_sent[ip])]
+
+        for client in clients_to_send:
+            self.comm.send_msg(client, msg)
 
     def send_user_his_pfp(self, client_ip, data):  # command 19
         """

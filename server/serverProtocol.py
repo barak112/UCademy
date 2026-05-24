@@ -263,14 +263,15 @@ def build_follow_user_status(status, followed):
     return build_command(17, [status, followed])
 
 
-def build_like_video_confirmation(status, video_id):
+def build_like_video_confirmation(status, video_id, username):
     """
         Builds a response command confirming the result of a like or unlike action.
     :param status: 1 if the video was liked, 0 if the like was removed.
     :param video_id: The ID of the video that was liked or unliked.
+    :param username: The username of the user that has liked or unliked the video.
     :return: Formatted like-video confirmation command string.
     """
-    return build_command(18, [status, video_id])
+    return build_command(18, [status, video_id, username])
 
 
 def build_update_pfp():

@@ -266,6 +266,8 @@ class UserProfilePanel(wx.ScrolledWindow):
         Clears the current profile view and loads the profile for the given username.
         :param username: The username of the user to display.
         """
+        # todo: delete all info until new info arrives. update instantly when user info arrives
+
 
         self.videos_grid.Clear(True)
         self.videos_grid.SetRows(1)
@@ -310,11 +312,8 @@ class UserProfilePanel(wx.ScrolledWindow):
         event.Skip()
 
     def on_a_user_added_comment(self, video_id):
-        print("a user added a comment to a video in profile:")
-
-        videos = []
-        for videos_list in self.videos_details.values():
-            videos.extend(videos_list)
+        # combines all the videos from each list to one list. for each video_list in values collects every video
+        videos = [video for video_list in self.videos_details.values() for video in video_list]
 
         for video in videos:
             if video.video_id == video_id:
@@ -325,15 +324,17 @@ class UserProfilePanel(wx.ScrolledWindow):
         if video_id in self.videos_ids:
             self.Refresh() # refresh if the video is currently on screen
 
-            # thumbnails = self.videos_grid.GetChildren()
+    def on_a_user_liked_video(self, status, video_id):
+        videos = [video for video_list in self.videos_details.values() for video in video_list]
 
-            # for thumbnail in thumbnails:
-            #     thumbnail = thumbnail.GetWindow()
-            #
-            #     if thumbnail.video.video_id == video_id: # refresh the thumbnail whose comments amount has changed
-            #
-            #         print("refreshed thumbnail:", thumbnail.video.video_id)
-            #         break
+        for video in videos:
+            if video.video_id == video_id:
+                video.amount_of_likes += 1 if status else -1
+                break
+
+        # update the video comments amount label
+        if video_id in self.videos_ids:
+            self.Refresh()  # refresh if the video is currently on screen
 
 if __name__ == "__main__":
     app = wx.App()

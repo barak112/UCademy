@@ -509,24 +509,25 @@ class FeedPanel(wx.Panel):
         if self.current_video_id:
             msg = clientProtocol.build_like_video(self.current_video_id)
             self.frame.comm.send_msg(msg)
-            self.frame.like_requests_by_feeds.append(self)
         event.Skip()
 
-    def on_like_video_ans(self, status, video_id):
+    def on_a_user_liked_video(self, status, video_id, username):
         """
             Handles the server's response to a like or unlike request,
             updating the like button and count label accordingly.
         :param status: 1 if the video was liked, 0 if the like was removed.
         :param video_id: The ID of the video that was liked or unliked.
+        :param username: username of the user that has liked or unliked the video.
         """
         video = self.frame.videos_details[video_id]
-        video.amount_of_likes += 1 if status else -1  # either + 1 or - 1
-        video.liked = bool(status)  # update liked
         print("got like ans:", "status:", status, "new amount:", video.amount_of_likes)
 
         if video_id == self.current_video_id:
-            self.update_like_button(status)
             self.update_likes_amount_label(video_id)
+
+            if username == self.frame.user.username:
+                video.liked = bool(status)  # update liked
+                self.update_like_button(status)
 
     def update_like_button(self, is_liked):
         """
