@@ -27,6 +27,7 @@ class VideoWidget(wx.Panel):
         self.parent = parent
         self.video = video
 
+        self.deleted = False
         self.width = width
         self.ratio = ratio
         self.height = int(width * ratio)
@@ -40,10 +41,11 @@ class VideoWidget(wx.Panel):
 
         self.hovering = False
 
-        #todo make sure you cant enter a broken video (a video without a thumbnail)
         thumbnail_path = f"media\\{video.video_id}.png"
         if not os.path.isfile(thumbnail_path):
             thumbnail_path = "assets\\no_thumbnail.png"
+            self.deleted = True
+            self.SetCursor(wx.Cursor(wx.CURSOR_NO_ENTRY))
 
         self.thumbnail = self.scale_thumbnail(wx.Image(thumbnail_path))
         self.zoomed_in_thumbnail = self.scale_thumbnail(self.thumbnail, self.ZOOM_FACTOR)
@@ -57,12 +59,20 @@ class VideoWidget(wx.Panel):
         self.Bind(wx.EVT_LEAVE_WINDOW, self.on_hover_stop)
         self.Bind(wx.EVT_LEFT_UP, self.on_left_up)
 
+    def set_deleted(self):
+        self.thumbnail = wx.Bitmap(wx.Image("assets\\video_deleted.png").Scale(self.ICON_SIZE, self.ICON_SIZE))
+        self.on_hover_stop(None)
+        self.deleted = True
+        self.SetCursor(wx.Cursor(wx.CURSOR_NO_ENTRY))
+        self.Refresh()
+
     def on_left_up(self, event):
         """
         Handles a left mouse button release by notifying the parent that this video was selected.
         :param event: The wx mouse event triggered on left click release.
         """
-        self.parent.video_selected(self.video)
+        if not self.deleted:
+            self.parent.video_selected(self.video)
 
     def scale_thumbnail(self, thumbnail_image, zoom_factor=1.0):
         """
@@ -96,8 +106,9 @@ class VideoWidget(wx.Panel):
         Handles the mouse entering the widget by enabling the hover state and triggering a repaint.
         :param event: The wx mouse event triggered when the cursor enters the widget.
         """
-        self.hovering = True
-        self.Refresh()
+        if not self.deleted:
+            self.hovering = True
+            self.Refresh()
         event.Skip()
 
     def on_hover_stop(self, event):
@@ -105,9 +116,11 @@ class VideoWidget(wx.Panel):
         Handles the mouse leaving the widget by disabling the hover state and triggering a repaint.
         :param event: The wx mouse event triggered when the cursor leaves the widget.
         """
-        self.hovering = False
-        self.Refresh()
-        event.Skip()
+        if not self.deleted:
+            self.hovering = False
+            self.Refresh()
+        if event:
+            event.Skip()
 
     def on_resize(self, event):
         """
@@ -145,3 +158,4 @@ class VideoWidget(wx.Panel):
             comments_bitmap = wx.Bitmap(wx.Image("assets\\comments_icon_white.png").Scale(icons_size, icons_size))
             dc.DrawBitmap(comments_bitmap, 10, h - 38)
             dc.DrawText(str(self.video.amount_of_comments), 40, h - 36)
+

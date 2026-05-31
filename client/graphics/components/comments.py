@@ -63,7 +63,6 @@ class Comments(wx.Panel):
         pfp = wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE))
         self.pfp = wx.StaticBitmap(self, bitmap=pfp)
 
-        # todo make this multiline
         self.add_comment_field = rounded_input_field.RoundedInputField(self, self, "Add a comment", "Add a comment...")
         self.add_comment_field.SetMinSize((0, 50))
 
@@ -252,6 +251,12 @@ class Comments(wx.Panel):
         self.Layout()
         self.Refresh()
         self.comments_panel.Scroll(0, 0)
+
+        if not video.video_id:
+            self.add_comment_field.text_visible.SetEditable(False)
+        else:
+            self.add_comment_field.text_visible.SetEditable(True)
+
 
     def update_comments_label(self):
         """

@@ -38,14 +38,15 @@ class MainFrame(wx.Frame):
 
         self.video_requests_by_feeds = []  # [feed_panel]
         self.comments_requests_by_feeds = []  # [feed_panel]
-        self.delete_video_requests_by_feeds = [] # [feed_panel]
 
         self.status_labels = [] # list of all status labels
         self.animated_dot_labels = ["waiting for video from server", "Loading video", "Sending verification code",
                                     "waiting for comments from server", "Loading Video From Server", "Loading Content",
                                     "Uploading", "Resending code", "sending credentials to the server",
                                     "Loading Content From Server", "waiting for videos from server",
-                                    "Disconnected from server, Closing application in 5 seconds", "Creator uploaded a new video, loading it now from server"]
+                                    "Disconnected from server, Closing application in 5 seconds", "Creator uploaded a new video, loading it now from server",
+                                    "The video you were watching has been deleted, waiting for video from the server"]
+
 
         self.dots_animation_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.status_label_dots_animation, self.dots_animation_timer)
@@ -107,7 +108,7 @@ class MainFrame(wx.Frame):
         # self.feed_panel.load_video(demo_video)
         # self.comm.send_msg(msg)
 
-        pub.subscribe(self.video_deleted_ans, "video_deleted_ans")
+        pub.subscribe(self.on_a_user_deleted_video, "video_deleted_ans")
 
         pub.subscribe(self.load_new_video, "load_new_video")
 
@@ -121,9 +122,19 @@ class MainFrame(wx.Frame):
 
         pub.subscribe(self.on_a_user_upload_video, "video_upload_ans")
 
-    def video_deleted_ans(self, video_id):
-        correct_feed_panel = self.delete_video_requests_by_feeds.pop(0)
-        correct_feed_panel.delete_video_ans(video_id)
+    def on_a_user_deleted_video(self, video_id):
+
+        if video_id in self.videos_details:  # if the client has the video's file (if it has appeared in the feed)
+            del self.videos_details[video_id]  # delete video from video details
+            self.user_profile_feed_panel.on_a_user_deleted_video(video_id)
+            self.feed_panel.on_a_user_deleted_video(video_id)
+
+        # remove the video from the user profile panel
+        self.user_profile_panel.delete_video_ans(video_id)
+
+        if video_id in self.user.videos_ids:
+            self.user.videos_ids.remove(video_id)
+
 
     def load_new_video(self, video):
         """
@@ -194,7 +205,7 @@ class MainFrame(wx.Frame):
             self.upload_video_panel.on_video_upload_ans(video_id)
             self.user.videos_ids.insert(0, video_id)
 
-        self.user_profile_panel.on_a_user_upload_video(video_id, username)
+        self.user_profile_panel.on_a_user_upload_video(username)
 
 
     def switch_panel(self, new_panel, old_panel):

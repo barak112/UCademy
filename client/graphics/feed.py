@@ -11,6 +11,7 @@ import rounded_button
 import settings
 import comments
 from user_profile import UserProfilePanel
+from video import Video
 
 
 class FeedPanel(wx.Panel):
@@ -308,27 +309,37 @@ class FeedPanel(wx.Panel):
             msg = clientProtocol.build_comment_or_video_status(self.current_video_id, settings.VIDEO_DIGIT_REPR, settings.REPORT_ACCEPTED)
             self.frame.comm.send_msg(msg)
 
-        self.frame.delete_video_requests_by_feeds.append(self)
-
         self.Layout()
         event.Skip()
 
-    def delete_video_ans(self, video_id):
+    def on_a_user_deleted_video(self, video_id):
+        if video_id in self.videos_ids:
+            self.videos_ids.remove(video_id)
 
-        if video_id:
-            self.status_label.SetLabel("Video successfully deleted, scroll to switch to a new video")
-            if video_id in self.videos_ids:
-                self.videos_ids.remove(video_id)
+            # deleted a video, so req another one instead of it
+            msg = clientProtocol.build_req_video()
+            self.frame.comm.send_msg(msg)
+            self.frame.comments_requests_by_feeds.append(self)
 
-                if not self.videos_ids: # if videos_ids is now empty
-                    self.status_label.SetLabel("Video successfully deleted, waiting for video from the server")
-                else:
-                    self.video_index = max(0, self.video_index-1)
-                    print("deleted video:", video_id, "new index:", self.video_index, "video ids:", self.videos_ids, "videos details:", self.frame.videos_details)
-                    self.load_video(self.frame.videos_details[self.videos_ids[self.video_index]])
+            if not self.videos_ids: # if videos_ids is now empty
+                self.status_label.SetLabel("The video you were watching has been deleted, waiting for video from the server")
+                self.load_video(Video(settings.DELETED_ID))
+                self.waiting_for_video = True
+            else:
+                self.status_label.SetLabel("The video you were watching has been deleted, returning to last video")
+                self.video_index = max(0, self.video_index-1)
+                print("deleted video:", video_id, "new index:", self.video_index, "video ids:", self.videos_ids, "videos details:", self.frame.videos_details)
+                self.load_video(self.frame.videos_details[self.videos_ids[self.video_index]])
+
+        if video_id in self.frame.user.videos_ids:
+            self.status_label.SetLabel("Video successfully deleted")
+            if not self.videos_ids:
+                self.status_label.SetLabel("Video successfully deleted, waiting for video from the server")
+
+        if os.path.isfile(f"media\\{video_id}.mp4"):
+            os.remove(f"media\\{video_id}.mp4")
 
         self.Layout()
-
 
 
     @staticmethod
@@ -446,6 +457,7 @@ class FeedPanel(wx.Panel):
             Updates the video name and description labels with the current video's details.
         """
         if self.current_video_id in self.frame.videos_details:
+            #todo remove the video id in the video name label
             self.video_desc_label.SetLabel(self.frame.videos_details[self.current_video_id].video_desc)
             self.video_name_label.SetLabel(
                 str(self.current_video_id) + " " + self.frame.videos_details[self.current_video_id].video_name)
@@ -747,7 +759,16 @@ class FeedPanel(wx.Panel):
             print("loading video:", video_id)
             self.can_scroll = False
 
-            self.video_ctrl.Load(f"media\\{video_id}.mp4")
+            video_path = f"media\\{video_id}.mp4"
+
+            if video_id == settings.DELETED_ID:
+                video_path = "assets\\This video has been deleted.mp4"
+
+            elif not os.path.isfile(video_path):
+                video_path = "assets\\cannot load video.mp4"
+
+            self.video_ctrl.Load(video_path)
+
             self.video_ctrl.SetInitialSize((500, 500))
             self.comments_panel.set_video(video)
             self.status_label.SetLabel("")

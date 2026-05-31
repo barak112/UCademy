@@ -661,15 +661,22 @@ class ServerLogic:
         :param data: A list containing the video ID to delete.
         """
         video_id = data[0]
+        video_id = int(video_id)
         print("trying to deleting video:", video_id)
 
-        msg = serverProtocol.build_del_video_confirmation(0)
         if client_ip in self.clients and self.db.is_the_video_creator(video_id, self.clients[client_ip][0]):
             self.db.delete_video(video_id)
             self.delete_video_files(video_id)
-            msg = serverProtocol.build_del_video_confirmation(video_id)
 
-        self.comm.send_msg(client_ip, msg)
+            clients_to_send = [ip for ip in self.clients.keys() if
+                               video_id in (self.videos_sent[ip] + self.thumbnails_sent[ip])]
+
+            msg = serverProtocol.build_del_video_confirmation(video_id)
+            for client in clients_to_send:
+                self.comm.send_msg(client, msg)
+        else:
+            msg = serverProtocol.build_del_video_confirmation(0)
+            self.comm.send_msg(client_ip, msg)
 
     def handle_del_comment(self, client_ip, data):  # command 12
         """
@@ -955,7 +962,6 @@ class ServerLogic:
                     else:  # video
                         creator, video_name, desc, created_at = self.db.get_specific_video(id)[:4]
                         self.db.delete_video(id)
-                        self.db.remove_video_hash(id)
                         self.delete_video_files(id)
                         self.send_email(creator,
                                         self.EMAIL_VIDEO_REMOVE_MSG.format(video_name, desc, created_at, creator),

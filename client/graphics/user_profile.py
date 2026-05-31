@@ -173,7 +173,6 @@ class UserProfilePanel(wx.ScrolledWindow):
         # switch to feed associated with user profile
         self.frame.user_profile_feed_panel.video_ctrl.Hide()
         self.frame.switch_panel(self.frame.user_profile_feed_panel, self)
-        #todo add a black screen video with unavailable for videos which dont exists. and deleted for deleted videos (ID = -2)
 
     def on_back_arrow(self, event):
         """
@@ -346,7 +345,12 @@ class UserProfilePanel(wx.ScrolledWindow):
         if video_id in self.videos_ids:
             self.Refresh()  # refresh if the video is currently on screen
 
-    def on_a_user_upload_video(self, video_id, username):
+    def on_a_user_upload_video(self, username):
+        """
+            when a user uploads a video, requests all of his videos again from the server (so that they will be ordered correctly)
+        :param username: username of the user uploading the video
+        :return: videos redisplays including the new video
+        """
         print("creator has uploaded new video:",username)
         msg = clientProtocol.build_req_creator_videos(username)
         self.frame.comm.send_msg(msg)
@@ -361,6 +365,16 @@ class UserProfilePanel(wx.ScrolledWindow):
             else:
                 self.status_label.SetLabel("This creator uploaded a new video, loading it now from server")
             self.Layout()
+
+    def delete_video_ans(self, video_id):
+        videos = [video for video_list in self.videos_details.values() for video in video_list]
+
+        for video in videos:
+            if video.video_id == video_id:
+                self.videos_grid.GetChildren()[self.videos_ids.index(video_id)].set_deleted()
+                self.videos_details[video.creator].remove(video)
+                self.frame.users[video.creator].videos_ids.remove(video_id)
+                break
 
 if __name__ == "__main__":
     app = wx.App()

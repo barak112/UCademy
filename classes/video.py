@@ -4,7 +4,7 @@ import comment
 
 
 class Video:
-    def __init__(self, video_id, creator, video_name, video_desc, created_at, amount_of_likes, amount_of_comments, liked, test_link):
+    def __init__(self, video_id, creator = "", video_name = "", video_desc = "", created_at = "", amount_of_likes = 0, amount_of_comments = 0, liked = False, test_link = ""):
         """
         Initializes the Video object with the given attributes.
 
