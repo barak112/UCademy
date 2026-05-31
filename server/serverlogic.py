@@ -665,8 +665,9 @@ class ServerLogic:
         print("trying to deleting video:", video_id)
 
         if client_ip in self.clients and self.db.is_the_video_creator(video_id, self.clients[client_ip][0]):
-            self.db.delete_video(video_id)
-            self.delete_video_files(video_id)
+            # self.db.delete_video(video_id)
+            # self.delete_video_files(video_id)
+            #todo return this
 
             clients_to_send = [ip for ip in self.clients.keys() if
                                video_id in (self.videos_sent[ip] + self.thumbnails_sent[ip])]
@@ -988,14 +989,17 @@ class ServerLogic:
             Deletes a video's file from disk and removes its hash from the database.
         :param video_id: The ID of the video whose file should be deleted.
         """
-        file_path = f"media\\videos\\{video_id}.{settings.VIDEO_EXTENSION}"
-        if os.path.isfile(file_path):
-            os.remove(file_path)
         self.db.remove_video_hash(video_id)
 
-        file_path = f"media\\videos\\{video_id}.png"
-        if os.path.isfile(file_path):
-            os.remove(file_path)
+        video_path = f"media\\videos\\{video_id}.{settings.VIDEO_EXTENSION}"
+        thumbnail_path = f"media\\videos\\{video_id}.png"
+        if os.path.isfile(video_path) and os.path.isfile(thumbnail_path):
+            try:
+                os.remove(video_path)
+                os.remove(thumbnail_path)
+            except Exception as e:
+                print("error deleting files:", e)
+
 
 
     def handle_user_kick(self, client_ip, data):  # command 99

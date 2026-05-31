@@ -60,7 +60,9 @@ class VideoWidget(wx.Panel):
         self.Bind(wx.EVT_LEFT_UP, self.on_left_up)
 
     def set_deleted(self):
-        self.thumbnail = wx.Bitmap(wx.Image("assets\\video_deleted.png").Scale(self.ICON_SIZE, self.ICON_SIZE))
+        self.thumbnail = wx.Bitmap(self.scale_thumbnail(wx.Image("assets\\video_deleted.png")))
+        self.zoomed_in_thumbnail = self.thumbnail
+
         self.on_hover_stop(None)
         self.deleted = True
         self.SetCursor(wx.Cursor(wx.CURSOR_NO_ENTRY))

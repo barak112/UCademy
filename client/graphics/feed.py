@@ -319,17 +319,34 @@ class FeedPanel(wx.Panel):
             # deleted a video, so req another one instead of it
             msg = clientProtocol.build_req_video()
             self.frame.comm.send_msg(msg)
+            self.frame.video_requests_by_feeds.append(self)
             self.frame.comments_requests_by_feeds.append(self)
+
+            deleted_video = Video(settings.DELETED_ID)
+            self.frame.videos_details[settings.DELETED_ID] = deleted_video  # so when updating the comments on the video using frame. it wont break
 
             if not self.videos_ids: # if videos_ids is now empty
                 self.status_label.SetLabel("The video you were watching has been deleted, waiting for video from the server")
-                self.load_video(Video(settings.DELETED_ID))
+                self.load_video(deleted_video)
                 self.waiting_for_video = True
             else:
                 self.status_label.SetLabel("The video you were watching has been deleted, returning to last video")
                 self.video_index = max(0, self.video_index-1)
                 print("deleted video:", video_id, "new index:", self.video_index, "video ids:", self.videos_ids, "videos details:", self.frame.videos_details)
-                self.load_video(self.frame.videos_details[self.videos_ids[self.video_index]])
+                if self.videos_ids[self.video_index] in self.frame.videos_details:
+                    self.load_video(self.frame.videos_details[self.videos_ids[self.video_index]])
+                else:
+                    self.load_video(deleted_video)
+                    msg = clientProtocol.build_req_video(video_id)
+                    self.frame.comm.send_msg(msg)
+
+                    self.frame.video_requests_by_feeds.append(self)
+                    self.frame.comments_requests_by_feeds.append(self)
+
+                    self.waiting_for_video = True
+
+                    self.status_label.SetLabel(
+                        "The video you were watching has been deleted, waiting for video from the server")
 
         if video_id in self.frame.user.videos_ids:
             self.status_label.SetLabel("Video successfully deleted")
@@ -337,7 +354,10 @@ class FeedPanel(wx.Panel):
                 self.status_label.SetLabel("Video successfully deleted, waiting for video from the server")
 
         if os.path.isfile(f"media\\{video_id}.mp4"):
-            os.remove(f"media\\{video_id}.mp4")
+            try:
+                os.remove(f"media\\{video_id}.mp4")
+            except Exception as e:
+                print("error deleting video:", e)
 
         self.Layout()
 
@@ -626,9 +646,11 @@ class FeedPanel(wx.Panel):
 
                         print("This user does not have more videos")
 
-                elif video_id == settings.DELETED_ID: # if video has been deleted, write it has been deleted and on next scroll continue to next video
-                    self.status_label = "This video has been deleted"
-                    self.videos_ids.remove(video_id)
+                # if somehow requested a deleted video, it was stored as settings.DELETED_ID in self.videos_ids
+                # so just show a this video has been deleted screen when stumbling upon this video
+                elif video_id == settings.DELETED_ID:
+                    self.load_video(Video(settings.DELETED_ID))
+                    self.video_index = new_index
 
                 elif video_id in self.frame.videos_details:
                     video_to_load = self.frame.videos_details[self.videos_ids[new_index]]
@@ -720,6 +742,7 @@ class FeedPanel(wx.Panel):
             self.frame.comments_requests_by_feeds.pop(0)
 
         elif video_id == settings.DELETED_ID:
+            self.frame.videos_details[video_id] = video # so when updating the comments on the video using frame. it wont break
             self.videos_ids.append(
                 video_id)  # -2 to indicate the video has been deleted
             self.frame.comments_requests_by_feeds.pop(0)

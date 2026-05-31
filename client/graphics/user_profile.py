@@ -371,9 +371,13 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         for video in videos:
             if video.video_id == video_id:
-                self.videos_grid.GetChildren()[self.videos_ids.index(video_id)].set_deleted()
                 self.videos_details[video.creator].remove(video)
                 self.frame.users[video.creator].videos_ids.remove(video_id)
+
+                if video_id in self.videos_ids: # if video is currently on screen
+                    self.videos_grid.GetChildren()[self.videos_ids.index(video_id)].GetWindow().set_deleted()
+                    self.profile_info.videos_numeric_amount_label.SetLabel(str(self.frame.users[video.creator].get_video_amount()))
+
                 break
 
 if __name__ == "__main__":

@@ -1137,8 +1137,10 @@ if __name__ == "__main__":
 
     # --- testing ---
 
-    db.cur.execute("DELETE FROM video_hashes")
-    db.conn.commit()
+    # db.cur.execute("DELETE FROM video_hashes")
+    # db.conn.commit()
+    # db.cur.execute("UPDATE videos SET deleted = 1 WHERE video_id = 17")
+    # db.conn.commit()
 
     # print(db.search_videos("ella", []))
     # print(db.get_videos_by_creator("Barak"))

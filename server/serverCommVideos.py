@@ -98,7 +98,7 @@ class ServerCommVideos (serverComm.ServerComm):
                 self._close_client(self.client_socket)
 
         else:
-            print("file does not exist")
+            print("file does not exist - ", file_path, "")
 
 
     def _recv_file(self, decrypted_message):
