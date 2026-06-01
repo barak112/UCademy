@@ -41,6 +41,7 @@ class FeedPanel(wx.Panel):
         self.videos_ids = []
 
         self.can_scroll = True
+        self.negative_scroll_pos = 0 # used to preload videos only when scrolling down and not up then down
 
         self.current_video_id = None  # video_id
 
@@ -287,6 +288,7 @@ class FeedPanel(wx.Panel):
         self.play_btn.Bind(wx.EVT_LEFT_UP, self.on_toggle_play)
         self.account_btn.Bind(wx.EVT_LEFT_UP, self.on_move_to_creator_account)
         self.test_btn.Bind(wx.EVT_LEFT_UP, self.on_open_test)
+        self.report_btn.Bind(wx.EVT_LEFT_UP, self.on_report_video)
 
         self.Bind(wx.EVT_MOUSEWHEEL, self.on_scroll)
         self.Bind(wx.EVT_SIZE, self.on_resize)
@@ -299,15 +301,46 @@ class FeedPanel(wx.Panel):
 
         self.Hide()
 
+    def on_report_video(self, event):
+        """
+
+            answer will be delt with in main_frame
+        :param event:
+        :return:
+        """
+        answer = wx.MessageBox(
+            "Are you sure you want to report this video?\nReport this video only if it does not include any educational content or if its content is harmful\n",
+            f'Report Video "{self.frame.videos_details[self.current_video_id].video_name}"?',
+            wx.YES_NO | wx.ICON_INFORMATION,
+        )
+
+        if answer == wx.YES:
+            wx.MessageBox("Your report has been sent to the server", "Report Sent", wx.OK | wx.ICON_INFORMATION)
+            msg = clientProtocol.build_report(self.current_video_id, settings.VIDEO_DIGIT_REPR)
+            self.frame.comm.send_msg(msg)
+
+
+        self.Layout()
+        event.Skip()
+
     def on_delete_video(self, event):
         self.status_label.SetLabel("sending delete req to server")
-        if self.frame.videos_details[self.current_video_id].creator == self.frame.user.username:
-            msg = clientProtocol.build_del_video(self.current_video_id)
-            self.frame.comm.send_msg(msg)
-            print("deleting video as creator")
-        else:
-            msg = clientProtocol.build_comment_or_video_status(self.current_video_id, settings.VIDEO_DIGIT_REPR, settings.REPORT_ACCEPTED)
-            self.frame.comm.send_msg(msg)
+        #todo make the message boxes a dialog message
+        answer = wx.MessageBox(
+            "Are you sure you want to delete this video?\nThis action is not reverseable\n",
+            f'Delete Video "{self.frame.videos_details[self.current_video_id].video_name}"?',
+            wx.YES_NO | wx.ICON_INFORMATION,
+        )
+
+        if answer == wx.YES:
+            wx.MessageBox("Delete req has been sent to the server", "Delete req sent", wx.OK | wx.ICON_INFORMATION)
+
+            if self.frame.videos_details[self.current_video_id].creator == self.frame.user.username:
+                msg = clientProtocol.build_del_video(self.current_video_id)
+                self.frame.comm.send_msg(msg)
+            elif self.frame.user.is_system_manager(): # if system manager
+                msg = clientProtocol.build_comment_or_video_status(self.current_video_id, settings.VIDEO_DIGIT_REPR, settings.REPORT_ACCEPTED)
+                self.frame.comm.send_msg(msg)
 
         self.Layout()
         event.Skip()
@@ -602,15 +635,30 @@ class FeedPanel(wx.Panel):
                     print("current video index:", self.video_index, "ids:", self.videos_ids)
                     new_index -= 1  # last video
                     load_a_new_video = True
+                    self.negative_scroll_pos +=1
             else:
+                #todo add a "scrolling points" that do -1 when scrolling up and +1 when scrolling down (doesnt get bigger than 0)
+                # so when scrolling up you know when you returned the point you started scrolling up.
+                # only preload a new video when you scroll down past 0 scrolling points:
+                # if scrolling_points>=0:
+                #     load a new video
+                # else:
+                #     scrolling_points+=1
+
                 if len(self.videos_ids) > self.video_index + 1:
                     new_index += 1
                     load_a_new_video = True
-                    if isinstance(self.associated_panel, FeedPanel):  # if in the feed, then preload a video
-                        msg = clientProtocol.build_req_video()
-                        self.frame.comm.send_msg(msg)
-                        self.frame.video_requests_by_feeds.append(self)
-                        self.frame.comments_requests_by_feeds.append(self)
+
+                    if self.negative_scroll_pos <= 0:
+                        if isinstance(self.associated_panel,
+                                      FeedPanel):  # if in the feed, then preload a video when a scrolling past new videos
+                            msg = clientProtocol.build_req_video()
+                            self.frame.comm.send_msg(msg)
+                            self.frame.video_requests_by_feeds.append(self)
+                            self.frame.comments_requests_by_feeds.append(self)
+                            print("preloading video")
+                    else:
+                        self.negative_scroll_pos -= 1
                 else:
                     # in the feed, the amount settings.VIDEOS_TO_REQ of videos that was req from the server were
                     # all watched, and so now waiting for the new videos to arrive.
@@ -630,9 +678,9 @@ class FeedPanel(wx.Panel):
                     # reset videos so the user could watch them again
                     if isinstance(self.associated_panel, FeedPanel):
                         self.status_label.SetLabel("Watched all videos, resetting watched history")
-
                         self.videos_ids = []
                         self.video_index = 0
+                        self.negative_scroll_pos = 0
                         self.waiting_for_video = True
                         msg = clientProtocol.build_req_video()
                         for req in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
@@ -737,6 +785,16 @@ class FeedPanel(wx.Panel):
                 self.waiting_for_video = False
                 self.status_label.Layout()
 
+                if isinstance(self.associated_panel,
+                              FeedPanel):  # if in the feed, then preload a video when a new video instantly loads
+                    msg = clientProtocol.build_req_video()
+                    self.frame.comm.send_msg(msg)
+                    self.frame.video_requests_by_feeds.append(self)
+                    self.frame.comments_requests_by_feeds.append(self)
+                    print("preloading video")
+
+
+
         elif video_id == settings.END_OF_LIST_ID:
             self.videos_ids.append(
                 video_id)  # add 0 to indicate the end of the videos
@@ -767,7 +825,7 @@ class FeedPanel(wx.Panel):
             test_btn_color = wx.WHITE if video.test_link else settings.UNACTIVE_BUTTON
             self.test_btn.set_background_color(test_btn_color)
 
-            if video.creator == self.frame.user.username:
+            if video.creator == self.frame.user.username or self.frame.user.is_system_manager():
                 self.delete_video_btn.Show()
                 self.delete_video_label.Show()
             else:

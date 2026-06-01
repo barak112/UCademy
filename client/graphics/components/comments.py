@@ -253,6 +253,7 @@ class Comments(wx.Panel):
         self.comments_panel.Scroll(0, 0)
 
         if not video.video_id:
+            self.add_comment_field.set_value("")
             self.add_comment_field.text_visible.SetEditable(False)
         else:
             self.add_comment_field.text_visible.SetEditable(True)

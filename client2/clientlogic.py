@@ -110,7 +110,7 @@ class ClientLogic:
 
         print("sign in status:", status)
         if status == settings.LOG_IN_SUCCESSFUL:
-            video_port, username, followers_amount, followings_amount, videos_ids, email, topics, followings_names = data[
+            video_port, username, followers_amount, followings_amount, videos_ids, email, topics, followings_names, system_manager = data[
                 1:]
 
             video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, int(video_port), self.recvQ)
@@ -118,9 +118,10 @@ class ClientLogic:
 
             followers_amount = int(followings_amount)
             followings_amount = int(followings_amount)
+            system_manager = bool(int(system_manager))
 
             user_obj = user.User(username, followers_amount, followings_amount, videos_ids, email, topics,
-                                 followings_names)
+                                 followings_names, system_manager)
 
             print(f"signed in as {username}")
             wx.CallAfter(pub.sendMessage, "login_ans", status=status, video_comm=video_comm, user=user_obj)

@@ -17,8 +17,8 @@ MESSAGE_LENGTH_LENGTH = 5
 PHYSICAL_FPS = 60
 
 AMOUNT_OF_USERS_TO_SEND = 20
-AMOUNT_OF_VIDEOS_TO_SEND = 3
-AMOUNT_OF_VIDEOS_TO_REQ = 2 # amount of videos to request from server when first moving to feed
+AMOUNT_OF_VIDEOS_TO_SEND = 15
+AMOUNT_OF_VIDEOS_TO_REQ = 3 # amount of videos to request from server when first moving to feed
 AMOUNT_OF_COMMENTS_TO_SEND = 20
 
 MAX_VIDEO_LENGTH = 2 # minutes

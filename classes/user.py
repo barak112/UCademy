@@ -2,7 +2,7 @@
 
 class User:
 
-    def __init__(self, username, followers_amount, followings_amount, videos_ids, email = None, topics=None, followings=None):
+    def __init__(self, username, followers_amount, followings_amount, videos_ids, email = None, topics=None, followings=None, system_manager=None):
         """
         Represents a user's profile with relevant social metrics and optional additional details.
 
@@ -29,6 +29,7 @@ class User:
         self.followers_amount = followers_amount
         self.followings_amount = followings_amount
         self.videos_ids = videos_ids
+        self.system_manager = system_manager
 
         # saved for current user only
         self.email = email
@@ -41,3 +42,6 @@ class User:
         :return: The total count of videos this user has uploaded.
         """
         return len(self.videos_ids)
+
+    def is_system_manager(self):
+        return self.system_manager

@@ -110,7 +110,7 @@ class ClientLogic:
 
         print("sign in status:", status)
         if status == settings.LOG_IN_SUCCESSFUL:
-            video_port, username, followers_amount, followings_amount, videos_ids, email, topics, followings_names = data[
+            video_port, username, followers_amount, followings_amount, videos_ids, email, topics, followings_names, system_manager = data[
                 1:]
 
             video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, int(video_port), self.recvQ)
@@ -118,9 +118,10 @@ class ClientLogic:
 
             followers_amount = int(followings_amount)
             followings_amount = int(followings_amount)
+            system_manager = bool(int(system_manager))
 
             user_obj = user.User(username, followers_amount, followings_amount, videos_ids, email, topics,
-                                 followings_names)
+                                 followings_names, system_manager)
 
             print(f"signed in as {username}")
             wx.CallAfter(pub.sendMessage, "login_ans", status=status, video_comm=video_comm, user=user_obj)
@@ -227,28 +228,7 @@ class ClientLogic:
         type = int(type)
         # id will be future used to view the reported content if it is decided to not be removed
 
-        msg2 = f"has been examined and it has been decided that the"
-
-        msg1 = f"report of video {content} by {content_publisher}"
-
-        type_str = "video" if status == settings.VIDEO_DIGIT_REPR else "comment"
-
-        if type == settings.COMMENT_DIGIT_REPR and content and content_publisher:
-            comment, video_name = content
-            commenter, video_creator = content_publisher
-            msg1 = f"report of comment {comment} by {commenter} on video {video_name} by {video_creator}"
-
-        # Determine the message based on status
-        status_messages = {
-            settings.REPORT_DENIED: f"{msg1} you issued on {created_at} {msg2} {type_str} will not be removed",
-            settings.REPORT_ACCEPTED: f"{msg1} you issued on {created_at} {msg2} {type_str} will be removed",
-            settings.REPORT_CONTENT_DOESNT_EXISTS: f"{type_str} reported does not exist!",
-            settings.REPORT_ALREADY_ISSUED: f"{msg1} has already been issued by you!",
-            settings.REPORT_RECEIVED: f"{msg1} has been received at the server and will be examined",
-            settings.REPORT_CONCLUDED: f"{msg1} has already been concluded"
-        }
-
-        print(status_messages[status])
+        wx.CallAfter(pub.sendMessage, "report_ans", status=status, id=id, type=type, content=content, content_publisher=content_publisher, created_at=created_at)
 
     def handle_comments(self, data):  # command 10
         """Handles a batch of comments received from the server and notifies the UI to load them.

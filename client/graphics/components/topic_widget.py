@@ -41,6 +41,7 @@ class TopicWidget(wx.Panel):
             self.icon = wx.Image(f"assets\\topics_icons\\{topic_name}.png").Scale(48, 48)
             self.icon = wx.Bitmap(self.icon)
             # todo get emojies from https://github.com/microsoft/fluentui-emoji/blob/main/assets using the 3d png version
+            # todo change all of the videos to actually educational videos
 
         self.Bind(wx.EVT_SIZE, self.on_resize)
         self.Bind(wx.EVT_PAINT, self.on_paint)

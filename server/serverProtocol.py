@@ -41,7 +41,8 @@ def build_email_verification_confirmation(status, username=None, email=None, por
 
 
 def build_sign_in_status(status, port=None, username=None, followers_amount=None,
-                         followings_amount=None, videos_ids=None, email=None, topics=None, followings_names=None):
+                         followings_amount=None, videos_ids=None, email=None, topics=None, followings_names=None,
+                         system_manager = None):
     """
         Builds a response command indicating the result of a sign-in attempt.
     :param status: The status code of the sign-in result (0 for failure, 1 for success).
@@ -56,7 +57,7 @@ def build_sign_in_status(status, port=None, username=None, followers_amount=None
     :return: Formatted sign-in status command string.
     """
     return build_command(2, [status, port, username, followers_amount, followings_amount, videos_ids, email, topics,
-                             followings_names])
+                             followings_names, system_manager])
 
 
 def build_set_topics_confirmation(topics):

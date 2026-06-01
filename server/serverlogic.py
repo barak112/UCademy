@@ -312,8 +312,10 @@ class ServerLogic:
                 topics = self.db.get_user_topics(username)
                 email = self.db.get_user_email(username)
                 followings_names = self.db.get_followings(username)
+                system_manager = int(self.db.is_system_manager(username))
                 msg = serverProtocol.build_sign_in_status(status, self.current_video_port, username, followers_amount,
-                                                          followings_amount, videos_ids, email, topics, followings_names)
+                                                          followings_amount, videos_ids, email, topics, followings_names,
+                                                          system_manager)
                 self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ,
                                                                                        client_ip), []]
                 self.pfps_sent[client_ip] = []
@@ -352,6 +354,7 @@ class ServerLogic:
                 content = (comment, video_name)
                 content_publisher = (commenter, creator)
                 self.send_pfp(client_ip, commenter)  # sends the commenter's pfp if the client doesnt already have it
+
             else:  # type == settings.VIDEO_DIGIT_REPR
                 content, content_publisher = self.db.get_specific_video(id, False)[:2]
                 thumbnail_path = (f"media\\videos\\{id}.png")
@@ -596,7 +599,7 @@ class ServerLogic:
             content_publisher = [content_publisher, video_creator]
 
         elif type == settings.VIDEO_DIGIT_REPR and self.db.video_exists(id):
-            content, content_publisher = self.db.get_specific_video(id)[:2]
+            content_publisher, content = self.db.get_specific_video(id)[:2]
 
         else:
             status = settings.REPORT_CONTENT_DOESNT_EXISTS
@@ -608,7 +611,9 @@ class ServerLogic:
             status = settings.REPORT_ALREADY_ISSUED
 
         elif status == settings.REPORT_RECEIVED:
-            self.db.add_report(username, id, type)
+            #todo return this
+            # self.db.add_report(username, id, type)
+            pass
 
         msg = serverProtocol.build_report_status(status, id, type, content, content_publisher)
         self.comm.send_msg(client_ip, msg)
@@ -665,9 +670,8 @@ class ServerLogic:
         print("trying to deleting video:", video_id)
 
         if client_ip in self.clients and self.db.is_the_video_creator(video_id, self.clients[client_ip][0]):
-            # self.db.delete_video(video_id)
-            # self.delete_video_files(video_id)
-            #todo return this
+            self.db.delete_video(video_id)
+            self.delete_video_files(video_id)
 
             clients_to_send = [ip for ip in self.clients.keys() if
                                video_id in (self.videos_sent[ip] + self.thumbnails_sent[ip])]

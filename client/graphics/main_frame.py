@@ -1,6 +1,7 @@
 import wx
 from pubsub import pub
 import clientProtocol
+import settings
 from email_verification import EmailVerificationPanel
 from feed import FeedPanel
 from log_in import LoginPanel
@@ -122,6 +123,42 @@ class MainFrame(wx.Frame):
 
         pub.subscribe(self.on_a_user_upload_video, "video_upload_ans")
 
+        pub.subscribe(self.on_report_ans, "report_ans")
+
+    def on_report_ans(self, status, id, type, content, content_publisher, created_at):
+        # self.status_label.SetLabel("Video reported successfully")
+
+        msg2 = f"has been examined and it has been decided that the"
+
+        msg1 = f'report of video "{content}" by "{content_publisher}"'
+
+        type_str = "video" if type == settings.VIDEO_DIGIT_REPR else "comment"
+
+        if type == settings.COMMENT_DIGIT_REPR and content and content_publisher:
+            comment, video_name = content
+            commenter, video_creator = content_publisher
+            msg1 = f'report of comment "{comment}" by "{commenter}" on video "{video_name}" by "{video_creator}"'
+
+        # Determine the message based on status
+        status_messages = {
+            settings.REPORT_DENIED: f"{msg1} you issued on {created_at} {msg2} {type_str} will not be removed",
+            settings.REPORT_ACCEPTED: f"{msg1} you issued on {created_at} {msg2} {type_str} will be removed",
+            settings.REPORT_CONTENT_DOESNT_EXISTS: f"{type_str} reported does not exist!",
+            settings.REPORT_ALREADY_ISSUED: f"{msg1} has already been issued by you!",
+            settings.REPORT_RECEIVED: f"{msg1} has been received at the server and will be examined",
+            settings.REPORT_CONCLUDED: f"{msg1} has already been concluded"
+        }
+
+        print(status_messages[status])
+
+        wx.MessageBox(
+            status_messages[status],
+            f"{type_str.capitalize()} Report Status",
+            wx.OK | wx.ICON_INFORMATION
+        )
+
+        self.Layout()
+
     def on_a_user_deleted_video(self, video_id):
 
         if video_id in self.videos_details:  # if the client has the video's file (if it has appeared in the feed)
@@ -227,6 +264,12 @@ class MainFrame(wx.Frame):
         self.SetStatusText(text, 0)
 
     def comm_disconnected(self):
+        wx.MessageBox(
+            "Disconnected from server, Closing application in 5 seconds.",
+            "Closing app in 5 seconds.",
+            wx.OK | wx.ICON_INFORMATION
+        )
+
         self.change_text_status("Disconnected from server, Closing application in 5 seconds.")
 
         for status_label in self.status_labels:
