@@ -371,7 +371,14 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         for video in videos:
             if video.video_id == video_id:
+                # self.videos_details[video.creator].remove(video)
+                #todo checking for bug
+                videos_ids_of_creator = [video.video_id for video in self.videos_details[video.creator]]
+                print("videos_ids_of_creator before:", videos_ids_of_creator)
                 self.videos_details[video.creator].remove(video)
+                videos_ids_of_creator = [video.video_id for video in self.videos_details[video.creator]]
+                print("videos_ids_of_creator after:", videos_ids_of_creator)
+
                 self.frame.users[video.creator].videos_ids.remove(video_id)
 
                 if video_id in self.videos_ids: # if video is currently on screen
