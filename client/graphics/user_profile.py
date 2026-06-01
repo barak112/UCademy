@@ -206,10 +206,9 @@ class UserProfilePanel(wx.ScrolledWindow):
         if video.video_id>0:
             index = self.frame.users[video.creator].videos_ids.index(
                 video.video_id)  # using index so if a creator added video insert it at index 0
-            #todo do i really need index?
 
             if video.video_id not in [video.video_id for video in self.videos_details[video.creator]]: # ensure no dups
-                # save video information to be used now and in when loading this profile later
+                # save video information to be used now and when loading this profile later
                 self.videos_details[video.creator].insert(index, video)
 
         if video.creator == self.current_username: # if video arriving belongs to user shown on screen
