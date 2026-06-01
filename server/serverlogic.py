@@ -357,7 +357,7 @@ class ServerLogic:
 
             else:  # type == settings.VIDEO_DIGIT_REPR
                 content, content_publisher = self.db.get_specific_video(id, False)[:2]
-                thumbnail_path = (f"media\\videos\\{id}.png")
+                thumbnail_path = f"media\\videos\\{id}.png"
                 if os.path.isfile(thumbnail_path) and thumbnail_path not in self.thumbnails_sent[client_ip]:
                     self.clients[client_ip][1].send_file(
                         thumbnail_path)  # sends the video's thumbnail if the client doesnt already have it'
