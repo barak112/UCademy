@@ -201,6 +201,17 @@ class UserProfilePanel(wx.ScrolledWindow):
 
     def add_video_details(self, video):
         print("video in add_video_details:", video.video_id, video.creator)
+
+        index = 0
+        if video.video_id>0:
+            index = self.frame.users[video.creator].videos_ids.index(
+                video.video_id)  # using index so if a creator added video insert it at index 0
+            #todo do i really need index?
+
+            if video.video_id not in [video.video_id for video in self.videos_details[video.creator]]: # ensure no dups
+                # save video information to be used now and in when loading this profile later
+                self.videos_details[video.creator].insert(index, video)
+
         if video.creator == self.current_username: # if video arriving belongs to user shown on screen
             if not video.video_id:  # video_id = 0 indicates no more users videos
                 self.waiting_for_videos = False
@@ -218,11 +229,7 @@ class UserProfilePanel(wx.ScrolledWindow):
                 self.waiting_for_videos = False
                 self.status_label.SetLabel("")
 
-            elif video.video_id not in self.videos_ids: # makes sure there are no dups
-                index = self.frame.users[video.creator].videos_ids.index(
-                    video.video_id)  # if a creator added video, insert it at index 0
-                self.videos_details[video.creator].insert(index, video)
-
+            elif video.video_id>0 and video.video_id not in self.videos_ids: # ensures no dups
                 self.videos_ids.insert(index, video.video_id)
 
                 if len(self.videos_grid.GetChildren()) == self.videos_grid.GetCols() * self.videos_grid.GetRows():  # if grid is full
@@ -231,9 +238,22 @@ class UserProfilePanel(wx.ScrolledWindow):
                 thumbnail = video_widget.VideoWidget(self, video, self.COLUMN_WIDTH, self.RATIO)
                 self.videos_grid.Add(thumbnail, 0, wx.EXPAND)
 
-            elif video.video_id not in self.videos_ids and video.video_id>0: # still save the video locally so can be loaded later
-                index = self.frame.users[video.creator].videos_ids.index(video.video_id) # if a creator added video, insert it at index 0
-                self.videos_details[video.creator].insert(index, video)
+            # elif video.video_id not in self.videos_ids: # makes sure there are no dups
+            #     index = self.frame.users[video.creator].videos_ids.index(
+            #         video.video_id)  # if a creator added video, insert it at index 0
+            #     self.videos_details[video.creator].insert(index, video)
+            #
+            #     self.videos_ids.insert(index, video.video_id)
+            #
+            #     if len(self.videos_grid.GetChildren()) == self.videos_grid.GetCols() * self.videos_grid.GetRows():  # if grid is full
+            #         self.videos_grid.SetRows(self.videos_grid.GetRows() + 1)
+            #
+            #     thumbnail = video_widget.VideoWidget(self, video, self.COLUMN_WIDTH, self.RATIO)
+            #     self.videos_grid.Add(thumbnail, 0, wx.EXPAND)
+            #
+            # elif video.video_id not in self.videos_ids and video.video_id>0: # still save the video locally so can be loaded later
+            #     index = self.frame.users[video.creator].videos_ids.index(video.video_id) # if a creator added video, insert it at index 0
+            #     self.videos_details[video.creator].insert(index, video)
 
 
             self.FitInside()
@@ -345,11 +365,12 @@ class UserProfilePanel(wx.ScrolledWindow):
         if video_id in self.videos_ids:
             self.Refresh()  # refresh if the video is currently on screen
 
-    def on_a_user_upload_video(self, username):
+    def on_a_user_upload_video(self, username, video_id):
         """
             when a user uploads a video, requests all of his videos again from the server (so that they will be ordered correctly)
         :param username: username of the user uploading the video
-        :return: videos redisplays including the new video
+        :param video_id: the video id of the video that was uploaded
+        :return: videos redisplay including the new video
         """
         print("creator has uploaded new video:",username)
         msg = clientProtocol.build_req_creator_videos(username)
@@ -365,6 +386,9 @@ class UserProfilePanel(wx.ScrolledWindow):
             else:
                 self.status_label.SetLabel("This creator uploaded a new video, loading it now from server")
             self.Layout()
+
+            self.frame.user_profile_feed_panel.videos_ids.insert(0, video_id)
+
 
     def delete_video_ans(self, video_id):
         videos = [video for video_list in self.videos_details.values() for video in video_list]

@@ -337,7 +337,7 @@ class FeedPanel(wx.Panel):
                     self.load_video(self.frame.videos_details[self.videos_ids[self.video_index]])
                 else:
                     self.load_video(deleted_video)
-                    msg = clientProtocol.build_req_video(video_id)
+                    msg = clientProtocol.build_req_video(self.videos_ids[self.video_index])
                     self.frame.comm.send_msg(msg)
 
                     self.frame.video_requests_by_feeds.append(self)
@@ -679,7 +679,8 @@ class FeedPanel(wx.Panel):
         self.video_ctrl.Show()
         self.video_ctrl.Play()
         self.video_ctrl.SetVolume(FeedPanel.volume)
-        self.video_ctrl.Thaw()  # unfreeze the video once it loads
+        if self.video_ctrl.IsFrozen():
+            self.video_ctrl.Thaw()  # unfreeze the video once it loads
         self.status_label.SetLabel("")
         self.can_scroll = True
         self.Layout()

@@ -205,7 +205,7 @@ class MainFrame(wx.Frame):
             self.upload_video_panel.on_video_upload_ans(video_id)
             self.user.videos_ids.insert(0, video_id)
 
-        self.user_profile_panel.on_a_user_upload_video(username)
+        self.user_profile_panel.on_a_user_upload_video(username, video_id)
 
 
     def switch_panel(self, new_panel, old_panel):
