@@ -252,23 +252,41 @@ class FeedPanel(wx.Panel):
         padding_sizer.AddSpacer(10)
         padding_sizer.AddStretchSpacer()
 
+        # status label
+        status_and_back_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.status_label = wx.StaticText(self, label="Loading Video From Server")
+        self.frame.status_labels.append(self.status_label)
+        self.status_label.SetFont(
+            wx.Font(settings.status_label_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        self.status_label.SetForegroundColour(wx.Colour(wx.RED))
+
+        main_sizer.AddSpacer(20) # headspace
+        main_sizer.Add(status_and_back_button_sizer, 0, wx.EXPAND)
+
         if isinstance(self.associated_panel, UserProfilePanel):
             # back arrow
             back_arrow = rounded_button.RoundedButton(self, "assets\\back_arrow.png", wx.WHITE, self.BG_COLOR,
                                                       circle=True, use_image=True)
             back_arrow.SetMinSize((50, 50))
             back_arrow.Bind(wx.EVT_LEFT_DOWN, self.on_back_arrow)
-            main_sizer.Add(back_arrow, 0, wx.ALL, 20)
+            status_and_back_button_sizer.Add(back_arrow, 0, wx.LEFT, 20)
+
+            # add status label in the middle of the screen
+            status_and_back_button_sizer.AddStretchSpacer()
+            status_and_back_button_sizer.Add(self.status_label, 0, wx.RIGHT, 70)
+            status_and_back_button_sizer.AddStretchSpacer()
+
+        else:
+            # add status label in the middle of the screen
+            status_and_back_button_sizer.AddStretchSpacer()
+            status_and_back_button_sizer.Add(self.status_label)
+            status_and_back_button_sizer.AddStretchSpacer()
+
+            # main_sizer.Add(status_and_back_button_sizer, 0, wx.EXPAND)
+            main_sizer.AddSpacer(25)
 
         # add to main_sizer
-        self.status_label = wx.StaticText(self, label="Loading Video From Server")
-        self.frame.status_labels.append(self.status_label)
-        self.status_label.SetFont(wx.Font(settings.status_label_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
-        self.status_label.SetForegroundColour(wx.Colour(wx.RED))
 
-        main_sizer.AddSpacer(25)
-        main_sizer.Add(self.status_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
-        main_sizer.AddSpacer(25)
         main_sizer.Add(padding_sizer, 1, wx.EXPAND)
         main_sizer.AddSpacer(50)
 
