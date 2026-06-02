@@ -789,6 +789,9 @@ class ServerLogic:
         video_id = int(data[0])
         username = self.clients[client_ip][0]
         if not video_id:
+            if self.db.is_system_manager(username):
+                pass
+                #todo continue this
             video_id = self.db.get_video_for_user(username, self.clients[client_ip][2])
 
         if video_id:
