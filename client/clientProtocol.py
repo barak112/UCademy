@@ -235,6 +235,15 @@ def is_file(msg):
 
 # ----- System Manager protocol -----
 
+def build_filter_comments_or_videos_reports(type):
+    """
+    Builds a filter for comments or videos reports based on the provided type.
+
+    :param type: Type of filter to be applied for comments or videos reports.
+    :return: Command generated with the specified filter type.
+    """
+    return build_command(97, [type])
+
 def build_comment_or_video_status(id, type, status):
     """
         Builds a command to update the status of a comment or video.

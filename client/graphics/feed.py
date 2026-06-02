@@ -5,6 +5,7 @@ import webbrowser
 import requests
 import wx
 import wx.media
+from pubsub import pub
 
 import clientProtocol
 import rounded_button
@@ -47,6 +48,9 @@ class FeedPanel(wx.Panel):
 
         self.no_videos = False
 
+        self.comments_or_videos_reports_filter = settings.VIDEO_DIGIT_REPR
+        self.filter = []
+
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.SetBackgroundColour(self.BG_COLOR)
@@ -86,7 +90,64 @@ class FeedPanel(wx.Panel):
 
         search_sizer.Add(self.search_btn)
         search_sizer.Add(self.search_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        # filter
+        filter_sizer = wx.BoxSizer(wx.VERTICAL)
+        img_path = "assets\\filter_icon.png"
+        self.filter_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
+                                                       self.BG_COLOR, circle=True, use_image=True)
+        self.filter_btn.SetMinSize((50, 50))
+        self.filter_label = wx.StaticText(self, label="filter")
+
+        filter_sizer.Add(self.filter_btn)
+        filter_sizer.Add(self.filter_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+
+        # comments reports
+        comments_reports_sizer = wx.BoxSizer(wx.VERTICAL)
+        img_path = "assets\\open_comments_icon.png"
+        self.comments_reports_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
+                                                             self.BG_COLOR, circle=True, use_image=True)
+        self.comments_reports_btn.SetMinSize((50, 50))
+        self.comments_reports_label = wx.StaticText(self, label="comments")
+
+        comments_reports_sizer.Add(self.comments_reports_btn)
+        comments_reports_sizer.Add(self.comments_reports_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        self.comments_reports_btn.Hide()
+        self.comments_reports_label.Hide()
+
+
+        # video reports
+        videos_reports_sizer = wx.BoxSizer(wx.VERTICAL)
+        img_path = "assets\\video_icon.png"
+        self.videos_reports_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
+                                                                 self.BG_COLOR, circle=True, use_image=True)
+        self.videos_reports_btn.set_active(True)
+        self.videos_reports_btn.SetMinSize((50, 50))
+        self.videos_reports_label = wx.StaticText(self, label="videos")
+
+        videos_reports_sizer.Add(self.videos_reports_btn)
+        videos_reports_sizer.Add(self.videos_reports_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        self.videos_reports_btn.Hide()
+        self.videos_reports_label.Hide()
         
+        # Moderate
+        moderate_sizer = wx.BoxSizer(wx.VERTICAL)
+        img_path = "assets\\system_manager_icon.png"
+        self.moderate_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
+                                                               self.BG_COLOR, circle=True, use_image=True)
+        self.moderate_btn.SetMinSize((50, 50))
+        self.moderate_label = wx.StaticText(self, label="Moderate")
+
+        moderate_sizer.Add(self.moderate_btn)
+        moderate_sizer.Add(self.moderate_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+
+        self.moderate_btn.Hide()
+        self.moderate_label.Hide()
+        
+
         # delete
         delete_video_sizer = wx.BoxSizer(wx.VERTICAL)
         img_path = "assets\\delete_video_icon.png"
@@ -166,10 +227,10 @@ class FeedPanel(wx.Panel):
         self.report_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
                                                        self.BG_COLOR, circle=True, use_image=True)
         self.report_btn.SetMinSize((50, 50))
-        report_label = wx.StaticText(self, label="report")
+        self.report_label = wx.StaticText(self, label="report")
 
         report_sizer.Add(self.report_btn)
-        report_sizer.Add(report_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        report_sizer.Add(self.report_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
         # creator account
         account_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -190,7 +251,14 @@ class FeedPanel(wx.Panel):
 
         actions_sizer.AddStretchSpacer()
 
-        actions_sizer.Add(delete_video_sizer)
+        actions_sizer.Add(videos_reports_sizer)
+        actions_sizer.Add(comments_reports_sizer, 0, wx.TOP, 10)
+
+        actions_sizer.AddStretchSpacer()
+
+        actions_sizer.Add(filter_sizer)
+        actions_sizer.Add(delete_video_sizer, 0, wx.TOP, 10)
+        actions_sizer.Add(moderate_sizer, 0, wx.TOP, 10)
         actions_sizer.Add(play_sizer, 0, wx.TOP, 10)
         actions_sizer.Add(sound_sizer, 0, wx.TOP, 10)
         actions_sizer.Add(like_sizer, 0, wx.TOP, 10)
@@ -282,7 +350,6 @@ class FeedPanel(wx.Panel):
             status_and_back_button_sizer.Add(self.status_label)
             status_and_back_button_sizer.AddStretchSpacer()
 
-            # main_sizer.Add(status_and_back_button_sizer, 0, wx.EXPAND)
             main_sizer.AddSpacer(25)
 
         # add to main_sizer
@@ -299,6 +366,12 @@ class FeedPanel(wx.Panel):
 
         # actions binds
         self.personal_account_btn.Bind(wx.EVT_LEFT_UP, self.on_personal_account)
+
+        self.comments_reports_btn.Bind(wx.EVT_LEFT_UP, self.on_comments_reports)
+        self.videos_reports_btn.Bind(wx.EVT_LEFT_UP, self.on_videos_reports)
+        self.moderate_btn.Bind(wx.EVT_LEFT_UP, self.on_moderate)
+
+        self.filter_btn.Bind(wx.EVT_LEFT_UP, self.on_filter)
         self.like_btn.Bind(wx.EVT_LEFT_UP, self.on_like_video)
         self.open_comments_btn.Bind(wx.EVT_LEFT_UP, self.on_open_comments)
         self.sound_btn.Bind(wx.EVT_LEFT_UP, self.on_toggle_sound)
@@ -317,7 +390,69 @@ class FeedPanel(wx.Panel):
         self.comments_panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         desc_panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
 
+        if isinstance(self.associated_panel, FeedPanel):
+            pub.subscribe(self.on_comments_or_videos_reports_ans, "comments_or_videos_reports_ans")
+
         self.Hide()
+
+
+    def on_moderate(self, event):
+        if self.frame.user.is_system_manager():
+            answer = wx.MessageBox("Would you like to delete this video?\nThis action is not reversable\nClick Yes to delete\nClick No to keep\nClick cancel to avoid moderating this video", "Moderate Video", wx.ICON_INFORMATION | wx.YES_NO | wx.CANCEL, )
+
+            if answer == wx.CANCEL:
+                wx.MessageBox("Moderation has been canceled", "Moderation Canceled", wx.OK | wx.ICON_INFORMATION)
+            else:
+                status = settings.REPORT_ACCEPTED if answer == wx.YES else settings.REPORT_DENIED
+
+                msg = clientProtocol.build_comment_or_video_status(self.current_video_id, settings.VIDEO_DIGIT_REPR, status)
+                self.frame.comm.send_msg(msg)
+                self.status_label.SetLabel("Moderation sent to the server")
+                wx.MessageBox("Moderation has been sent to the server", "Moderation sent", wx.OK | wx.ICON_INFORMATION)
+        event.Skip()
+
+    def on_comments_or_videos_reports_ans(self, type):
+        self.comments_or_videos_reports_filter = type
+
+        if type == settings.VIDEO_DIGIT_REPR:
+            self.videos_reports_btn.set_active(True)
+            self.comments_reports_btn.set_active(False)
+        else:
+            self.videos_reports_btn.set_active(False)
+            self.comments_reports_btn.set_active(True)
+        self.status_label.SetLabel("")
+
+
+    def on_videos_reports(self, event):
+        if self.comments_or_videos_reports_filter != settings.VIDEO_DIGIT_REPR:
+            msg = clientProtocol.build_filter_comments_or_videos_reports(settings.VIDEO_DIGIT_REPR)
+            self.frame.comm.send_msg(msg)
+            self.status_label.SetLabel("sent videos filter req to server")
+            self.Layout()
+        event.Skip()
+
+    def on_comments_reports(self, event):
+        if self.comments_or_videos_reports_filter != settings.COMMENT_DIGIT_REPR:
+            msg = clientProtocol.build_filter_comments_or_videos_reports(settings.COMMENT_DIGIT_REPR)
+            self.frame.comm.send_msg(msg)
+            self.status_label.SetLabel("sent comments filter req to server")
+            self.Layout()
+        event.Skip()
+
+    def on_filter(self, event):
+        self.frame.pick_video_topics_panel.set_selected_topics(self.filter)
+        self.frame.switch_panel(self.frame.pick_filter_panel, self)
+        event.Skip()
+
+    # set filter topics, called from pick_filter_panel
+    def handle_set_topics(self, topics):
+        msg = clientProtocol.build_set_filter(topics)
+        self.frame.comm.send_msg(msg)
+        self.status_label.SetLabel("Sent filter req to server")
+
+    def filter_ans(self, topics):
+        self.filter = topics
+        self.status_label.SetLabel("Filter has been set")
 
     def on_report_video(self, event):
         """
@@ -344,21 +479,18 @@ class FeedPanel(wx.Panel):
     def on_delete_video(self, event):
         self.status_label.SetLabel("sending delete req to server")
         #todo make the message boxes a dialog message
-        answer = wx.MessageBox(
-            "Are you sure you want to delete this video?\nThis action is not reverseable\n",
-            f'Delete Video "{self.frame.videos_details[self.current_video_id].video_name}"?',
-            wx.YES_NO | wx.ICON_INFORMATION,
-        )
+        if self.frame.videos_details[self.current_video_id].creator == self.frame.user.username:
+            answer = wx.MessageBox(
+                "Are you sure you want to delete this video?\nThis action is not reverseable\n",
+                f'Delete Video "{self.frame.videos_details[self.current_video_id].video_name}"?',
+                wx.YES_NO | wx.ICON_INFORMATION,
+            )
 
-        if answer == wx.YES:
-            wx.MessageBox("Delete req has been sent to the server", "Delete req sent", wx.OK | wx.ICON_INFORMATION)
+            if answer == wx.YES:
 
-            if self.frame.videos_details[self.current_video_id].creator == self.frame.user.username:
-                msg = clientProtocol.build_del_video(self.current_video_id)
-                self.frame.comm.send_msg(msg)
-            elif self.frame.user.is_system_manager(): # if system manager
-                msg = clientProtocol.build_comment_or_video_status(self.current_video_id, settings.VIDEO_DIGIT_REPR, settings.REPORT_ACCEPTED)
-                self.frame.comm.send_msg(msg)
+                    wx.MessageBox("Delete req has been sent to the server", "Delete req sent", wx.OK | wx.ICON_INFORMATION)
+                    msg = clientProtocol.build_del_video(self.current_video_id)
+                    self.frame.comm.send_msg(msg)
 
         self.Layout()
         event.Skip()
@@ -478,7 +610,6 @@ class FeedPanel(wx.Panel):
             Navigates back to the current user's profile page.
         :param event: The mouse click event that triggered this handler.
         """
-        # self.frame.user_profile_panel.set_new_user(self.frame.user.username)
         self.frame.switch_panel(self.frame.user_profile_panel, self)
         event.Skip()
 
@@ -515,6 +646,31 @@ class FeedPanel(wx.Panel):
         self.comments_panel.update_pfp_bitmap()
         self.video_ctrl.SetVolume(FeedPanel.volume)
         self.update_sound_button_and_label(FeedPanel.volume)
+
+        if self.frame.user.is_system_manager():
+            self.videos_reports_btn.Show()
+            self.videos_reports_label.Show()
+
+            self.comments_reports_btn.Show()
+            self.comments_reports_label.Show()
+
+            self.moderate_btn.Show()
+            self.moderate_label.Show()
+
+            self.filter_btn.Hide()
+            self.filter_label.Hide()
+
+            self.report_btn.Hide()
+            self.report_label.Hide()
+
+        if isinstance(self.associated_panel, UserProfilePanel):
+            self.videos_reports_btn.Hide()
+            self.videos_reports_label.Hide()
+            self.comments_reports_btn.Hide()
+            self.comments_reports_label.Hide()
+
+            self.filter_btn.Hide()
+            self.filter_label.Hide()
 
     def Hide(self):
         """
@@ -655,13 +811,6 @@ class FeedPanel(wx.Panel):
                     load_a_new_video = True
                     self.negative_scroll_pos +=1
             else:
-                #todo add a "scrolling points" that do -1 when scrolling up and +1 when scrolling down (doesnt get bigger than 0)
-                # so when scrolling up you know when you returned the point you started scrolling up.
-                # only preload a new video when you scroll down past 0 scrolling points:
-                # if scrolling_points>=0:
-                #     load a new video
-                # else:
-                #     scrolling_points+=1
 
                 if len(self.videos_ids) > self.video_index + 1:
                     new_index += 1
@@ -843,7 +992,7 @@ class FeedPanel(wx.Panel):
             test_btn_color = wx.WHITE if video.test_link else settings.UNACTIVE_BUTTON
             self.test_btn.set_background_color(test_btn_color)
 
-            if video.creator == self.frame.user.username or self.frame.user.is_system_manager():
+            if video.creator == self.frame.user.username and not self.frame.user.is_system_manager():
                 self.delete_video_btn.Show()
                 self.delete_video_label.Show()
             else:

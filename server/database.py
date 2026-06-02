@@ -601,7 +601,7 @@ class DataBase:
         :param comment_id: ID of the comment to check
         :return: True if the comment exists, False otherwise
         """
-        self.cur.execute("SELECT 1 FROM comments WHERE comment_id = ?", (comment_id,))
+        self.cur.execute("SELECT 1 FROM comments WHERE comment_id = ? and deleted = 0", (comment_id,))
         return self.cur.fetchone() is not None
 
     def get_video_id_by_comment_id(self, comment_id):

@@ -92,7 +92,8 @@ class ServerLogic:
             '18': self.handle_like_video,
             '19': self.send_user_his_pfp,
 
-            '97': self.handle_client_disconnected,
+            '96': self.handle_client_disconnected,
+            '97': self.handle_filter_comments_or_videos_reports,
             '98': self.handle_comment_or_video_status,
             '99': self.handle_user_kick,
         }
@@ -107,6 +108,8 @@ class ServerLogic:
         self.creator_videos_sent = {} # [client_ip] = [users_names]
         self.videos_sent = {}  # [client_ip] = [videos_ids]
         self.thumbnails_sent = {}  # [client_ip] = [videos_ids]
+
+        self.system_managers_type_filter = {} # [client_ip] = video/comment digit repr
 
         self.handle_msgs()
 
@@ -178,6 +181,7 @@ class ServerLogic:
         username = None
         email = None
         port = None
+        system_manager = None
 
         # check if user is awaiting verification code
         if client_ip in self.clients_awaiting_email_verification:
@@ -207,10 +211,11 @@ class ServerLogic:
                     status = settings.EMAIL_VERIFICATION_SUCCESSFUL
                     self.current_video_port += 1
                     del self.clients_awaiting_email_verification[client_ip]
+                    system_manager = int(self.db.is_system_manager(username))
 
                 else:  # credentials are taken
                     status = settings.EMAIL_VERIFICATION_CREDENTIALS_TAKEN
-        msg = serverProtocol.build_email_verification_confirmation(status, username, email, port)
+        msg = serverProtocol.build_email_verification_confirmation(status, username, email, port, system_manager)
         self.comm.send_msg(client_ip, msg)
 
     @staticmethod
@@ -323,6 +328,8 @@ class ServerLogic:
                 self.videos_sent[client_ip] = []
                 self.thumbnails_sent[client_ip] = []
                 self.current_video_port += 1
+                if system_manager:
+                    self.system_managers_type_filter[client_ip] = settings.VIDEO_DIGIT_REPR
 
         self.comm.send_msg(client_ip, msg)
         if status == settings.LOG_IN_SUCCESSFUL:
@@ -939,6 +946,18 @@ class ServerLogic:
 
     # Called by System Manager
 
+    def handle_filter_comments_or_videos_reports(self, client_ip, type):
+        """
+        Updates the filter type for managing comment or video reports for a specific client
+        and sends a confirmation message.
+
+        :param client_ip: The IP address of the client for whom the filter type is being updated.
+        :param type: The filter type to be applied for comment or video reports.
+        """
+        self.system_managers_type_filter[client_ip] = type
+        msg = serverProtocol.build_filter_comments_or_videos_reports_confirmation(type)
+        self.comm.send_msg(client_ip, msg)
+
     def handle_comment_or_video_status(self, client_ip, data):  # command 98
         """
             Handles a system manager's decision on a reported comment or video,
@@ -980,11 +999,18 @@ class ServerLogic:
 
                 active_reporters = usernames & client_names
 
-                reports = [[id, type, username, client_ip] for username in active_reporters]
+                # each report consists of the id of the target, the type (0 for comment, 1 for video), the username of the reporter and it's current client_ip
+                reports = [[id, type, username, next((client_ip for client_ip, client_properties in self.clients.items() if username == client_properties[0]), None)] for username in active_reporters]
 
                 self.send_reports_statuses(reports)
+
             else:
-                print("content does not exist")
+                # content doesnt exist
+                status = settings.REPORT_CONTENT_DOESNT_EXISTS
+
+            msg = serverProtocol.build_comment_or_video_status_confirmation(status)
+            self.comm.send_msg(client_ip, msg)
+
         else:
             print("not a system manager")
 

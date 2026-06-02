@@ -28,16 +28,17 @@ def build_sign_up_status(status):
     return build_command(0, [status])
 
 
-def build_email_verification_confirmation(status, username=None, email=None, port=None):
+def build_email_verification_confirmation(status, username=None, email=None, port=None, system_manager = None):
     """
         Builds a response command confirming the result of an email verification attempt.
     :param status: The status code of the verification result.
     :param username: The username of the verified user, if successful.
     :param email: The email address of the verified user, if successful.
     :param port: The video communication port assigned to the client, if successful.
+    :param system_manager: whether the user is a system manager or not
     :return: Formatted email verification confirmation command string.
     """
-    return build_command(1, [status, username, email, port])
+    return build_command(1, [status, username, email, port, system_manager])
 
 
 def build_sign_in_status(status, port=None, username=None, followers_amount=None,
@@ -54,6 +55,7 @@ def build_sign_in_status(status, port=None, username=None, followers_amount=None
     :param email: The email address of the signed-in user.
     :param topics: List of topic preferences associated with the user.
     :param followings_names: List of usernames the user is following.
+    :param system_manager: whether the user is a system manager or not
     :return: Formatted sign-in status command string.
     """
     return build_command(2, [status, port, username, followers_amount, followings_amount, videos_ids, email, topics,
@@ -283,6 +285,17 @@ def build_update_pfp():
     """
     return build_command(19, [])
 
+
+# ----- System Manager protocol -----
+
+def build_filter_comments_or_videos_reports_confirmation(type):
+    return build_command(97, [type])
+
+def build_comment_or_video_status_confirmation(status):
+    return build_command(98, [status])
+
+def build_kick_user_confirmation(username):
+    return build_command(99, [username])
 
 # ----- Video transfer protocol -----
 
