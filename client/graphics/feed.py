@@ -420,6 +420,14 @@ class FeedPanel(wx.Panel):
             self.comments_reports_btn.set_active(True)
         self.status_label.SetLabel("")
 
+        del self.videos_ids[self.video_index + 1:]
+
+        msg = clientProtocol.build_req_video()
+        for i in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
+            self.frame.comm.send_msg(msg)
+            self.frame.video_requests_by_feeds.append(self.frame.feed_panel)
+            self.frame.comments_requests_by_feeds.append(self.frame.feed_panel)
+
 
     def on_videos_reports(self, event):
         if self.comments_or_videos_reports_filter != settings.VIDEO_DIGIT_REPR:
@@ -477,6 +485,7 @@ class FeedPanel(wx.Panel):
     def on_delete_video(self, event):
         self.status_label.SetLabel("sending delete req to server")
         #todo make the message boxes a dialog message
+        #todo understand if the video deletion affects scrolling points, and if it does then make it okay
         if self.frame.videos_details[self.current_video_id].creator == self.frame.user.username:
             answer = wx.MessageBox(
                 "Are you sure you want to delete this video?\nThis action is not reverseable\n",
@@ -808,8 +817,10 @@ class FeedPanel(wx.Panel):
                     new_index -= 1  # last video
                     load_a_new_video = True
                     self.negative_scroll_pos +=1
-            else:
+                else: # no previous video
+                    self.status_label.SetLabel("No more videos above")
 
+            else: # scroll down
                 if len(self.videos_ids) > self.video_index + 1:
                     new_index += 1
                     load_a_new_video = True

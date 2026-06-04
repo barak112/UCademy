@@ -582,16 +582,11 @@ class DataBase:
 
     def get_comment_video_for_system_manager(self, username):
         """
-        Fetches a list of videos with reported comments for system managers.
+        Fetches the video ID of the most reported comment for a system manager based on the provided username.
+        The method filters out deleted comments and videos, as well as comments already reviewed by the specified user.
 
-        This method queries the database to retrieve videos and their respective
-        number of unresolved reported comments. Only comments that are not reviewed
-        by the specified system manager and are not marked as deleted are included
-        in the results. The data is sorted in descending order based on the number of
-        reports for each video.
-
-        :param username: The username of the system manager querying the data.
-        :return:
+        :param username: The username of the system manager who is retrieving the most reported video.
+        :return: The video ID associated with the most reported comment, or None if no such result exists.
         """
         self.cur.execute("""
         SELECT c.video_id, COUNT(r.target_id) as reports_amount
@@ -603,7 +598,8 @@ class DataBase:
              
         
         WHERE c.deleted = 0
-        AND NOT EXISTS(SELECT 1 FROM reviewed_reported_comments_video rev WHERE rev.comment_id = r.target_id AND rev.username = ?) )
+        AND NOT EXISTS(SELECT 1 FROM reviewed_reported_comments_video rev WHERE rev.video_id = c.video_id AND rev.username = ?)
+        AND NOT EXISTS(SELECT 1 FROM videos v WHERE v.video_id = c.video_id AND v.deleted = 1)
         
         GROUP BY c.video_id
         ORDER BY reports_amount DESC
@@ -621,9 +617,7 @@ class DataBase:
 
         :param video_id: The unique identifier of the video for which reported comments
                          need to be retrieved.
-        :type video_id: str
         :return: A list of comment IDs that have been reported and match the specified condition.
-        :rtype: list[str]
         """
         self.cur.execute("""
                          SELECT c.comment_id 
@@ -1068,7 +1062,7 @@ class DataBase:
         return res[0] if res else None
 
     def no_reports(self, type):
-        self.cur.execute("SELECT 1 FROM reports WHERE target_type = ? status IS NULL", (type,))
+        self.cur.execute("SELECT 1 FROM reports WHERE target_type = ? AND status IS NULL", (type,))
         return self.cur.fetchone() is None
 
     def set_report_notified(self, username, id, type):
@@ -1245,7 +1239,9 @@ if __name__ == "__main__":
 
     # --- testing ---
 
-    print(db.get_reported_comments(3))
+    # print(db.get_reported_comments(3))
+    print(db.get_comment_video_for_system_manager("Barak"))
+    # print(db.get_reported_comments(3))
 
     # db.cur.execute("UPDATE reports SET notified = 0")
     # db.conn.commit()

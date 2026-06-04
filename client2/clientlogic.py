@@ -46,7 +46,11 @@ class ClientLogic:
             "18": self.handle_like_video_confirmation,
             "19": self.handle_update_pfp,
 
-            "97": self.comm_disconnected
+            "96": self.comm_disconnected,
+
+            "97": self.handle_filter_comments_or_videos_reports_confirmation,
+            "98": self.handle_comment_or_video_status_confirmation,
+            "99": self.handle_kick_user_confirmation,
         }
 
         threading.Thread(target=self.handle_msgs, daemon=True).start()
@@ -92,14 +96,16 @@ class ClientLogic:
         """
         status = data[0]
         status = int(status)
+        video_comm = None
+        user_obj = None
         if status == settings.EMAIL_VERIFICATION_SUCCESSFUL:
-            username, email, video_port = data[1:]
+            username, email, video_port, system_manager = data[1:]
             video_port = int(video_port)
             video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
             video_comm.connect()
-            self.user = user.User(username, 0, 0, 0, email)
+            user_obj = user.User(username, 0, 0, [], email, [], [], system_manager)
 
-        wx.CallAfter(pub.sendMessage, "email_verification_ans", status=status, video_comm=video_comm, user=self.user)
+        wx.CallAfter(pub.sendMessage, "email_verification_ans", status=status, video_comm=video_comm, user=user_obj)
 
     def handle_sign_in_confirmation(self, data):  # command 2
         """Handles the server's response to a sign-in attempt, initializes video communication and user object if successful, and notifies the UI.
@@ -346,7 +352,28 @@ class ClientLogic:
         wx.CallAfter(pub.sendMessage, "update_pfp_ans")
 
     def comm_disconnected(self, data): # command 20
+        """
+        Handles the communication disconnection event and sends a notification message
+        using the publish-subscribe (pubsub) mechanism.
+
+        :param data: The data associated with the disconnection event, typically
+            useful for additional context or logging.
+        """
         wx.CallAfter(pub.sendMessage, "comm_disconnected")
+
+    # system manager
+    def handle_filter_comments_or_videos_reports_confirmation(self, data): # command 97
+        type = data[0]
+        type = int(type)
+        wx.CallAfter(pub.sendMessage, "comments_or_videos_reports_ans", type=type)
+
+    def handle_comment_or_video_status_confirmation(self, status): # command 98
+        pass
+
+    def handle_kick_user_confirmation(self, username): # command 99
+        pass
+
+
 
 if __name__ == "__main__":
     """Main entry point to run the client."""

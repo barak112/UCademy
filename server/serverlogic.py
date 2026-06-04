@@ -620,6 +620,7 @@ class ServerLogic:
 
         elif status == settings.REPORT_RECEIVED:
             self.db.add_report(username, id, type)
+            #update any system manager that has recieved the video of this comment
 
         msg = serverProtocol.build_report_status(status, id, type, content, content_publisher)
         self.comm.send_msg(client_ip, msg)
@@ -627,6 +628,7 @@ class ServerLogic:
     def handle_comments_req(self, client_ip, data):  # command 10
         """
             :param data: video_id, last_comment_id
+            :param client_ip: the ip of the client making the request.
             last_comment_id -> used to determine which comments should be next to be sent to the client.
             last_comment_id is the last comment's id the client has received.
             if last_comment_id = 0. it means that its the first time the client has requested comments.
@@ -634,9 +636,8 @@ class ServerLogic:
         video_id, last_id = data
         print("comments req arrived at handle", video_id)
 
+        video_id = int(video_id)
         last_id = int(last_id)
-
-        #todo add check if system manager and if currently filtering comments
 
         comments = self.db.get_comments(video_id, self.clients[client_ip][0])
 
@@ -656,6 +657,9 @@ class ServerLogic:
 
         # now that i have the entire comments of this video without deleted once and starting from the right index
         # i can filter the reported comments
+        print("is system manager revieweing comments",
+              self.db.is_system_manager(self.clients[client_ip][0]) and self.system_managers_type_filter[
+                  client_ip] == settings.COMMENT_DIGIT_REPR)
         if self.db.is_system_manager(self.clients[client_ip][0]) and self.system_managers_type_filter[
             client_ip] == settings.COMMENT_DIGIT_REPR:
             reported_comments = self.db.get_reported_comments(video_id)
@@ -807,11 +811,12 @@ class ServerLogic:
             filter_type = self.system_managers_type_filter[client_ip]
 
         if not video_id:
-            if filter_type: # if system manager
+            if self.db.is_system_manager(username):
                 if filter_type == settings.VIDEO_DIGIT_REPR:
                     video_id = self.db.get_video_for_system_manager(username)
                 else:  # if going over comments
                     video_id = self.db.get_comment_video_for_system_manager(username)
+
 
                 print("system manager video id:", video_id)
             else:
@@ -823,7 +828,7 @@ class ServerLogic:
                 self.handle_comments_req(client_ip, [video_id, 0])
 
                 # if its a system manager going over comments
-                if filter_type and filter_type == settings.COMMENT_DIGIT_REPR:
+                if self.db.is_system_manager(username) and filter_type == settings.COMMENT_DIGIT_REPR:
                     if not self.db.has_reviewed_reported_comments_video(username, video_id):
                         self.db.add_reviewed_reported_comments_video(username, video_id)
 
@@ -839,12 +844,12 @@ class ServerLogic:
             if self.db.no_videos():
                 video_id = settings.NO_VIDEOS_ID
 
-            elif filter_type:
+            elif self.db.is_system_manager(username):
                 if self.db.no_reports(filter_type):
                     video_id = settings.NO_VIDEOS_ID
 
             if video_id == settings.END_OF_LIST_ID:
-                if filter_type and filter_type == settings.COMMENT_DIGIT_REPR:
+                if self.db.is_system_manager(username) and filter_type == settings.COMMENT_DIGIT_REPR:
                    self.db.remove_reviewed_reported_comments_video_for_user(username)
                 else:
                     self.db.remove_watched_videos_for_user(username)
@@ -853,6 +858,7 @@ class ServerLogic:
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
             print("resettings video watched history for:",username)
 
+        print("sending video to client: ", video_id)
     def send_video_and_details(self, client_ip, video_id):  # helper function
         """
         sends a video and its details to the client, including the creator's pfp.
@@ -989,7 +995,7 @@ class ServerLogic:
 
     # Called by System Manager
 
-    def handle_filter_comments_or_videos_reports(self, client_ip, type):
+    def handle_filter_comments_or_videos_reports(self, client_ip, data):
         """
         Updates the filter type for managing comment or video reports for a specific client
         and sends a confirmation message.
@@ -997,6 +1003,8 @@ class ServerLogic:
         :param client_ip: The IP address of the client for whom the filter type is being updated.
         :param type: The filter type to be applied for comment or video reports.
         """
+        type = data[0]
+        type = int(type)
         self.system_managers_type_filter[client_ip] = type
         msg = serverProtocol.build_filter_comments_or_videos_reports_confirmation(type)
         self.comm.send_msg(client_ip, msg)
