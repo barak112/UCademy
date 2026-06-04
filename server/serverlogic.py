@@ -800,9 +800,15 @@ class ServerLogic:
         """
         video_id = int(data[0])
         username = self.clients[client_ip][0]
+
+        filter_type = None
+
+        if self.db.is_system_manager(username):
+            filter_type = self.system_managers_type_filter[client_ip]
+
         if not video_id:
-            if self.db.is_system_manager(username):
-                if self.system_managers_type_filter[client_ip] == settings.VIDEO_DIGIT_REPR:
+            if filter_type: # if system manager
+                if filter_type == settings.VIDEO_DIGIT_REPR:
                     video_id = self.db.get_video_for_system_manager(username)
                 else:  # if going over comments
                     video_id = self.db.get_comment_video_for_system_manager(username)
@@ -817,8 +823,7 @@ class ServerLogic:
                 self.handle_comments_req(client_ip, [video_id, 0])
 
                 # if its a system manager going over comments
-                if self.db.is_system_manager(username) and self.system_managers_type_filter[
-                    client_ip] == settings.COMMENT_DIGIT_REPR:
+                if filter_type and filter_type == settings.COMMENT_DIGIT_REPR:
                     if not self.db.has_reviewed_reported_comments_video(username, video_id):
                         self.db.add_reviewed_reported_comments_video(username, video_id)
 
@@ -834,12 +839,12 @@ class ServerLogic:
             if self.db.no_videos():
                 video_id = settings.NO_VIDEOS_ID
 
-            elif self.db.is_system_manager(username):
-                if self.db.no_reports(self.system_managers_type_filter[client_ip]):
+            elif filter_type:
+                if self.db.no_reports(filter_type):
                     video_id = settings.NO_VIDEOS_ID
 
             if video_id == settings.END_OF_LIST_ID:
-                if self.db.is_system_manager(username) and self.system_managers_type_filter[client_ip] == settings.COMMENT_DIGIT_REPR:
+                if filter_type and filter_type == settings.COMMENT_DIGIT_REPR:
                    self.db.remove_reviewed_reported_comments_video_for_user(username)
                 else:
                     self.db.remove_watched_videos_for_user(username)
