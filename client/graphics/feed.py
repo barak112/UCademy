@@ -973,7 +973,10 @@ class FeedPanel(wx.Panel):
 
         elif video_id == settings.NO_VIDEOS_ID:
             self.frame.comments_requests_by_feeds.pop(0)
-            self.status_label.SetLabel("No videos in the system, go to your profile to upload a video")
+            if self.frame.user.is_system_manager():
+                self.status_label.SetLabel("No reports in the system, all good")
+            else:
+                self.status_label.SetLabel("No videos in the system, go to your profile to upload a video")
             self.no_videos = True
             self.Layout()
 
