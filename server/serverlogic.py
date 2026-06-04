@@ -806,7 +806,7 @@ class ServerLogic:
                     video_id = self.db.get_video_for_system_manager(username)
                 else:  # if going over comments
                     video_id = self.db.get_comment_video_for_system_manager(username)
-                #todo check if filtering comments, add another func in db
+
                 print("system manager video id:", video_id)
             else:
                 video_id = self.db.get_video_for_user(username, self.clients[client_ip][2])
@@ -815,8 +815,14 @@ class ServerLogic:
             if self.db.video_exists(video_id):
                 self.send_video_and_details(client_ip, video_id)
                 self.handle_comments_req(client_ip, [video_id, 0])
-                # dont add to watched_videos if already watched video or if its a system manager going over comments
-                if not self.db.has_watched_video(username, video_id) and not (self.db.is_system_manager(username) and self.system_managers_type_filter[client_ip] == settings.COMMENT_DIGIT_REPR):
+
+                # if its a system manager going over comments
+                if self.db.is_system_manager(username) and self.system_managers_type_filter[
+                    client_ip] == settings.COMMENT_DIGIT_REPR:
+                    if not self.db.has_reviewed_reported_comments_video(username, video_id):
+                        self.db.add_reviewed_reported_comments_video(username, video_id)
+
+                elif not self.db.has_watched_video(username, video_id): # dont add to watched_videos if already watched video
                     self.db.add_watched_video(username, video_id)
             else:
                 # if video requested has been deleted
@@ -824,10 +830,18 @@ class ServerLogic:
                 self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
         else:
             video_id = settings.END_OF_LIST_ID
-            if self.db.no_videos() or (self.db.is_system_manager(username) and self.db.no_reports()):
+            if self.db.no_videos():
                 video_id = settings.NO_VIDEOS_ID
 
-            self.db.remove_watched_videos_for_user(username)
+            elif self.db.is_system_manager(username) and (self.system_managers_type_filter[client_ip]
+            == settings.VIDEO_DIGIT_REPR and self.db.no_reports(settings.VIDEO_DIGIT_REPR)) or (self.system_managers_type_filter[client_ip]
+            == settings.COMMENT_DIGIT_REPR and self.db.no_reports(settings.COMMENT_DIGIT_REPR)):
+
+                pass
+
+            else:
+                self.db.remove_watched_videos_for_user(username)
+
             msg_to_send = serverProtocol.build_video_details(video_id, "", "", "", "", 0, 0, 0, "")
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
             print("resettings video watched history for:",username)

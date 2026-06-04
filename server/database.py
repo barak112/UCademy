@@ -25,6 +25,7 @@ class DataBase:
         self._create_video_hashes_table()
         self._create_reports_table()
         self._create_system_managers_table()
+        self._create_reviewed_reported_comments_video_table() # for system manager
 
     # ==== db in general ====
     def close(self):
@@ -221,7 +222,22 @@ class DataBase:
             )
         """)
         self.conn.commit()
-
+    
+    def _create_reviewed_reported_comments_video_table(self):
+        """
+        Creates the reviewed_reported_comments_video table. 
+        :return: Creates the reviewed_reported_comments_video table if it does not already exist.
+        """
+        self.cur.execute("""
+                         CREATE TABLE IF NOT EXISTS reviewed_reported_comments_video
+                         (
+                             username TEXT,
+                             video_id INTEGER,
+                             PRIMARY KEY (username, video_id)
+                         )
+                         """)
+        self.conn.commit()
+    
     # ===== users =====
 
     def get_deleted_usernames(self):
@@ -564,7 +580,51 @@ class DataBase:
         self.cur.execute("SELECT 1 FROM comments WHERE comment_id = ? AND deleted = 1", (comment_id,))
         return self.cur.fetchone() is not None
 
+    def get_comment_video_for_system_manager(self, username):
+        """
+        Fetches a list of videos with reported comments for system managers.
+
+        This method queries the database to retrieve videos and their respective
+        number of unresolved reported comments. Only comments that are not reviewed
+        by the specified system manager and are not marked as deleted are included
+        in the results. The data is sorted in descending order based on the number of
+        reports for each video.
+
+        :param username: The username of the system manager querying the data.
+        :return:
+        """
+        self.cur.execute("""
+        SELECT c.video_id, COUNT(r.target_id) as reports_amount
+        FROM comments c
+        JOIN reports r
+             ON c.comment_id = r.target_id
+             AND r.target_type = ?
+             AND r.status IS NULL
+             
+        
+        WHERE c.deleted = 0
+        AND NOT EXISTS(SELECT 1 FROM reviewed_reported_comments_video rev WHERE rev.comment_id = r.target_id AND rev.username = ?) )
+        
+        GROUP BY c.video_id
+        ORDER BY reports_amount DESC
+        
+        """, (settings.COMMENT_DIGIT_REPR, username))
+
+        res = self.cur.fetchone()
+        return res[0] if res else None
+
     def get_reported_comments(self, video_id):
+        """
+        Fetch all reported comments for a specific video. A reported comment is identified as
+        a comment associated with a given video ID where a corresponding report exists in the
+        reports table, and the report status is null.
+
+        :param video_id: The unique identifier of the video for which reported comments
+                         need to be retrieved.
+        :type video_id: str
+        :return: A list of comment IDs that have been reported and match the specified condition.
+        :rtype: list[str]
+        """
         self.cur.execute("""
                          SELECT c.comment_id 
                          FROM comments c
@@ -926,7 +986,7 @@ class DataBase:
         self._add_user_topics(username, to_add_topics)
         self._remove_user_topics(username, to_remove_topics)
 
-    # ===== Watched videos =====
+    # ===== watched videos =====
 
     def add_watched_video(self, username, video_id):
         """
@@ -936,24 +996,6 @@ class DataBase:
         """
         self.cur.execute("INSERT INTO watched_videos VALUES (?,?)", (username, video_id))
         self.conn.commit()
-
-    def get_watched_videos(self, username):
-        """
-        Retrieves all videos watched by a user
-        :param username: Username of the user
-        :return: List of video IDs watched by the user
-        """
-        self.cur.execute("SELECT video_id FROM watched_videos WHERE username = ?", (username,))
-        return self.cur.fetchall()
-
-    def get_amount_of_views(self, video_id):
-        """
-        Counts how many times a video has been watched
-        :param video_id: ID of the video
-        :return: Number of views for the video
-        """
-        self.cur.execute("SELECT COUNT(*) FROM watched_videos WHERE video_id = ?", (video_id,))
-        return self.cur.fetchone()[0]
 
     def has_watched_video(self, username, video_id):
         """
@@ -1025,8 +1067,8 @@ class DataBase:
         res = self.cur.fetchone()
         return res[0] if res else None
 
-    def no_reports(self):
-        self.cur.execute("SELECT 1 FROM reports WHERE status IS NULL")
+    def no_reports(self, type):
+        self.cur.execute("SELECT 1 FROM reports WHERE target_type = ? status IS NULL", (type,))
         return self.cur.fetchone() is None
 
     def set_report_notified(self, username, id, type):
@@ -1164,7 +1206,36 @@ class DataBase:
         """
         self.cur.execute("SELECT username FROM system_managers")
         return [row[0] for row in self.cur.fetchall()]
+    
+    # ===== reviewed_reported_comments_video =====
+    
+    def add_reviewed_reported_comments_video(self, username, video_id):
+        """
+        Adds a record of a user reviewing a reported comments video
+        :param username: Username of the user
+        :param video_id: ID of the video
+        """
+        self.cur.execute("INSERT INTO reviewed_reported_comments_video VALUES (?,?)", (username, video_id))
+        self.conn.commit()
 
+    def has_reviewed_reported_comments_video(self, username, video_id):
+        """
+        Checks if a user has reviewed a specific reported comments video
+        :param username: Username of the user
+        :param video_id: ID of the video
+        :return: True if the user has reviewed the video, False otherwise
+        """
+        self.cur.execute("SELECT 1 FROM reviewed_reported_comments_video WHERE username = ? AND video_id = ?", (username,
+                                                                                                                  video_id))
+        return self.cur.fetchone() is not None
+
+    def remove_reviewed_reported_comments_video_for_user(self, username):
+        """
+            Removes all reviewed videos records for a specific user.
+        :param username: Username of the user whose review history should be cleared.
+        """
+        self.cur.execute("DELETE FROM reviewed_reported_comments_video WHERE username = ?", (username,))
+        self.conn.commit()    
 
 if __name__ == "__main__":
     db = DataBase()
