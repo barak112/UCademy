@@ -654,6 +654,14 @@ class ServerLogic:
         # recreate comments without any deleted comments
         comments = [i for i in comments if i[0] not in deleted_comments_ids]
 
+        # now that i have the entire comments of this video without deleted once and starting from the right index
+        # i can filter the reported comments
+        if self.db.is_system_manager(self.clients[client_ip][0]) and self.system_managers_type_filter[
+            client_ip] == settings.COMMENT_DIGIT_REPR:
+            reported_comments = self.db.get_reported_comments(video_id)
+
+            comments = [i for i in comments if i[0] in reported_comments]
+
         print("comments:", repr(comments), "commentslen", len(comments))
         comments_to_send = comments[:settings.AMOUNT_OF_COMMENTS_TO_SEND]
         print(f"comments_to_send for video {video_id}:", comments_to_send)
@@ -794,7 +802,11 @@ class ServerLogic:
         username = self.clients[client_ip][0]
         if not video_id:
             if self.db.is_system_manager(username):
-                video_id = self.db.get_video_for_system_manager(username)
+                if self.system_managers_type_filter[client_ip] == settings.VIDEO_DIGIT_REPR:
+                    video_id = self.db.get_video_for_system_manager(username)
+                else:  # if going over comments
+                    video_id = self.db.get_comment_video_for_system_manager(username)
+                #todo check if filtering comments, add another func in db
                 print("system manager video id:", video_id)
             else:
                 video_id = self.db.get_video_for_user(username, self.clients[client_ip][2])
@@ -803,7 +815,8 @@ class ServerLogic:
             if self.db.video_exists(video_id):
                 self.send_video_and_details(client_ip, video_id)
                 self.handle_comments_req(client_ip, [video_id, 0])
-                if not self.db.has_watched_video(username, video_id):
+                # dont add to watched_videos if already watched video or if its a system manager going over comments
+                if not self.db.has_watched_video(username, video_id) and not (self.db.is_system_manager(username) and self.system_managers_type_filter[client_ip] == settings.COMMENT_DIGIT_REPR):
                     self.db.add_watched_video(username, video_id)
             else:
                 # if video requested has been deleted

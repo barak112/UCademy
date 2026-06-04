@@ -564,6 +564,17 @@ class DataBase:
         self.cur.execute("SELECT 1 FROM comments WHERE comment_id = ? AND deleted = 1", (comment_id,))
         return self.cur.fetchone() is not None
 
+    def get_reported_comments(self, video_id):
+        self.cur.execute("""
+                         SELECT c.comment_id 
+                         FROM comments c
+                         WHERE c.video_id = ? 
+                         AND EXISTS(SELECT 1 FROM reports r WHERE c.comment_id = r.target_id AND r.target_type = ? and r.status IS NULL)
+                         """, (video_id, settings.COMMENT_DIGIT_REPR))
+
+        res = self.cur.fetchall()
+        return [i[0] for i in res]
+
     def get_comments(self, video_id, username):
         """
         Retrieves comments for a video.
@@ -1162,6 +1173,8 @@ if __name__ == "__main__":
     print("\n\n")
 
     # --- testing ---
+
+    print(db.get_reported_comments(3))
 
     # db.cur.execute("UPDATE reports SET notified = 0")
     # db.conn.commit()
