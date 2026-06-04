@@ -830,16 +830,20 @@ class ServerLogic:
                 self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
         else:
             video_id = settings.END_OF_LIST_ID
+
             if self.db.no_videos():
                 video_id = settings.NO_VIDEOS_ID
 
-            elif self.db.is_system_manager(username) and (self.system_managers_type_filter[client_ip]
-            == settings.VIDEO_DIGIT_REPR and self.db.no_reports(settings.VIDEO_DIGIT_REPR)) or (self.system_managers_type_filter[client_ip]
-            == settings.COMMENT_DIGIT_REPR and self.db.no_reports(settings.COMMENT_DIGIT_REPR)):
+            # if system manager reviewing comments and reviewed all -> reset comments reviewed videos.
+            elif (self.db.is_system_manager(username) and self.system_managers_type_filter[client_ip]
+                  == settings.COMMENT_DIGIT_REPR and self.db.no_reports(settings.COMMENT_DIGIT_REPR)):
 
-                pass
+                video_id = settings.NO_VIDEOS_ID
 
-            else:
+
+
+            else: # if system manager reviewing videos and no more videos, or if user watched all videos
+
                 self.db.remove_watched_videos_for_user(username)
 
             msg_to_send = serverProtocol.build_video_details(video_id, "", "", "", "", 0, 0, 0, "")
