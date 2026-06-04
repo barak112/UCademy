@@ -126,6 +126,7 @@ class ServerLogic:
         self.creator_videos_sent.pop(client_ip, None)
         self.videos_sent.pop(client_ip, None)
         self.thumbnails_sent.pop(client_ip, None)
+        self.system_managers_type_filter.pop(client_ip, None)
 
     def handle_msgs(self):
         """Process incoming messages from clients"""
@@ -618,9 +619,7 @@ class ServerLogic:
             status = settings.REPORT_ALREADY_ISSUED
 
         elif status == settings.REPORT_RECEIVED:
-            #todo return this
-            # self.db.add_report(username, id, type)
-            pass
+            self.db.add_report(username, id, type)
 
         msg = serverProtocol.build_report_status(status, id, type, content, content_publisher)
         self.comm.send_msg(client_ip, msg)
@@ -637,7 +636,10 @@ class ServerLogic:
 
         last_id = int(last_id)
 
+        #todo add check if system manager and if currently filtering comments
+
         comments = self.db.get_comments(video_id, self.clients[client_ip][0])
+
         comments_ids = [i[0] for i in comments]
 
         start_index = 0
@@ -676,9 +678,11 @@ class ServerLogic:
         video_id = int(video_id)
         print("trying to deleting video:", video_id)
 
-        if client_ip in self.clients and self.db.is_the_video_creator(video_id, self.clients[client_ip][0]):
-            self.db.delete_video(video_id)
-            self.delete_video_files(video_id)
+        if client_ip in self.clients and self.db.is_the_video_creator(video_id, self.clients[client_ip][0]) or self.db.is_system_manager(
+                self.clients[client_ip][0]):
+            #todo return
+            # self.db.delete_video(video_id)
+            # self.delete_video_files(video_id)
 
             clients_to_send = [ip for ip in self.clients.keys() if
                                video_id in (self.videos_sent[ip] + self.thumbnails_sent[ip])]
@@ -790,9 +794,10 @@ class ServerLogic:
         username = self.clients[client_ip][0]
         if not video_id:
             if self.db.is_system_manager(username):
-                pass
-                #todo continue this
-            video_id = self.db.get_video_for_user(username, self.clients[client_ip][2])
+                video_id = self.db.get_video_for_system_manager(username)
+                print("system manager video id:", video_id)
+            else:
+                video_id = self.db.get_video_for_user(username, self.clients[client_ip][2])
 
         if video_id:
             if self.db.video_exists(video_id):
@@ -806,12 +811,13 @@ class ServerLogic:
                 self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
         else:
             video_id = settings.END_OF_LIST_ID
-            if not self.db.are_there_videos():
+            if self.db.no_videos() or (self.db.is_system_manager(username) and self.db.no_reports()):
                 video_id = settings.NO_VIDEOS_ID
 
             self.db.remove_watched_videos_for_user(username)
             msg_to_send = serverProtocol.build_video_details(video_id, "", "", "", "", 0, 0, 0, "")
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
+            print("resettings video watched history for:",username)
 
     def send_video_and_details(self, client_ip, video_id):  # helper function
         """
@@ -970,7 +976,8 @@ class ServerLogic:
                      and the status decision (0 for keep, 1 for remove).
         """
         id, type, status = data  # type = 0 - comment, 1 - video, status = 0 - dont remove, 1 - remove
-        id, type = int(id), int(type)
+
+        id, type, status = int(id), int(type), int(status)
         if self.db.is_system_manager(self.clients[client_ip][0]):
 
             if (type == settings.COMMENT_DIGIT_REPR and self.db.comment_exists(id)) or (
@@ -988,9 +995,10 @@ class ServerLogic:
 
                     else:  # video
                         creator, video_name, desc, created_at = self.db.get_specific_video(id)[:4]
-                        self.db.delete_video(id)
-                        self.delete_video_files(id)
-                        self.send_email(creator,
+
+                        self.handle_video_del(client_ip, [id])
+
+                        self.send_email(self.db.get_user_email(creator),
                                         self.EMAIL_VIDEO_REMOVE_MSG.format(video_name, desc, created_at, creator),
                                         self.EMAIL_VIDEO_REMOVE_SUBJECT)
 

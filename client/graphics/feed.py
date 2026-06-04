@@ -400,9 +400,7 @@ class FeedPanel(wx.Panel):
         if self.frame.user.is_system_manager():
             answer = wx.MessageBox("Would you like to delete this video?\nThis action is not reversable\nClick Yes to delete\nClick No to keep\nClick cancel to avoid moderating this video", "Moderate Video", wx.ICON_INFORMATION | wx.YES_NO | wx.CANCEL, )
 
-            if answer == wx.CANCEL:
-                wx.MessageBox("Moderation has been canceled", "Moderation Canceled", wx.OK | wx.ICON_INFORMATION)
-            else:
+            if answer != wx.CANCEL:
                 status = settings.REPORT_ACCEPTED if answer == wx.YES else settings.REPORT_DENIED
 
                 msg = clientProtocol.build_comment_or_video_status(self.current_video_id, settings.VIDEO_DIGIT_REPR, status)

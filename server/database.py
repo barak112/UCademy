@@ -1,6 +1,8 @@
 import sqlite3
 from datetime import datetime
 
+import settings
+
 
 class DataBase:
 
@@ -373,7 +375,7 @@ class DataBase:
         self.cur.execute("SELECT 1 FROM videos WHERE video_id = ? and deleted = 0", (video_id,))
         return self.cur.fetchone() is not None
 
-    def are_there_videos(self):
+    def no_videos(self):
         """
         Checks if there are any non-deleted videos in the database.
 
@@ -383,7 +385,7 @@ class DataBase:
         :return: True if there are non-deleted videos in the database, False otherwise
         """
         self.cur.execute("SELECT 1 FROM videos WHERE deleted = 0")
-        return self.cur.fetchone() is not None
+        return self.cur.fetchone() is None
 
     def get_specific_video(self, video_id, matter_deleted=True):
         """
@@ -992,6 +994,30 @@ class DataBase:
 
     # ===== reports =====
 
+    def get_video_for_system_manager(self, username):
+        """
+            returns the id of the most reported video
+        :return: the id of the most reported video
+        """
+        self.cur.execute("""
+                         SELECT r.target_id, COUNT(*) as reports_count
+                         FROM reports r
+                         WHERE r.status IS NULL
+                           AND r.target_type = ?
+                           AND NOT EXISTS(SELECT 1
+                                          FROM watched_videos w
+                                          WHERE w.username = ? AND w.video_id = r.target_id)
+                           AND NOT EXISTS(SELECT 1 FROM videos v WHERE v.video_id = r.target_id AND v.deleted = 1)
+                         GROUP BY r.target_id
+                         ORDER BY reports_count DESC, MIN(r.created_at) ASC
+                         """, (settings.VIDEO_DIGIT_REPR, username))
+        res = self.cur.fetchone()
+        return res[0] if res else None
+
+    def no_reports(self):
+        self.cur.execute("SELECT 1 FROM reports WHERE status IS NULL")
+        return self.cur.fetchone() is None
+
     def set_report_notified(self, username, id, type):
         """
         Sets a report as notified.
@@ -1136,6 +1162,16 @@ if __name__ == "__main__":
     print("\n\n")
 
     # --- testing ---
+
+    # db.cur.execute("UPDATE reports SET notified = 0")
+    # db.conn.commit()
+    # db.cur.execute("UPDATE reports SET status = NULL")
+    # db.conn.commit()
+
+    # db.add_watched_video("admin", 1)
+    # db.add_report("reporter", 2, 1)
+    # db.remove_watched_videos_for_user("admin")
+    # print(db.get_video_for_system_manager("admin"))
 
     # db.cur.execute("DELETE FROM video_hashes")
     # db.conn.commit()
