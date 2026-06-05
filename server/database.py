@@ -1240,7 +1240,7 @@ if __name__ == "__main__":
     # --- testing ---
 
     # print(db.get_reported_comments(3))
-    print(db.get_comment_video_for_system_manager("Barak"))
+    # print(db.get_comment_video_for_system_manager("Barak"))
     # print(db.get_reported_comments(3))
 
     # db.cur.execute("UPDATE reports SET notified = 0")

@@ -135,7 +135,7 @@ class FeedPanel(wx.Panel):
         
         # Moderate
         moderate_sizer = wx.BoxSizer(wx.VERTICAL)
-        img_path = "assets\\system_manager_icon.png"
+        img_path = "assets\\moderate.png"
         self.moderate_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
                                                                self.BG_COLOR, circle=True, use_image=True)
         self.moderate_btn.SetMinSize((50, 50))

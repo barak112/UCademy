@@ -8,7 +8,7 @@ import settings
 class RoundedButton(wx.Panel):
     def __init__(self, parent, label_or_path, base_color=settings.UNACTIVE_BUTTON, background_color=settings.OFF_WHITE,
                  radius=settings.ROUND_BORDER_RADIUS, font_size=settings.BUTTON_TEXT_FONT_SIZE, circle=False,
-                 use_image=False, text_color=wx.WHITE):
+                 use_image=False, text_color=wx.WHITE, icon_size = 32):
         """
         Initializes a custom rounded button panel with hover, click, and image support.
         :param parent: parent to add the button to
@@ -39,8 +39,11 @@ class RoundedButton(wx.Panel):
         self.text_color = text_color
         if use_image and os.path.isfile(label_or_path):
             self.use_image = use_image
+            self.icon_size = icon_size
         else:
             self.use_image = wx.NullImage
+            self.icon_size = 0
+
         self.hover_color = self.make_darker(self.current_color, 15)  # 15% darker
         self.mouse_clicked_color = self.make_darker(self.hover_color, 20)
         self.mouse_over = False
@@ -156,7 +159,7 @@ class RoundedButton(wx.Panel):
 
             if self.use_image:
                 if self.label_or_path:
-                    iw, ih = 32, 32
+                    iw, ih = self.icon_size, self.icon_size
                     gc.DrawBitmap(wx.Bitmap(wx.Image(self.label_or_path).Scale(iw, ih, wx.IMAGE_QUALITY_HIGH)),
                                   (w - iw) / 2, (h - ih) / 2,
                                   iw, ih)

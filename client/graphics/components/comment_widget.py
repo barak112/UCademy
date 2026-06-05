@@ -3,6 +3,7 @@ from datetime import datetime
 
 import wx
 
+import rounded_button
 import settings
 
 
@@ -55,10 +56,23 @@ class CommentWidget(wx.Panel):
 
         self.commented_ago_label.SetForegroundColour((100, 100, 100))
 
+        # action_button
+        img_path = "assets\\report_icon.png"
+        if self.parent.GetParent().frame.user_profile_panel.user.is_system_manager():
+            img_path = "assets\\moderate.png"
+
+        elif self.parent.GetParent().frame.user_profile_panel.user.username == comment.commenter:
+            img_path = "assets\\delete_video_icon.png"
+
+        self.action_button = rounded_button.RoundedButton(self, img_path, wx.WHITE, self.BG_COLOR, circle=True, use_image=True, icon_size=24)
+
+        self.action_button.SetMinSize((32, 32))
+
         # username and date
         username_date_sizer = wx.BoxSizer(wx.HORIZONTAL)
         username_date_sizer.Add(self.username_label, 0, wx.ALIGN_CENTER_VERTICAL)
         username_date_sizer.Add(self.commented_ago_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP | wx.LEFT, 5)
+        username_date_sizer.Add(self.action_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP | wx.LEFT, 5)
 
         # comment label
         self.comment_label = wx.TextCtrl(self, value=comment.comment, style=wx.TE_READONLY | wx.BORDER_NONE)
@@ -85,6 +99,12 @@ class CommentWidget(wx.Panel):
         self.timer.Start(100)
 
         pfp.Bind(wx.EVT_LEFT_UP, self.move_to_commenter_profile)
+        self.action_button.Bind(wx.EVT_LEFT_UP, self.on_comment_action)
+
+    def on_comment_action(self, event):
+        pass
+        #todo fill this func
+        # add delete_comment to protocol (if there isnt one yet)
 
     def move_to_commenter_profile(self, event):
         self.parent.GetParent().frame.user_profile_panel.set_new_user(self.comment.commenter)
@@ -106,6 +126,8 @@ class CommentWidget(wx.Panel):
             self.SetBackgroundColour(self.HOVER_COLOR)
             self.comment_label.SetBackgroundColour(self.HOVER_COLOR)
             self.username_label.SetBackgroundColour(self.HOVER_COLOR)
+            self.action_button.SetBackgroundColour(self.HOVER_COLOR)
+            self.action_button.current_color = wx.Colour(self.HOVER_COLOR)
             self.Refresh()
 
         elif not is_inside_now and self.is_hovered:
@@ -113,6 +135,9 @@ class CommentWidget(wx.Panel):
             self.SetBackgroundColour(self.BG_COLOR)
             self.comment_label.SetBackgroundColour(self.BG_COLOR)
             self.username_label.SetBackgroundColour(self.BG_COLOR)
+            self.action_button.SetBackgroundColour(self.BG_COLOR)
+            self.action_button.current_color = wx.WHITE
+
             self.Refresh()
         event.Skip()
 
