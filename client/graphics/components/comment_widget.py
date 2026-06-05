@@ -3,6 +3,7 @@ from datetime import datetime
 
 import wx
 
+import clientProtocol
 import rounded_button
 import settings
 
@@ -11,7 +12,7 @@ class CommentWidget(wx.Panel):
     BG_COLOR = settings.OFF_WHITE
     HOVER_COLOR = (220, 220, 220)
 
-    def __init__(self, parent, comment):
+    def __init__(self, parent, frame, comment):
         """
         Initializes the CommentWidget, building the UI with the commenter's profile picture,
         username, timestamp, and comment text.
@@ -28,6 +29,7 @@ class CommentWidget(wx.Panel):
 
         self.comment = comment
         self.parent = parent
+        self.frame = frame
 
         pfp_path = f"media\\{comment.commenter}.png"
         if not os.path.isfile(pfp_path):
@@ -58,10 +60,10 @@ class CommentWidget(wx.Panel):
 
         # action_button
         img_path = "assets\\report_icon.png"
-        if self.parent.GetParent().frame.user_profile_panel.user.is_system_manager():
+        if self.parent.GetParent().frame.user.is_system_manager():
             img_path = "assets\\moderate.png"
 
-        elif self.parent.GetParent().frame.user_profile_panel.user.username == comment.commenter:
+        elif self.parent.GetParent().frame.user.username == self.comment.commenter:
             img_path = "assets\\delete_video_icon.png"
 
         self.action_button = rounded_button.RoundedButton(self, img_path, wx.WHITE, self.BG_COLOR, circle=True, use_image=True, icon_size=24)
@@ -102,9 +104,30 @@ class CommentWidget(wx.Panel):
         self.action_button.Bind(wx.EVT_LEFT_UP, self.on_comment_action)
 
     def on_comment_action(self, event):
-        pass
+        print("comment action")
+
+        if self.frame.user.is_system_manager():
+            answer = wx.MessageBox(
+                "Would you like to delete this comment?\nThis action is not reversable\nClick Yes to delete\nClick No to keep\nClick cancel to avoid moderating this comment",
+                "Moderate Comment", wx.ICON_INFORMATION | wx.YES_NO | wx.CANCEL, )
+
+            if answer != wx.CANCEL:
+                status = settings.REPORT_ACCEPTED if answer == wx.YES else settings.REPORT_DENIED
+
+                msg = clientProtocol.build_comment_or_video_status(self.comment.comment_id, settings.VIDEO_DIGIT_REPR,
+                                                                   status)
+                self.frame.comm.send_msg(msg)
+                self.status_label.SetLabel("Moderation sent to the server")
+                wx.MessageBox("Moderation has been sent to the server", "Moderation sent",
+                              wx.OK | wx.ICON_INFORMATION)
+
+        elif self.parent.GetParent().frame.user.username == self.comment.commenter:
+            pass
+        else:
+            pass
         #todo fill this func
         # add delete_comment to protocol (if there isnt one yet)
+        event.Skip()
 
     def move_to_commenter_profile(self, event):
         self.parent.GetParent().frame.user_profile_panel.set_new_user(self.comment.commenter)

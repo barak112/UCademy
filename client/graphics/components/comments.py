@@ -204,7 +204,7 @@ class Comments(wx.Panel):
 
         if self.video and self.video.video_id == video_id:
             # add comment visually
-            comment_panel = comment_widget.CommentWidget( self.comments_panel, comment)
+            comment_panel = comment_widget.CommentWidget( self.comments_panel, self.frame, comment)
 
             self.comments_sizer.Insert(index, comment_panel, 0, wx.EXPAND)
             if comment.commenter == self.frame.user.username:
@@ -223,7 +223,7 @@ class Comments(wx.Panel):
 
         for a_comment in comments:
             if a_comment.comment_id not in self.comments_ids:  # make sure there are no duplicate comments
-                comment_panel = comment_widget.CommentWidget(self.comments_panel, a_comment)
+                comment_panel = comment_widget.CommentWidget(self.comments_panel, self.frame, a_comment)
                 self.comments_sizer.Add(comment_panel, 0, wx.EXPAND)
                 self.comments_ids.append(a_comment.comment_id)
 
