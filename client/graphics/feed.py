@@ -473,7 +473,6 @@ class FeedPanel(wx.Panel):
             self.comments_reports_btn.set_active(True)
         self.status_label.SetLabel("")
 
-        # del self.videos_ids[self.video_index + 1:]
         self.videos_ids.clear()
 
         switching_filter_mode_video = video.Video(settings.SWITCHING_FILTER_MODE_ID)
@@ -482,11 +481,9 @@ class FeedPanel(wx.Panel):
         self.waiting_for_video = True
         self.status_label.SetLabel("Waiting for video from the server")
 
-        msg = clientProtocol.build_req_video(self.feed_id)
+        msg = clientProtocol.build_req_video(settings.FEED_ID)
         for i in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
             self.frame.comm.send_msg(msg)
-            self.frame.video_requests_by_feeds.append(self.frame.feed_panel)
-            self.frame.comments_requests_by_feeds.append(self.frame.feed_panel)
 
     def on_videos_reports(self, event):
         if self.comments_or_videos_reports_filter != settings.VIDEO_DIGIT_REPR:
@@ -540,8 +537,6 @@ class FeedPanel(wx.Panel):
 
             self.Layout()
         event.Skip()
-
-        #todo update system manager when reporting comment
 
     def on_delete_video(self, event):
         self.status_label.SetLabel("sending delete req to server")
@@ -882,7 +877,7 @@ class FeedPanel(wx.Panel):
                     self.status_label.SetLabel("No more videos above")
 
             else: # scroll down
-                if len(self.videos_ids) > self.video_index + 1:
+                if len(self.videos_ids) > self.video_index + 1: # if there is a next video
                     new_index += 1
                     load_a_new_video = True
 
@@ -901,16 +896,14 @@ class FeedPanel(wx.Panel):
                     self.waiting_for_video = True
                     self.status_label.SetLabel("waiting for video from server")
                     if self.no_videos:
+                        print("no videos")
                         msg = clientProtocol.build_req_video(self.feed_id)
                         self.frame.comm.send_msg(msg)
-
-                        self.frame.video_requests_by_feeds.append(self)
-                        self.frame.comments_requests_by_feeds.append(self)
 
             if load_a_new_video:
                 video_id = self.videos_ids[new_index]
                 # checks if there already is this video's file.
-                if not video_id:  # no more videos, either watched them all or no more in search/profile
+                if video_id == settings.END_OF_LIST_ID:  # no more videos, either watched them all or no more in search/profile
                     # reset videos so the user could watch them again
                     if self.feed_id == settings.FEED_ID:
                         print("Watched all videos, resetting watched history, videos_ids: before:", self.videos_ids)
@@ -928,8 +921,6 @@ class FeedPanel(wx.Panel):
                         # req a new one instead of the one that returned index = settings.END_OF_LIST_ID
                         msg = clientProtocol.build_req_video(self.feed_id)
                         self.frame.comm.send_msg(msg)
-                        self.frame.video_requests_by_feeds.append(self)
-                        self.frame.comments_requests_by_feeds.append(self)
 
                         # for req in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
                         #     self.frame.comm.send_msg(msg)
@@ -1059,7 +1050,6 @@ class FeedPanel(wx.Panel):
             if self.videos_ids:
                 self.videos_ids.append(
                     video_id)  # add 0 to indicate the end of the videos
-                self.frame.comments_requests_by_feeds.pop(0)
                 print("resseting history:",self.videos_ids)
 
         elif video_id == settings.DELETED_ID:
@@ -1069,7 +1059,6 @@ class FeedPanel(wx.Panel):
             self.frame.comments_requests_by_feeds.pop(0)
 
         elif video_id == settings.NO_VIDEOS_ID:
-            self.frame.comments_requests_by_feeds.pop(0)
             if self.frame.user.is_system_manager():
                 filter_str_rep = "video" if self.comments_or_videos_reports_filter == settings.VIDEO_DIGIT_REPR else "comment"
                 alternative_filter_str_rep = "video" if self.comments_or_videos_reports_filter == settings.COMMENT_DIGIT_REPR else "comment"
