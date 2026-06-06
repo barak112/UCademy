@@ -1036,14 +1036,15 @@ class ServerLogic:
         print("moderation on id:", id, "type:", type, "status:", status)
 
         id, type, status = int(id), int(type), int(status)
+        video_id = None
         if self.db.is_system_manager(self.clients[client_ip][0]):
 
             if (type == settings.COMMENT_DIGIT_REPR and self.db.comment_exists(id)) or (
                     type == settings.VIDEO_DIGIT_REPR and self.db.video_exists(id)):
 
-                if status == settings.REPORT_ACCEPTED:
-                    if type == settings.COMMENT_DIGIT_REPR:
-                        comment_id, video_id, commenter, comment, created_at = self.db.get_specific_comment(id)
+                if type == settings.COMMENT_DIGIT_REPR:
+                    comment_id, video_id, commenter, comment, created_at = self.db.get_specific_comment(id)
+                    if status == settings.REPORT_ACCEPTED:
                         creator, video_name = self.db.get_specific_video(video_id)[:2]
 
                         self.handle_del_comment(client_ip, [comment_id])
@@ -1053,7 +1054,8 @@ class ServerLogic:
                                                                              created_at),
                                         self.EMAIL_COMMENT_REMOVE_SUBJECT)
 
-                    else:  # video
+                else:  # video
+                    if status == settings.REPORT_ACCEPTED:
                         creator, video_name, desc, created_at = self.db.get_specific_video(id)[:4]
 
                         self.handle_video_del(client_ip, [id])
@@ -1079,7 +1081,11 @@ class ServerLogic:
                 # content doesnt exist
                 status = settings.REPORT_CONTENT_DOESNT_EXISTS
 
-            msg = serverProtocol.build_comment_or_video_status_confirmation(status)
+            if type == settings.COMMENT_DIGIT_REPR:
+                id = (video_id, id)
+
+            print("sending report confirmation:", id, type, status)
+            msg = serverProtocol.build_comment_or_video_status_confirmation(id, type, status)
             self.comm.send_msg(client_ip, msg)
 
         else:

@@ -136,3 +136,4 @@ END_OF_BATCH_SEND_ID = -1 # when sending each time one item, this signals the en
 DELETED_ID = -2 # indicates an item has been deleted
 NO_VIDEOS_ID = -3
 SWITCHING_FILTER_MODE_ID = -4
+KEPT_VIDEO_ID = -5

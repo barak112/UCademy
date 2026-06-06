@@ -126,18 +126,26 @@ class Comments(wx.Panel):
             self.parent.status_label.SetLabel("")
         event.Skip()
 
-    def delete_comment(self, comment_id):
+    def destroy_comment(self, comment_id):
         comment_widget_obj = self.comments_sizer.GetChildren()[self.comments_ids.index(comment_id)].GetWindow()
-        comment_widget_obj.comment_label.SetLabel("This comment has been deleted")
-        comment_widget_obj.comment_label.SetForegroundColour((255, 0, 0))
-
-        comment_widget_obj.username_label.Hide()
-        comment_widget_obj.commented_ago_label.Hide()
-        comment_widget_obj.action_button.Hide()
-        comment_widget_obj.pfp.SetBitmap(wx.Bitmap(wx.Image("assets\\null_pfp.png").Scale(settings.PFP_SIZE, settings.PFP_SIZE)))
-
+        comment_widget_obj.Destroy()
         self.Layout()
-        self.Refresh()
+
+    def delete_comment(self, comment_id):
+        if comment_id in self.comments_ids:
+            comment_widget_obj = self.comments_sizer.GetChildren()[self.comments_ids.index(comment_id)].GetWindow()
+
+            comment_widget_obj.comment_label.SetLabel("This comment has been deleted")
+            comment_widget_obj.comment_label.SetForegroundColour((255, 0, 0))
+
+            comment_widget_obj.username_label.Hide()
+            comment_widget_obj.commented_ago_label.Hide()
+            comment_widget_obj.action_button.Hide()
+            comment_widget_obj.pfp.SetBitmap(wx.Bitmap(wx.Image("assets\\null_pfp.png").Scale(settings.PFP_SIZE, settings.PFP_SIZE)))
+
+
+            self.Layout()
+            self.Refresh()
 
     def update_pfp_bitmap(self):
         """

@@ -291,8 +291,8 @@ def build_update_pfp():
 def build_filter_comments_or_videos_reports_confirmation(type):
     return build_command(97, [type])
 
-def build_comment_or_video_status_confirmation(status):
-    return build_command(98, [status])
+def build_comment_or_video_status_confirmation(id, type, status):
+    return build_command(98, [id, type, status])
 
 def build_kick_user_confirmation(username):
     return build_command(99, [username])

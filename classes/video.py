@@ -29,11 +29,12 @@ class Video:
         self.liked = liked
         self.test_link = test_link
 
-    def delete_comment(self, comment_id: int):
+    def delete_comment(self, comment_id: int, change_amount_of_comments: bool = True):
         """removes a comment from this video's comments list, if it exists"""
-        if comment_id in self.comments:
-            self.comments.pop(comment_id)
-        self.amount_of_comments -= 1
+        self.comments.pop(comment_id, None)
+
+        if change_amount_of_comments:
+            self.amount_of_comments -= 1
 
     def add_comment_at_index(self, comment: comment.Comment, index: int):
         """Adds a comment at a specific index"""

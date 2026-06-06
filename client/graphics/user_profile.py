@@ -318,8 +318,6 @@ class UserProfilePanel(wx.ScrolledWindow):
 
                 for video in self.videos_details[username]:
                     self.add_video_details(video)
-
-
         else:
             self.req_user_info_and_videos(username)
             self.status_label.SetLabel("Loading Content From Server")

@@ -112,8 +112,6 @@ class MainFrame(wx.Frame):
         # self.feed_panel.load_video(demo_video)
         # self.comm.send_msg(msg)
 
-        pub.subscribe(self.on_moderate_ans, "moderate_ans")
-
         pub.subscribe(self.on_a_user_deleted_comment, "comment_deleted_ans")
 
         pub.subscribe(self.on_a_user_deleted_video, "video_deleted_ans")
@@ -132,11 +130,6 @@ class MainFrame(wx.Frame):
 
         pub.subscribe(self.on_report_ans, "report_ans")
 
-    def on_moderate_ans(self, id, type, status):
-
-        # if comment keep, then remove it from comment.
-
-        # if video keep, then remove it from videos.
 
     def on_report_ans(self, status, id, type, content, content_publisher, created_at):
         msg2 = f"has been examined and it has been decided that the"
