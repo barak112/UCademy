@@ -850,15 +850,6 @@ class ServerLogic:
 
 
                 print("system manager video id:", video_id)
-                #todo fix bug!!
-                # when i moved back to videos filtering, and there were no more videos to moderate (moderated the last one when i was on comments filtering)
-                # it didnt update me that there were no more videos to moderate, it just stayed on switching filtering mode
-                # most likley happened because i deleted the last video to moderate while i was comment moderating
-                # though it should have updated me when i moved to videos because it requested new videos, who should have come back with settings.NO_VIDEOS_ID
-                # problematic code most likely is:
-                # elif self.db.is_system_manager(username):
-                # if self.db.no_reports(filter_type):
-                #     video_id = settings.NO_VIDEOS_ID
 
             else:
                 video_id = self.db.get_video_for_user(username, self.clients[client_ip][2])
@@ -1048,6 +1039,8 @@ class ServerLogic:
         type = int(type)
         self.system_managers_type_filter[client_ip] = type
         msg = serverProtocol.build_filter_comments_or_videos_reports_confirmation(type)
+
+        print("changed filter for ", self.clients[client_ip][0],"to",type)
 
         # using videocomm to make sure this arrives before next video and after previously sended video
         self.clients[client_ip][1].send_msg(client_ip, msg)

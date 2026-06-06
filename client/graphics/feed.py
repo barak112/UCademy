@@ -449,18 +449,28 @@ class FeedPanel(wx.Panel):
 
                     if self.current_video_id == id:
 
+                        video_kept_video = video.Video(settings.KEPT_VIDEO_ID)
+                        self.frame.videos_details[settings.KEPT_VIDEO_ID] = video_kept_video
+
                         if not self.videos_ids:  # if videos_ids is now empty
-                            self.status_label.SetLabel(
-                                "waiting for video from the server")
-                            video_kept_video = video.Video(settings.KEPT_VIDEO_ID)
-                            self.frame.videos_details[settings.KEPT_VIDEO_ID] = video_kept_video
+                            self.status_label.SetLabel("waiting for video from the server")
                             self.load_video(video_kept_video)
                             self.waiting_for_video = True
                         else:
-                            self.status_label.SetLabel("returning to last video")
+                            self.status_label.SetLabel(f"returning to last video")
                             self.video_index = max(0, self.video_index - 1)
+
                             if self.videos_ids[self.video_index] in self.frame.videos_details:
                                 self.load_video(self.frame.videos_details[self.videos_ids[self.video_index]])
+                            else:
+                                self.load_video(video_kept_video)
+                                msg = clientProtocol.build_req_video(self.feed_id, self.videos_ids[self.video_index])
+                                self.frame.comm.send_msg(msg)
+
+                                self.waiting_for_video = True
+
+                                self.status_label.SetLabel("waiting for video from the server")
+        self.Layout()
 
     def on_comments_or_videos_reports_ans(self, type):
         self.comments_or_videos_reports_filter = type
@@ -721,6 +731,9 @@ class FeedPanel(wx.Panel):
             self.report_btn.Hide()
             self.report_label.Hide()
 
+            self.comments_panel.add_comment_field.text_visible.SetEditable(False)
+            self.comments_panel.add_comment_field.set_value("You can't add a comment as a system manager...")
+
         if self.feed_id == settings.USER_PROFILE_FEED_ID:
             self.videos_reports_btn.Hide()
             self.videos_reports_label.Hide()
@@ -880,7 +893,7 @@ class FeedPanel(wx.Panel):
                         if self.feed_id == settings.FEED_ID:  # if in the feed, then preload a video when a scrolling past new videos
                             msg = clientProtocol.build_req_video(settings.FEED_ID)
                             self.frame.comm.send_msg(msg)
-                            print("preloading video")
+                            print("preloading video", self.videos_ids)
                     else:
                         self.negative_scroll_pos -= 1
                 else:
@@ -1044,7 +1057,6 @@ class FeedPanel(wx.Panel):
             self.frame.videos_details[video_id] = video # so when updating the comments on the video using frame. it wont break
             self.videos_ids.append(
                 video_id)  # -2 to indicate the video has been deleted
-            self.frame.comments_requests_by_feeds.pop(0)
 
         elif video_id == settings.NO_VIDEOS_ID:
             if self.frame.user.is_system_manager():

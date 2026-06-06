@@ -37,9 +37,6 @@ class MainFrame(wx.Frame):
 
         self.users = {}  # [username] = user_object
 
-        self.video_requests_by_feeds = []  # [feed_panel]
-        self.comments_requests_by_feeds = []  # [feed_panel]
-
         self.status_labels = [] # list of all status labels
         self.animated_dot_labels = ["waiting for video from server", "Loading video", "Sending verification code",
                                     "Waiting for comments from server", "Loading Video From Server", "Loading Content",

@@ -564,7 +564,7 @@ class DataBase:
         :return: Tuple representing the comment: video_id, comment_id, commenter, comment, created_at
         """
         res = None
-        if self.comment_exists(comment_id) and not (matter_deleted and self.is_comment_deleted(comment_id)):
+        if self.comment_exists(comment_id, matter_deleted):
             self.cur.execute(
                 "SELECT comment_id, video_id, commenter, comment, strftime('%d/%m/%Y %H:%M', created_at) FROM comments WHERE comment_id = ?",
                 (comment_id,))
@@ -662,13 +662,16 @@ class DataBase:
         self.cur.execute("UPDATE comments SET deleted = 1 WHERE comment_id = ?", (comment_id,))
         self.conn.commit()
 
-    def comment_exists(self, comment_id):
+    def comment_exists(self, comment_id, matter_deleted = True):
         """
         Checks if a comment exists in the database
         :param comment_id: ID of the comment to check
         :return: True if the comment exists, False otherwise
         """
-        self.cur.execute("SELECT 1 FROM comments WHERE comment_id = ? and deleted = 0", (comment_id,))
+        query = "SELECT 1 FROM comments WHERE comment_id = ?"
+        if matter_deleted:
+            query+= " and deleted = 0"
+        self.cur.execute(query, (comment_id,))
         return self.cur.fetchone() is not None
 
     def get_video_id_by_comment_id(self, comment_id):
@@ -1062,7 +1065,15 @@ class DataBase:
         return res[0] if res else None
 
     def no_reports(self, type):
-        self.cur.execute("SELECT 1 FROM reports WHERE target_type = ? AND status IS NULL", (type,))
+        query = "SELECT 1 FROM reports r WHERE r.target_type = ? AND r.status IS NULL"
+
+        if type == settings.VIDEO_DIGIT_REPR:
+            query += " AND NOT EXISTS(SELECT 1 FROM videos v WHERE v.video_id = r.target_id AND v.deleted = 1)"
+
+        else: # comment
+            query += " AND NOT EXISTS(SELECT 1 FROM comments c WHERE c.comment_id = r.target_id AND c.deleted = 1)"
+
+        self.cur.execute(query, (type,))
         return self.cur.fetchone() is None
 
     def set_report_notified(self, username, id, type):
@@ -1248,6 +1259,8 @@ if __name__ == "__main__":
     print("\n\n")
 
     # --- testing ---
+
+    print(db.no_reports(0))
 
     # print(db.get_reported_comments(3))
     # print(db.get_comment_video_for_system_manager("Barak"))

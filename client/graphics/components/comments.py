@@ -111,10 +111,9 @@ class Comments(wx.Panel):
             if self.video.amount_of_comments > len(self.video.get_comments()) and self.video.get_comments():
                 if not self.waiting_for_comments:  # if there are more comments to req from the server
                     if current >= max_pos - 40:
-                        msg = clientProtocol.build_req_comments(self.video.video_id,
+                        msg = clientProtocol.build_req_comments(self.parent.feed_id, self.video.video_id,
                                                                 self.video.get_comments()[-1].comment_id)
                         self.frame.comm.send_msg(msg)
-                        self.frame.comments_requests_by_feeds.append(self.parent)
                         self.waiting_for_comments = True
                         self.parent.status_label.SetLabel("Waiting for comments from server")
                         self.parent.Layout()
@@ -250,7 +249,8 @@ class Comments(wx.Panel):
                 self.comments_ids.append(a_comment.comment_id)
 
         self.comments_panel.Thaw()
-        self.parent.status_label.SetLabel("")
+        if self.parent.status_label.GetLabel().startswith("Waiting for comments from server"):
+            self.parent.status_label.SetLabel("")
 
         self.waiting_for_comments = False
         self.Layout()
@@ -274,14 +274,13 @@ class Comments(wx.Panel):
         self.Refresh()
         self.comments_panel.Scroll(0, 0)
 
-        if not video.video_id or self.frame.user.is_system_manager():
-            self.add_comment_field.set_value("You can't add a comment to a deleted video...")
-            if self.frame.user.is_system_manager():
-                self.add_comment_field.set_value("You can't add a comment as a system manager...")
-
-            self.add_comment_field.text_visible.SetEditable(False)
-        else:
-            self.add_comment_field.text_visible.SetEditable(True)
+        if not self.frame.user.is_system_manager():
+            if video.video_id == settings.DELETED_ID :
+                self.add_comment_field.set_value("You can't add a comment to a deleted video...")
+                self.add_comment_field.text_visible.SetEditable(False)
+            else:
+                self.add_comment_field.set_value("")
+                self.add_comment_field.text_visible.SetEditable(True)
 
 
     def update_comments_label(self):
