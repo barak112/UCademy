@@ -981,6 +981,9 @@ class FeedPanel(wx.Panel):
             self.video_ctrl.Thaw()  # unfreeze the video once it loads
         if self.current_video_id>0:
             self.status_label.SetLabel("")
+        else:
+            self.video_ctrl.Pause()
+
         self.can_scroll = True
         self.Layout()
         event.Skip()

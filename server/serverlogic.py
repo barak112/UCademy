@@ -598,13 +598,17 @@ class ServerLogic:
         content, content_publisher = "", ""
 
         status = settings.REPORT_RECEIVED
-
+        video_id = 0
+        commenter = ""
+        comment = ""
+        created_at = ""
         if type == settings.COMMENT_DIGIT_REPR and self.db.comment_exists(id):
-            video_id, content_publisher, content = self.db.get_specific_comment(id)[1:4]
+            video_id, commenter, comment, created_at = self.db.get_specific_comment(id)[1:]
+            video_id = int(video_id) # just making sure that the video_id is an int
             # comments also share the video's name and creator
             video_creator, video_name = self.db.get_specific_video(video_id)[:2]
-            content = [content, video_name]
-            content_publisher = [content_publisher, video_creator]
+            content = [comment, video_name]
+            content_publisher = [commenter, video_creator]
 
         elif type == settings.VIDEO_DIGIT_REPR and self.db.video_exists(id):
             content_publisher, content = self.db.get_specific_video(id)[:2]
@@ -619,8 +623,26 @@ class ServerLogic:
             status = settings.REPORT_ALREADY_ISSUED
 
         elif status == settings.REPORT_RECEIVED:
+
+            no_reports = self.db.no_reports(type)
             self.db.add_report(username, id, type)
+            self.db.remove_reviewed_reported_comments_video(video_id)
+
             #update any system manager that has recieved the video of this comment
+            if type == settings.COMMENT_DIGIT_REPR:
+                msg = serverProtocol.build_comment_status(id, video_id, commenter, comment, created_at)
+
+                for manager_ip, filter in self.system_managers_type_filter.items(): #
+                    if filter == settings.COMMENT_DIGIT_REPR and video_id in self.videos_sent[manager_ip]:  # if currently filtering comments
+                        # self.comm.send_msg(manager_ip, msg)
+                        pass
+                        #todo use feed_id instead of a list of requests
+
+            if no_reports:
+                currently_filtering_type = [manager_ip for manager_ip, filter in self.system_managers_type_filter.items() if filter == type]
+
+                for manager_ip in currently_filtering_type:
+                    self.handle_video_req(manager_ip, [0])
 
         msg = serverProtocol.build_report_status(status, id, type, content, content_publisher)
         self.comm.send_msg(client_ip, msg)

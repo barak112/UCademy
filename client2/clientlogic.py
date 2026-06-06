@@ -248,7 +248,6 @@ class ClientLogic:
         comments = []
         for comment_info in data:
             comment_id, commenter, comment_content, created_at = comment_info
-            video_id = int(video_id)
             comment_id = int(comment_id)
             comments.append(comment.Comment(comment_id, comment_content, commenter, created_at))
 

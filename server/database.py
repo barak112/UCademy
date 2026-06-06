@@ -1202,7 +1202,17 @@ class DataBase:
         return [row[0] for row in self.cur.fetchall()]
     
     # ===== reviewed_reported_comments_video =====
-    
+
+    def remove_reviewed_reported_comments_video(self, video_id):
+        """
+        Removes entries from the `reviewed_reported_comments_video` table based on the provided video ID.
+
+        :param video_id: The unique identifier of the video for which reviewed and
+            reported comments need to be deleted.
+        """
+        self.cur.execute("DELETE FROM reviewed_reported_comments_video WHERE video_id = ?", (video_id,))
+        self.conn.commit()
+
     def add_reviewed_reported_comments_video(self, username, video_id):
         """
         Adds a record of a user reviewing a reported comments video

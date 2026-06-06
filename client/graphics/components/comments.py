@@ -128,7 +128,7 @@ class Comments(wx.Panel):
 
     def destroy_comment(self, comment_id):
         comment_widget_obj = self.comments_sizer.GetChildren()[self.comments_ids.index(comment_id)].GetWindow()
-        comment_widget_obj.Destroy()
+        comment_widget_obj.Hide()
         self.Layout()
 
     def delete_comment(self, comment_id):
