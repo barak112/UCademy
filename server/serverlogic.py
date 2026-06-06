@@ -736,7 +736,6 @@ class ServerLogic:
         comment_id = data[0]
         comment = self.db.get_specific_comment(comment_id)
         if comment:
-            #todo return this
             self.db.delete_comment(comment_id)
             video_id = comment[1]
             msg = serverProtocol.build_del_comment_confirmation(video_id, comment_id)
