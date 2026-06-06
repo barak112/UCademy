@@ -565,8 +565,6 @@ class FeedPanel(wx.Panel):
             # deleted a video, so req another one instead of it
             msg = clientProtocol.build_req_video(self.feed_id)
             self.frame.comm.send_msg(msg)
-            self.frame.video_requests_by_feeds.append(self)
-            self.frame.comments_requests_by_feeds.append(self)
 
             deleted_video = Video(settings.DELETED_ID)
             self.frame.videos_details[settings.DELETED_ID] = deleted_video  # so when updating the comments on the video using frame. it wont break
@@ -585,9 +583,6 @@ class FeedPanel(wx.Panel):
                     self.load_video(deleted_video)
                     msg = clientProtocol.build_req_video(self.feed_id, self.videos_ids[self.video_index])
                     self.frame.comm.send_msg(msg)
-
-                    self.frame.video_requests_by_feeds.append(self)
-                    self.frame.comments_requests_by_feeds.append(self)
 
                     self.waiting_for_video = True
 
@@ -885,8 +880,6 @@ class FeedPanel(wx.Panel):
                         if self.feed_id == settings.FEED_ID:  # if in the feed, then preload a video when a scrolling past new videos
                             msg = clientProtocol.build_req_video(settings.FEED_ID)
                             self.frame.comm.send_msg(msg)
-                            self.frame.video_requests_by_feeds.append(self)
-                            self.frame.comments_requests_by_feeds.append(self)
                             print("preloading video")
                     else:
                         self.negative_scroll_pos -= 1
@@ -948,9 +941,6 @@ class FeedPanel(wx.Panel):
                     # if not, req it and dont set new index
                     msg = clientProtocol.build_req_video(self.feed_id, video_id)
                     self.frame.comm.send_msg(msg)
-
-                    self.frame.video_requests_by_feeds.append(self)
-                    self.frame.comments_requests_by_feeds.append(self)
 
                     self.waiting_for_video = True
                     # if now requested video, then you need to wait for it to arrive from the server
@@ -1039,8 +1029,6 @@ class FeedPanel(wx.Panel):
                 if self.feed_id == settings.FEED_ID:  # if in the feed, then preload a video when a new video instantly loads
                     msg = clientProtocol.build_req_video(self.feed_id)
                     self.frame.comm.send_msg(msg)
-                    self.frame.video_requests_by_feeds.append(self)
-                    self.frame.comments_requests_by_feeds.append(self)
                     print("preloading video")
 
 

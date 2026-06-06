@@ -199,9 +199,6 @@ class MainFrame(wx.Frame):
         elif feed_id == settings.USER_PROFILE_FEED_ID:
             self.user_profile_feed_panel.load_new_video(video)
 
-        # correct_feed_panel = self.video_requests_by_feeds.pop(0)
-        # correct_feed_panel.load_new_video(video)
-
     def load_new_comments(self, feed_id, video_id, comments):
         """
         Routes an incoming list of comments to the feed panel that originally requested them.
@@ -214,9 +211,6 @@ class MainFrame(wx.Frame):
 
         elif feed_id == settings.USER_PROFILE_FEED_ID:
             self.user_profile_feed_panel.load_new_comments(video_id, comments)
-
-        # correct_feed_panel = self.comments_requests_by_feeds.pop(0)
-        # correct_feed_panel.load_new_comments(video_id, comments)
 
     def on_like_video_ans(self, status, video_id, username):
         """
