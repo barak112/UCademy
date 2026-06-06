@@ -394,7 +394,7 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         for video in videos:
             if video.video_id == video_id:
-                video.comments_amount -= 1
+                video.amount_of_comments-=1
                 break
 
         if video_id in self.videos_ids:

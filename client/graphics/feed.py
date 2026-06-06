@@ -11,6 +11,7 @@ import clientProtocol
 import rounded_button
 import settings
 import comments
+import video
 from user_profile import UserProfilePanel
 from video import Video
 
@@ -44,7 +45,7 @@ class FeedPanel(wx.Panel):
         self.can_scroll = True
         self.negative_scroll_pos = 0 # used to preload videos only when scrolling down and not up then down
 
-        self.current_video_id = None  # video_id
+        self.current_video_id = 0  # video_id
 
         self.no_videos = False
 
@@ -399,8 +400,12 @@ class FeedPanel(wx.Panel):
         if self.current_video_id == video_id:
             self.comments_panel.delete_comment(comment_id)
 
+            self.update_comments_label(video_id)
+            self.comments_panel.update_comments_label()
+
+
     def on_moderate(self, event):
-        if self.frame.user.is_system_manager():
+        if self.frame.user.is_system_manager() and self.current_video_id > 0:
             answer = wx.MessageBox("Would you like to delete this video?\nThis action is not reversable\nClick Yes to delete\nClick No to keep\nClick cancel to avoid moderating this video", "Moderate Video", wx.ICON_INFORMATION | wx.YES_NO | wx.CANCEL, )
 
             if answer != wx.CANCEL:
@@ -423,7 +428,14 @@ class FeedPanel(wx.Panel):
             self.comments_reports_btn.set_active(True)
         self.status_label.SetLabel("")
 
-        del self.videos_ids[self.video_index + 1:]
+        # del self.videos_ids[self.video_index + 1:]
+        self.videos_ids.clear()
+
+        switching_filter_mode_video = video.Video(settings.SWITCHING_FILTER_MODE_ID)
+        self.frame.videos_details[settings.SWITCHING_FILTER_MODE_ID] = switching_filter_mode_video
+        self.load_video(switching_filter_mode_video)
+        self.waiting_for_video = True
+        self.status_label.SetLabel("Waiting for video from the server")
 
         msg = clientProtocol.build_req_video()
         for i in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
@@ -469,20 +481,22 @@ class FeedPanel(wx.Panel):
         :param event:
         :return:
         """
-        answer = wx.MessageBox(
-            "Are you sure you want to report this video?\nReport this video only if it does not include any educational content or if its content is harmful\n",
-            f'Report Video "{self.frame.videos_details[self.current_video_id].video_name}"?',
-            wx.YES_NO | wx.ICON_INFORMATION,
-        )
+        if self.current_video_id>0:
+            answer = wx.MessageBox(
+                "Are you sure you want to report this video?\nReport this video only if it does not include any educational content or if its content is harmful\n",
+                f'Report Video "{self.frame.videos_details[self.current_video_id].video_name}"?',
+                wx.YES_NO | wx.ICON_INFORMATION,
+            )
 
-        if answer == wx.YES:
-            wx.MessageBox("Your report has been sent to the server", "Report Sent", wx.OK | wx.ICON_INFORMATION)
-            msg = clientProtocol.build_report(self.current_video_id, settings.VIDEO_DIGIT_REPR)
-            self.frame.comm.send_msg(msg)
+            if answer == wx.YES:
+                wx.MessageBox("Your report has been sent to the server", "Report Sent", wx.OK | wx.ICON_INFORMATION)
+                msg = clientProtocol.build_report(self.current_video_id, settings.VIDEO_DIGIT_REPR)
+                self.frame.comm.send_msg(msg)
 
-
-        self.Layout()
+            self.Layout()
         event.Skip()
+
+        #todo update system manager when reporting comment
 
     def on_delete_video(self, event):
         self.status_label.SetLabel("sending delete req to server")
@@ -754,7 +768,7 @@ class FeedPanel(wx.Panel):
         :param event: The mouse click event that triggered this handler.
         """
         print("liking video")
-        if self.current_video_id:
+        if self.current_video_id > 0:
             msg = clientProtocol.build_like_video(self.current_video_id)
             self.frame.comm.send_msg(msg)
         event.Skip()
@@ -964,8 +978,16 @@ class FeedPanel(wx.Panel):
 
             self.frame.videos_details[video_id] = video
 
+
+
             if video_id not in self.videos_ids:
                 self.videos_ids.append(video_id)
+            else: # if there already is this video in videos_ids, add it again only if it there is settings.END_OF_LIST_ID after it's last occurrence
+                index_of_last_id_in_videos_ids = len(self.videos_ids) - 1 - self.videos_ids[::-1].index(video_id)
+
+                # check if there is a settings.END_OF_LIST_ID after the last occurrence of this id
+                if settings.END_OF_LIST_ID in self.videos_ids[index_of_last_id_in_videos_ids:]:
+                    self.videos_ids.append(video_id)
 
             # not self.IsFrozen() makes sure i dont load a new video before finishing loading the last one, to avoid screen freezing
             if self.waiting_for_video and not self.IsFrozen():  # checks if waiting for a video to arrive from server, if so, load it immediately
@@ -1002,7 +1024,9 @@ class FeedPanel(wx.Panel):
         elif video_id == settings.NO_VIDEOS_ID:
             self.frame.comments_requests_by_feeds.pop(0)
             if self.frame.user.is_system_manager():
-                self.status_label.SetLabel("No reports in the system, all good")
+                filter_str_rep = "video" if self.comments_or_videos_reports_filter == settings.VIDEO_DIGIT_REPR else "comment"
+                alternative_filter_str_rep = "video" if self.comments_or_videos_reports_filter == settings.COMMENT_DIGIT_REPR else "comment"
+                self.status_label.SetLabel(f"No {filter_str_rep} reports in the system, switch to {alternative_filter_str_rep} reports")
             else:
                 self.status_label.SetLabel("No videos in the system, go to your profile to upload a video")
             self.no_videos = True
@@ -1024,9 +1048,16 @@ class FeedPanel(wx.Panel):
             if video.creator == self.frame.user.username and not self.frame.user.is_system_manager():
                 self.delete_video_btn.Show()
                 self.delete_video_label.Show()
+
+                self.report_btn.Hide()
+                self.report_label.Hide()
+
             else:
                 self.delete_video_btn.Hide()
                 self.delete_video_label.Hide()
+
+                self.report_btn.Show()
+                self.report_label.Show()
 
             if not self.video_ctrl.IsFrozen():
                 self.video_ctrl.Freeze()
@@ -1041,6 +1072,9 @@ class FeedPanel(wx.Panel):
 
             if video_id == settings.DELETED_ID:
                 video_path = "assets\\This video has been deleted.mp4"
+
+            if video_id == settings.SWITCHING_FILTER_MODE_ID:
+                video_path = "assets\\Switching Filtering.mp4"
 
             elif not os.path.isfile(video_path):
                 video_path = "assets\\cannot load video.mp4"

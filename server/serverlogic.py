@@ -716,7 +716,8 @@ class ServerLogic:
         comment_id = data[0]
         comment = self.db.get_specific_comment(comment_id)
         if comment:
-            self.db.delete_comment(comment_id)
+            #todo return this
+            # self.db.delete_comment(comment_id)
             video_id = comment[1]
             msg = serverProtocol.build_del_comment_confirmation(video_id, comment_id)
             print("deleting comment", comment_id, "on video:", video_id)
@@ -1018,7 +1019,9 @@ class ServerLogic:
         type = int(type)
         self.system_managers_type_filter[client_ip] = type
         msg = serverProtocol.build_filter_comments_or_videos_reports_confirmation(type)
-        self.comm.send_msg(client_ip, msg)
+
+        # using videocomm to make sure this arrives before next video and after previously sended video
+        self.clients[client_ip][1].send_msg(client_ip, msg)
 
     def handle_comment_or_video_status(self, client_ip, data):  # command 98
         """
@@ -1030,6 +1033,8 @@ class ServerLogic:
         """
         id, type, status = data  # type = 0 - comment, 1 - video, status = 0 - dont remove, 1 - remove
 
+        print("moderation on id:", id, "type:", type, "status:", status)
+
         id, type, status = int(id), int(type), int(status)
         if self.db.is_system_manager(self.clients[client_ip][0]):
 
@@ -1040,7 +1045,9 @@ class ServerLogic:
                     if type == settings.COMMENT_DIGIT_REPR:
                         comment_id, video_id, commenter, comment, created_at = self.db.get_specific_comment(id)
                         creator, video_name = self.db.get_specific_video(video_id)[:2]
-                        self.db.delete_comment(id)
+
+                        self.handle_del_comment(client_ip, [comment_id])
+
                         self.send_email(comment_id,
                                         self.EMAIL_COMMENT_REMOVE_MSG.format(comment, commenter, video_name, creator,
                                                                              created_at),

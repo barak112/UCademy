@@ -35,9 +35,9 @@ class CommentWidget(wx.Panel):
         if not os.path.isfile(pfp_path):
             pfp_path = "assets\\null_pfp.png"
 
-        pfp = wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE))
-        pfp = wx.StaticBitmap(self, bitmap=pfp)
-        pfp.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+        self.pfp = wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE))
+        self.pfp = wx.StaticBitmap(self, bitmap=self.pfp)
+        self.pfp.SetCursor(wx.Cursor(wx.CURSOR_HAND))
 
         # right sizer
         right_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -88,7 +88,7 @@ class CommentWidget(wx.Panel):
         right_sizer.Add(self.comment_label, 0, wx.EXPAND)
 
         # add to separator sizer
-        separator_sizer.Add(pfp, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 10)
+        separator_sizer.Add(self.pfp, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 10)
         separator_sizer.Add(right_sizer, 1)
 
         # add to main sizer
@@ -100,7 +100,7 @@ class CommentWidget(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.on_check_hover, self.timer)
         self.timer.Start(100)
 
-        pfp.Bind(wx.EVT_LEFT_UP, self.move_to_commenter_profile)
+        self.pfp.Bind(wx.EVT_LEFT_UP, self.move_to_commenter_profile)
         self.action_button.Bind(wx.EVT_LEFT_UP, self.on_comment_action)
 
     def on_comment_action(self, event):
@@ -114,8 +114,9 @@ class CommentWidget(wx.Panel):
             if answer != wx.CANCEL:
                 status = settings.REPORT_ACCEPTED if answer == wx.YES else settings.REPORT_DENIED
 
-                msg = clientProtocol.build_comment_or_video_status(self.comment.comment_id, settings.VIDEO_DIGIT_REPR,status)
+                msg = clientProtocol.build_comment_or_video_status(self.comment.comment_id, settings.COMMENT_DIGIT_REPR,status)
                 self.parent.GetParent().parent.status_label.SetLabel("Moderation sent to the server")
+                self.parent.GetParent().parent.Layout()
                 wx.MessageBox("Moderation has been sent to the server", "Moderation sent",wx.OK | wx.ICON_INFORMATION)
 
         elif self.parent.GetParent().frame.user.username == self.comment.commenter: # if commenter deleting comment
@@ -126,6 +127,8 @@ class CommentWidget(wx.Panel):
             if answer == wx.YES:
                 msg = clientProtocol.build_del_comment(self.comment.comment_id)
                 self.parent.GetParent().parent.status_label.SetLabel("Delete req sent to the server")
+                self.parent.GetParent().parent.Layout()
+
                 wx.MessageBox("Delete req has been sent to the server", "Delete req sent", wx.OK | wx.ICON_INFORMATION)
 
         else: # if a user reporting comment
@@ -136,6 +139,9 @@ class CommentWidget(wx.Panel):
             )
 
             if answer == wx.YES:
+                self.parent.GetParent().parent.status_label.SetLabel("Report req sent to the server")
+                self.parent.GetParent().parent.Layout()
+
                 wx.MessageBox("Your report has been sent to the server", "Report Sent", wx.OK | wx.ICON_INFORMATION)
                 msg = clientProtocol.build_report(self.comment.comment_id, settings.COMMENT_DIGIT_REPR)
 
@@ -143,7 +149,6 @@ class CommentWidget(wx.Panel):
         if msg:
             self.frame.comm.send_msg(msg)
 
-        self.parent.GetParent().parent.Layout()
         event.Skip()
 
     def move_to_commenter_profile(self, event):

@@ -135,3 +135,4 @@ END_OF_LIST_ID = 0 # no more videos/user/comments or that the video uploaded alr
 END_OF_BATCH_SEND_ID = -1 # when sending each time one item, this signals the end of the sending
 DELETED_ID = -2 # indicates an item has been deleted
 NO_VIDEOS_ID = -3
+SWITCHING_FILTER_MODE_ID = -4

@@ -360,12 +360,15 @@ class ClientLogic:
         wx.CallAfter(pub.sendMessage, "comm_disconnected")
 
     # system manager
-    def handle_filter_comments_or_videos_reports_confirmation(self, type): # command 97
+    def handle_filter_comments_or_videos_reports_confirmation(self, data): # command 97
+        type = data[0]
         type = int(type)
         wx.CallAfter(pub.sendMessage, "comments_or_videos_reports_ans", type=type)
 
-    def handle_comment_or_video_status_confirmation(self, status): # command 98
-        pass
+    def handle_comment_or_video_status_confirmation(self, data): # command 98
+        id, type, status = data
+        id, type, status = int(id), int(type), int(status)
+        wx.CallAfter(pub.sendMessage, "moderate_ans", id = id, type=type, status = status)
 
     def handle_kick_user_confirmation(self, username): # command 99
         pass

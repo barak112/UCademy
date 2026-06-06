@@ -129,10 +129,12 @@ class Comments(wx.Panel):
     def delete_comment(self, comment_id):
         comment_widget_obj = self.comments_sizer.GetChildren()[self.comments_ids.index(comment_id)].GetWindow()
         comment_widget_obj.comment_label.SetLabel("This comment has been deleted")
-        comment_widget_obj.username_label.SetForegroundColour((255, 0, 0))
+        comment_widget_obj.comment_label.SetForegroundColour((255, 0, 0))
 
-        comment_widget_obj.username_date_sizer.Clear(delete_windows=True)
-        comment_widget_obj.action_button.Destroy()
+        comment_widget_obj.username_label.Hide()
+        comment_widget_obj.commented_ago_label.Hide()
+        comment_widget_obj.action_button.Hide()
+        comment_widget_obj.pfp.SetBitmap(wx.Bitmap(wx.Image("assets\\null_pfp.png").Scale(settings.PFP_SIZE, settings.PFP_SIZE)))
 
         self.Layout()
         self.Refresh()
@@ -264,8 +266,11 @@ class Comments(wx.Panel):
         self.Refresh()
         self.comments_panel.Scroll(0, 0)
 
-        if not video.video_id:
-            self.add_comment_field.set_value("")
+        if not video.video_id or self.frame.user.is_system_manager():
+            self.add_comment_field.set_value("You can't add a comment to a deleted video...")
+            if self.frame.user.is_system_manager():
+                self.add_comment_field.set_value("You can't add a comment as a system manager...")
+
             self.add_comment_field.text_visible.SetEditable(False)
         else:
             self.add_comment_field.text_visible.SetEditable(True)

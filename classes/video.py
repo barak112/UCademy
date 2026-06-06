@@ -33,7 +33,7 @@ class Video:
         """removes a comment from this video's comments list, if it exists"""
         if comment_id in self.comments:
             self.comments.pop(comment_id)
-            self.amount_of_comments -= 1
+        self.amount_of_comments -= 1
 
     def add_comment_at_index(self, comment: comment.Comment, index: int):
         """Adds a comment at a specific index"""

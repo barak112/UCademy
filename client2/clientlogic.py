@@ -127,7 +127,7 @@ class ClientLogic:
             system_manager = bool(int(system_manager))
 
             user_obj = user.User(username, followers_amount, followings_amount, videos_ids, email, topics,
-                                 followings_names, system_manager)
+                                 followings_names, system_manager   )
 
             print(f"signed in as {username}")
             wx.CallAfter(pub.sendMessage, "login_ans", status=status, video_comm=video_comm, user=user_obj)
