@@ -160,7 +160,7 @@ class PickTopicsPanel(wx.ScrolledWindow):
         """
         self.frame.user.topics = topics
         # req videos from server for feed panel
-        msg = clientProtocol.build_req_video()
+        msg = clientProtocol.build_req_video(settings.FEED_ID)
         for req in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
             self.frame.comm.send_msg(msg)
             self.frame.video_requests_by_feeds.append(self.frame.feed_panel)

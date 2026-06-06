@@ -156,16 +156,17 @@ def build_report_status(status, id, type, content, content_publisher, created_at
     return build_command(9, [status, id, type, content, content_publisher, created_at])
 
 
-def build_send_comments(video_id, comments):
+def build_send_comments(feed_id, video_id, comments):
     """
         Builds a response command containing a batch of comments for a video.
+    :param feed_id: feed id of the video that includes the comments
     :param video_id: video id of the video that includes the comments
     :param comments: A list of comment entries, each containing comment_id, video_id,
                      commenter_name, comment text, and created_at timestamp.
     :return: Formatted send-comments command string.
     """
     # comments = [[comment_id, commenter_name, comment, created_at], ...]
-    return build_command(10, [video_id] + comments)
+    return build_command(10, [feed_id, video_id] + comments)
 
 def build_del_video_confirmation(video_id):
     """
@@ -224,10 +225,11 @@ def build_user_details_follow_list(username, followers_amount, followings_amount
     )
 
 
-def build_video_details(video_id, creator_name, video_name, video_desc, created_at, likes_amount,
+def build_video_details(feed_id, video_id, creator_name, video_name, video_desc, created_at, likes_amount,
                         comments_amount, liked, test_link):
     """
         Builds a response command containing a video's full details for playback.
+    :param feed_id: The ID of the feed the video belongs to.
     :param video_id: The unique ID of the video.
     :param creator_name: The username of the video's creator.
     :param video_name: The title of the video.
@@ -242,7 +244,7 @@ def build_video_details(video_id, creator_name, video_name, video_desc, created_
     """
     return build_command(
         15,
-        [video_id, creator_name, video_name, video_desc, created_at, likes_amount,
+        [feed_id, video_id, creator_name, video_name, video_desc, created_at, likes_amount,
          comments_amount, liked, test_link]
     )
 

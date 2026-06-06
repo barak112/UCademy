@@ -12,7 +12,6 @@ import rounded_button
 import settings
 import comments
 import video
-from user_profile import UserProfilePanel
 from video import Video
 
 
@@ -21,18 +20,18 @@ class FeedPanel(wx.Panel):
 
     volume = 0
 
-    def __init__(self, frame, parent, associated_panel=None):
+    def __init__(self, frame, parent, feed_id = settings.FEED_ID):
         super().__init__(parent)
 
         self.frame = frame
         self.parent = parent
 
+        self.feed_id = feed_id
+
+        print("feed_id: ", self.feed_id)
+
         self.SetWindowStyle(self.GetWindowStyle() | wx.WANTS_CHARS)
         self.SetFocus()
-
-        self.associated_panel = associated_panel
-        if not self.associated_panel:
-            self.associated_panel = self
 
         self.is_playing = True
 
@@ -332,7 +331,7 @@ class FeedPanel(wx.Panel):
         main_sizer.AddSpacer(20) # headspace
         main_sizer.Add(status_and_back_button_sizer, 0, wx.EXPAND)
 
-        if isinstance(self.associated_panel, UserProfilePanel):
+        if self.feed_id == settings.USER_PROFILE_FEED_ID:
             # back arrow
             back_arrow = rounded_button.RoundedButton(self, "assets\\back_arrow.png", wx.WHITE, self.BG_COLOR,
                                                       circle=True, use_image=True)
@@ -391,7 +390,7 @@ class FeedPanel(wx.Panel):
         self.comments_panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         desc_panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
 
-        if isinstance(self.associated_panel, FeedPanel):
+        if self.feed_id == settings.FEED_ID:
             pub.subscribe(self.on_comments_or_videos_reports_ans, "comments_or_videos_reports_ans")
 
         pub.subscribe(self.on_moderate_ans, "moderate_ans")
@@ -432,7 +431,7 @@ class FeedPanel(wx.Panel):
 
             elif status == settings.REPORT_DENIED:
                 self.status_label.SetLabel("Comment kept")
-                if isinstance(self.associated_panel, FeedPanel) and self.comments_or_videos_reports_filter == settings.COMMENT_DIGIT_REPR:
+                if self.feed_id == settings.FEED_ID and self.comments_or_videos_reports_filter == settings.COMMENT_DIGIT_REPR:
                     self.frame.videos_details[video_id].delete_comment(comment_id, False)
 
                     if video_id == self.current_video_id:
@@ -445,7 +444,7 @@ class FeedPanel(wx.Panel):
 
             elif status == settings.REPORT_DENIED:
                 self.status_label.SetLabel("Video kept")
-                if isinstance(self.associated_panel, FeedPanel) and self.comments_or_videos_reports_filter == settings.VIDEO_DIGIT_REPR:
+                if self.feed_id == settings.FEED_ID and self.comments_or_videos_reports_filter == settings.VIDEO_DIGIT_REPR:
                     self.videos_ids = [v for v in self.videos_ids if v != id] # removes any occurrence of video from videos_ids
 
                     if self.current_video_id == id:
@@ -483,7 +482,7 @@ class FeedPanel(wx.Panel):
         self.waiting_for_video = True
         self.status_label.SetLabel("Waiting for video from the server")
 
-        msg = clientProtocol.build_req_video()
+        msg = clientProtocol.build_req_video(self.feed_id)
         for i in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
             self.frame.comm.send_msg(msg)
             self.frame.video_requests_by_feeds.append(self.frame.feed_panel)
@@ -569,7 +568,7 @@ class FeedPanel(wx.Panel):
             self.videos_ids = [v for v in self.videos_ids if v!=video_id] # removes any occurrence of video_id in videos_ids
 
             # deleted a video, so req another one instead of it
-            msg = clientProtocol.build_req_video()
+            msg = clientProtocol.build_req_video(self.feed_id)
             self.frame.comm.send_msg(msg)
             self.frame.video_requests_by_feeds.append(self)
             self.frame.comments_requests_by_feeds.append(self)
@@ -589,7 +588,7 @@ class FeedPanel(wx.Panel):
                     self.load_video(self.frame.videos_details[self.videos_ids[self.video_index]])
                 else:
                     self.load_video(deleted_video)
-                    msg = clientProtocol.build_req_video(self.videos_ids[self.video_index])
+                    msg = clientProtocol.build_req_video(self.feed_id, self.videos_ids[self.video_index])
                     self.frame.comm.send_msg(msg)
 
                     self.frame.video_requests_by_feeds.append(self)
@@ -732,7 +731,7 @@ class FeedPanel(wx.Panel):
             self.report_btn.Hide()
             self.report_label.Hide()
 
-        if isinstance(self.associated_panel, UserProfilePanel):
+        if self.feed_id == settings.USER_PROFILE_FEED_ID:
             self.videos_reports_btn.Hide()
             self.videos_reports_label.Hide()
             self.comments_reports_btn.Hide()
@@ -888,9 +887,8 @@ class FeedPanel(wx.Panel):
                     load_a_new_video = True
 
                     if self.negative_scroll_pos <= 0: # scrolled down to a new video
-                        if isinstance(self.associated_panel,
-                                      FeedPanel):  # if in the feed, then preload a video when a scrolling past new videos
-                            msg = clientProtocol.build_req_video()
+                        if self.feed_id == settings.FEED_ID:  # if in the feed, then preload a video when a scrolling past new videos
+                            msg = clientProtocol.build_req_video(settings.FEED_ID)
                             self.frame.comm.send_msg(msg)
                             self.frame.video_requests_by_feeds.append(self)
                             self.frame.comments_requests_by_feeds.append(self)
@@ -903,7 +901,7 @@ class FeedPanel(wx.Panel):
                     self.waiting_for_video = True
                     self.status_label.SetLabel("waiting for video from server")
                     if self.no_videos:
-                        msg = clientProtocol.build_req_video()
+                        msg = clientProtocol.build_req_video(self.feed_id)
                         self.frame.comm.send_msg(msg)
 
                         self.frame.video_requests_by_feeds.append(self)
@@ -914,7 +912,7 @@ class FeedPanel(wx.Panel):
                 # checks if there already is this video's file.
                 if not video_id:  # no more videos, either watched them all or no more in search/profile
                     # reset videos so the user could watch them again
-                    if isinstance(self.associated_panel, FeedPanel):
+                    if self.feed_id == settings.FEED_ID:
                         print("Watched all videos, resetting watched history, videos_ids: before:", self.videos_ids)
                         self.videos_ids = self.videos_ids[self.video_index+2:] # delete all ids until now (including the 0)
                         print("Watched all videos, resetting watched history, videos_ids: after:", self.videos_ids)
@@ -928,7 +926,7 @@ class FeedPanel(wx.Panel):
                             self.load_video(self.frame.videos_details[self.videos_ids[0]])
 
                         # req a new one instead of the one that returned index = settings.END_OF_LIST_ID
-                        msg = clientProtocol.build_req_video()
+                        msg = clientProtocol.build_req_video(self.feed_id)
                         self.frame.comm.send_msg(msg)
                         self.frame.video_requests_by_feeds.append(self)
                         self.frame.comments_requests_by_feeds.append(self)
@@ -939,7 +937,7 @@ class FeedPanel(wx.Panel):
                         #     self.frame.comments_requests_by_feeds.append(self.frame.feed_panel)
                         print("watched all videos")
 
-                    elif isinstance(self.associated_panel, UserProfilePanel):
+                    elif self.feed_id == settings.USER_PROFILE_FEED_ID:
                         self.status_label.SetLabel("This user does not have more videos")
 
                         print("This user does not have more videos")
@@ -957,7 +955,7 @@ class FeedPanel(wx.Panel):
                     self.video_index = new_index
                 else:
                     # if not, req it and dont set new index
-                    msg = clientProtocol.build_req_video(video_id)
+                    msg = clientProtocol.build_req_video(self.feed_id, video_id)
                     self.frame.comm.send_msg(msg)
 
                     self.frame.video_requests_by_feeds.append(self)
@@ -1047,9 +1045,8 @@ class FeedPanel(wx.Panel):
                 self.waiting_for_video = False
                 self.status_label.Layout()
 
-                if isinstance(self.associated_panel,
-                              FeedPanel):  # if in the feed, then preload a video when a new video instantly loads
-                    msg = clientProtocol.build_req_video()
+                if self.feed_id == settings.FEED_ID:  # if in the feed, then preload a video when a new video instantly loads
+                    msg = clientProtocol.build_req_video(self.feed_id)
                     self.frame.comm.send_msg(msg)
                     self.frame.video_requests_by_feeds.append(self)
                     self.frame.comments_requests_by_feeds.append(self)

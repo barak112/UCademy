@@ -119,14 +119,15 @@ def build_report(id, type):
     return build_command(9, [id, type])
 
 
-def build_req_comments(video_id, last_id=0):
+def build_req_comments(feed_id, video_id, last_id=0):
     """
         Builds a command to request comments for a video.
+    :param feed_id: feed req the comments
     :param video_id: The ID of the video to fetch comments for.
     :param last_id: The ID of the last received comment, used for pagination.
     :return: Formatted request-comments command string.
     """
-    return build_command(10, [video_id, last_id])
+    return build_command(10, [feed_id, video_id, last_id])
 
 
 def build_del_video(video_id):
@@ -169,13 +170,15 @@ def build_req_user_follow_list(username, follow_type,
     return build_command(14, [username, follow_type, last_username])
 
 
-def build_req_video(video_id=0):
+def build_req_video(feed_id, video_id=0):
     """
         Builds a command to request a specific video.
+    :param feed_id: feed req the video
     :param video_id: The ID of the video to retrieve.
+
     :return: Formatted request-video command string.
     """
-    return build_command(15, [video_id])
+    return build_command(15, [feed_id, video_id])
 
 
 def build_video_details(video_name, video_desc, test_link, topics):

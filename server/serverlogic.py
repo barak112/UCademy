@@ -642,7 +642,7 @@ class ServerLogic:
                 currently_filtering_type = [manager_ip for manager_ip, filter in self.system_managers_type_filter.items() if filter == type]
 
                 for manager_ip in currently_filtering_type:
-                    self.handle_video_req(manager_ip, [0])
+                    self.handle_video_req(manager_ip,[settings.FEED_ID, 0])
 
         msg = serverProtocol.build_report_status(status, id, type, content, content_publisher)
         self.comm.send_msg(client_ip, msg)
@@ -655,9 +655,10 @@ class ServerLogic:
             last_comment_id is the last comment's id the client has received.
             if last_comment_id = 0. it means that its the first time the client has requested comments.
         """
-        video_id, last_id = data
+        feed_id, video_id, last_id = data
         print("comments req arrived at handle", video_id)
 
+        feed_id = int(feed_id)
         video_id = int(video_id)
         last_id = int(last_id)
 
@@ -698,7 +699,7 @@ class ServerLogic:
             self.send_pfp(client_ip, commenter_name)
             print("sending pfp of user in comments:", commenter_name)
 
-        msg = serverProtocol.build_send_comments(video_id, comments_to_send)
+        msg = serverProtocol.build_send_comments(feed_id, video_id, comments_to_send)
         print("msg of comments:", msg)
         self.clients[client_ip][1].send_msg(client_ip, msg)
 
@@ -834,7 +835,8 @@ class ServerLogic:
         :param client_ip: The IP address of the client making the request.
         :param data: A list containing the video ID (0 to request a recommended video).
         """
-        video_id = int(data[0])
+        feed_id, video_id = data
+        video_id = int(video_id)
         username = self.clients[client_ip][0]
 
         filter_type = None
@@ -856,8 +858,8 @@ class ServerLogic:
 
         if video_id:
             if self.db.video_exists(video_id):
-                self.send_video_and_details(client_ip, video_id)
-                self.handle_comments_req(client_ip, [video_id, 0])
+                self.send_video_and_details(client_ip, feed_id, video_id)
+                self.handle_comments_req(client_ip, [feed_id, video_id, 0])
 
                 # if its a system manager going over comments
                 if self.db.is_system_manager(username) and filter_type == settings.COMMENT_DIGIT_REPR:
@@ -868,7 +870,7 @@ class ServerLogic:
                     self.db.add_watched_video(username, video_id)
             else:
                 # if video requested has been deleted
-                msg_to_send = serverProtocol.build_video_details(settings.DELETED_ID, "", "", "", "", 0, 0, 0, "")
+                msg_to_send = serverProtocol.build_video_details(feed_id, settings.DELETED_ID, "", "", "", "", 0, 0, 0, "")
                 self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
         else:
             video_id = settings.END_OF_LIST_ID
@@ -888,12 +890,12 @@ class ServerLogic:
                     self.db.remove_watched_videos_for_user(username)
                     # self.db.add_watched_video(username, video_id)
 
-            msg_to_send = serverProtocol.build_video_details(video_id, "", "", "", "", 0, 0, 0, "")
+            msg_to_send = serverProtocol.build_video_details(feed_id,video_id, "", "", "", "", 0, 0, 0, "")
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
             print("resettings video watched history for:",username, "video_id:",video_id)
 
         print("sending video to client: ", video_id)
-    def send_video_and_details(self, client_ip, video_id):  # helper function
+    def send_video_and_details(self, client_ip, feed_id, video_id):  # helper function
         """
         sends a video and its details to the client, including the creator's pfp.
 
@@ -910,7 +912,7 @@ class ServerLogic:
             file_path = f"media\\videos\\{video_id}.{settings.VIDEO_EXTENSION}"
             self.clients[client_ip][1].send_file(file_path)
 
-        msg = serverProtocol.build_video_details(video_id, creator, video_name, video_desc, created_at, likes_amount,
+        msg = serverProtocol.build_video_details(feed_id, video_id, creator, video_name, video_desc, created_at, likes_amount,
                                                  comments_amount, liked, test_link)
         self.clients[client_ip][1].send_msg(client_ip, msg)
 

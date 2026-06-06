@@ -440,7 +440,7 @@ class UploadVideoPanel(wx.ScrolledWindow):
             feed_panel = self.frame.feed_panel
             feed_panel.videos_ids.insert(feed_panel.video_index, video_id)
 
-            msg = clientProtocol.build_req_video(video_id)
+            msg = clientProtocol.build_req_video(settings.FEED_ID, video_id)
             self.frame.video_requests_by_feeds.append(self.frame.feed_panel)
             self.frame.comments_requests_by_feeds.append(self.frame.feed_panel)
             self.frame.video_comm.send_msg(msg)

@@ -137,3 +137,6 @@ DELETED_ID = -2 # indicates an item has been deleted
 NO_VIDEOS_ID = -3
 SWITCHING_FILTER_MODE_ID = -4
 KEPT_VIDEO_ID = -5
+
+FEED_ID = 1
+USER_PROFILE_FEED_ID = 2

@@ -64,7 +64,7 @@ class MainFrame(wx.Frame):
         self.feed_panel = FeedPanel(self, self.container)
         self.pick_filter_panel = PickTopicsPanel(self, self.container, self.feed_panel)
         self.user_profile_panel = UserProfilePanel(self, self.container)
-        self.user_profile_feed_panel = FeedPanel(self, self.container, self.user_profile_panel)
+        self.user_profile_feed_panel = FeedPanel(self, self.container, settings.USER_PROFILE_FEED_ID)
         self.upload_video_panel = UploadVideoPanel(self, self.container)
         self.pick_video_topics_panel = PickTopicsPanel(self, self.container, self.upload_video_panel)
 
@@ -185,22 +185,38 @@ class MainFrame(wx.Frame):
             self.user.videos_ids.remove(video_id)
 
 
-    def load_new_video(self, video):
+    def load_new_video(self, feed_id, video):
         """
         Routes an incoming video to the feed panel that originally requested it.
+        :param feed_id: feed that req the video
         :param video: The video object to load into the appropriate feed panel.
         """
-        correct_feed_panel = self.video_requests_by_feeds.pop(0)
-        correct_feed_panel.load_new_video(video)
 
-    def load_new_comments(self, video_id, comments):
+        print("loading new video:",feed_id, video.video_id)
+
+        if feed_id == settings.FEED_ID:
+            self.feed_panel.load_new_video(video)
+        elif feed_id == settings.USER_PROFILE_FEED_ID:
+            self.user_profile_feed_panel.load_new_video(video)
+
+        # correct_feed_panel = self.video_requests_by_feeds.pop(0)
+        # correct_feed_panel.load_new_video(video)
+
+    def load_new_comments(self, feed_id, video_id, comments):
         """
         Routes an incoming list of comments to the feed panel that originally requested them.
         :param video_id: The ID of the video whose comments are being loaded.
         :param comments: The list of comment objects to load.
         """
-        correct_feed_panel = self.comments_requests_by_feeds.pop(0)
-        correct_feed_panel.load_new_comments(video_id, comments)
+
+        if feed_id == settings.FEED_ID:
+            self.feed_panel.load_new_comments(video_id, comments)
+
+        elif feed_id == settings.USER_PROFILE_FEED_ID:
+            self.user_profile_feed_panel.load_new_comments(video_id, comments)
+
+        # correct_feed_panel = self.comments_requests_by_feeds.pop(0)
+        # correct_feed_panel.load_new_comments(video_id, comments)
 
     def on_like_video_ans(self, status, video_id, username):
         """

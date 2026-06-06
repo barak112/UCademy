@@ -161,7 +161,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         """
         # req video
         self.frame.user_profile_feed_panel.waiting_for_video = True
-        msg = clientProtocol.build_req_video(video.video_id)
+        msg = clientProtocol.build_req_video(UserProfilePanel, video.video_id)
         self.frame.comm.send_msg(msg)
         self.frame.video_requests_by_feeds.append(self.frame.user_profile_feed_panel)
         self.frame.comments_requests_by_feeds.append(self.frame.user_profile_feed_panel)

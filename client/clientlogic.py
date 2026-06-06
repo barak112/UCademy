@@ -242,9 +242,10 @@ class ClientLogic:
         :param data: A list of comment info lists, each containing comment ID, video ID, commenter, content, and creation timestamp.
         """
         # data = [video_id, [comment_info], [comment_info], [comment_info]...]
-        video_id = data[0]
-        video_id = int(video_id)
-        data = data[1:]
+        feed_id, video_id = data[:2]
+        feed_id, video_id = int(feed_id), int(video_id)
+
+        data = data[2:]
         comments = []
         for comment_info in data:
             comment_id, commenter, comment_content, created_at = comment_info
@@ -252,7 +253,7 @@ class ClientLogic:
             comments.append(comment.Comment(comment_id, comment_content, commenter, created_at))
 
         print("video id in handle comments:", video_id, "comments:", comments)
-        wx.CallAfter(pub.sendMessage, "load_new_comments", video_id=video_id, comments=comments)
+        wx.CallAfter(pub.sendMessage, "load_new_comments", feed_id = feed_id, video_id=video_id, comments=comments)
 
     def handle_vid_del_confirmation(self, data):  # command 11
         """Handles the server's confirmation of a video deletion and notifies the UI.
@@ -303,9 +304,11 @@ class ClientLogic:
 
         :param data: The response data containing video details.
         """
-        video_obj = self.get_video_obj(data)
+        feed_id = data[0]
+        feed_id = int(feed_id)
+        video_obj = self.get_video_obj(data[1:])
         print(video_obj.video_id,"new video's test link:", video_obj.test_link)
-        wx.CallAfter(pub.sendMessage, "load_new_video", video=video_obj)
+        wx.CallAfter(pub.sendMessage, "load_new_video", feed_id = feed_id, video=video_obj)
 
     def handle_video_upload_confirmation(self, data):  # command 16
         """Handles the server's confirmation of a video upload and notifies the UI with the assigned video ID.
