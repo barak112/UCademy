@@ -860,12 +860,14 @@ class ServerLogic:
             if video_id == settings.END_OF_LIST_ID:
                 if self.db.is_system_manager(username) and filter_type == settings.COMMENT_DIGIT_REPR:
                    self.db.remove_reviewed_reported_comments_video_for_user(username)
+                   # self.db.add_reviewed_reported_comments_video(username, self.db.get_last_watched_video)
                 else:
                     self.db.remove_watched_videos_for_user(username)
+                    # self.db.add_watched_video(username, video_id)
 
             msg_to_send = serverProtocol.build_video_details(video_id, "", "", "", "", 0, 0, 0, "")
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
-            print("resettings video watched history for:",username)
+            print("resettings video watched history for:",username, "video_id:",video_id)
 
         print("sending video to client: ", video_id)
     def send_video_and_details(self, client_ip, video_id):  # helper function

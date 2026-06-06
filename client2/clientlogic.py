@@ -243,6 +243,7 @@ class ClientLogic:
         """
         # data = [video_id, [comment_info], [comment_info], [comment_info]...]
         video_id = data[0]
+        video_id = int(video_id)
         data = data[1:]
         comments = []
         for comment_info in data:
@@ -250,8 +251,6 @@ class ClientLogic:
             video_id = int(video_id)
             comment_id = int(comment_id)
             comments.append(comment.Comment(comment_id, comment_content, commenter, created_at))
-            print(
-                f"comment added: comment_id: {comment_id} content: {comment_content} by {commenter} created at {created_at}")
 
         print("video id in handle comments:", video_id, "comments:",comments)
         wx.CallAfter(pub.sendMessage, "load_new_comments", video_id=video_id, comments=comments)

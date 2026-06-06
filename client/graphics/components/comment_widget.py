@@ -187,7 +187,6 @@ class CommentWidget(wx.Panel):
         (e.g. "3 hours ago") and updates the commented_ago_label with it.
         """
         created_at = self.comment.created_at
-        print("created at:", created_at)
         created_at = datetime.strptime(created_at, "%d/%m/%Y %H:%M")
 
         now = datetime.now()

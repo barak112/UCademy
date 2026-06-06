@@ -827,7 +827,7 @@ class FeedPanel(wx.Panel):
                     new_index += 1
                     load_a_new_video = True
 
-                    if self.negative_scroll_pos <= 0:
+                    if self.negative_scroll_pos <= 0: # scrolled down to a new video
                         if isinstance(self.associated_panel,
                                       FeedPanel):  # if in the feed, then preload a video when a scrolling past new videos
                             msg = clientProtocol.build_req_video()
@@ -855,16 +855,28 @@ class FeedPanel(wx.Panel):
                 if not video_id:  # no more videos, either watched them all or no more in search/profile
                     # reset videos so the user could watch them again
                     if isinstance(self.associated_panel, FeedPanel):
+                        print("Watched all videos, resetting watched history, videos_ids: before:", self.videos_ids)
+                        self.videos_ids = self.videos_ids[self.video_index+2:] # delete all ids until now (including the 0)
+                        print("Watched all videos, resetting watched history, videos_ids: after:", self.videos_ids)
                         self.status_label.SetLabel("Watched all videos, resetting watched history")
-                        self.videos_ids = []
                         self.video_index = 0
+
                         self.negative_scroll_pos = 0
-                        self.waiting_for_video = True
+                        if not self.videos_ids:
+                            self.waiting_for_video = True
+                        else:
+                            self.load_video(self.frame.videos_details[self.videos_ids[0]])
+
+                        # req a new one instead of the one that returned index = settings.END_OF_LIST_ID
                         msg = clientProtocol.build_req_video()
-                        for req in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
-                            self.frame.comm.send_msg(msg)
-                            self.frame.video_requests_by_feeds.append(self.frame.feed_panel)
-                            self.frame.comments_requests_by_feeds.append(self.frame.feed_panel)
+                        self.frame.comm.send_msg(msg)
+                        self.frame.video_requests_by_feeds.append(self)
+                        self.frame.comments_requests_by_feeds.append(self)
+
+                        # for req in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
+                        #     self.frame.comm.send_msg(msg)
+                        #     self.frame.video_requests_by_feeds.append(self.frame.feed_panel)
+                        #     self.frame.comments_requests_by_feeds.append(self.frame.feed_panel)
                         print("watched all videos")
 
                     elif isinstance(self.associated_panel, UserProfilePanel):
@@ -974,9 +986,12 @@ class FeedPanel(wx.Panel):
 
 
         elif video_id == settings.END_OF_LIST_ID:
-            self.videos_ids.append(
-                video_id)  # add 0 to indicate the end of the videos
-            self.frame.comments_requests_by_feeds.pop(0)
+            # if self.videos_ids is empty then the fact the videos watch record has been deleted, and it also breaks if you scroll up to the id = 0
+            if self.videos_ids:
+                self.videos_ids.append(
+                    video_id)  # add 0 to indicate the end of the videos
+                self.frame.comments_requests_by_feeds.pop(0)
+                print("resseting history:",self.videos_ids)
 
         elif video_id == settings.DELETED_ID:
             self.frame.videos_details[video_id] = video # so when updating the comments on the video using frame. it wont break
@@ -1075,8 +1090,9 @@ class FeedPanel(wx.Panel):
 
                 if video_id == self.current_video_id:
                     self.comments_panel.add_comments(comments)
-            else:
-                self.status_label.SetLabel("No more comments to load")
+            elif len(self.frame.videos_details[video_id].get_comments()) > 0:
+                self.status_label.SetLabel(f"No more comments to load, video_id:{video_id}")
+                self.Layout()
 
     def update_comments_label(self, video_id):
         """
