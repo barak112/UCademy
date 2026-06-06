@@ -42,7 +42,7 @@ class MainFrame(wx.Frame):
 
         self.status_labels = [] # list of all status labels
         self.animated_dot_labels = ["waiting for video from server", "Loading video", "Sending verification code",
-                                    "waiting for comments from server", "Loading Video From Server", "Loading Content",
+                                    "Waiting for comments from server", "Loading Video From Server", "Loading Content",
                                     "Uploading", "Resending code", "sending credentials to the server",
                                     "Loading Content From Server", "waiting for videos from server",
                                     "Disconnected from server, Closing application in 5 seconds", "Creator uploaded a new video, loading it now from server",
@@ -112,6 +112,8 @@ class MainFrame(wx.Frame):
         # self.feed_panel.load_video(demo_video)
         # self.comm.send_msg(msg)
 
+        pub.subscribe(self.on_a_user_deleted_comment, "comment_deleted_ans")
+
         pub.subscribe(self.on_a_user_deleted_video, "video_deleted_ans")
 
         pub.subscribe(self.load_new_video, "load_new_video")
@@ -129,8 +131,6 @@ class MainFrame(wx.Frame):
         pub.subscribe(self.on_report_ans, "report_ans")
 
     def on_report_ans(self, status, id, type, content, content_publisher, created_at):
-        # self.status_label.SetLabel("Video reported successfully")
-
         msg2 = f"has been examined and it has been decided that the"
 
         msg1 = f'report of video "{content}" by "{content_publisher}"'
@@ -152,8 +152,6 @@ class MainFrame(wx.Frame):
             settings.REPORT_CONCLUDED: f"{msg1} has already been concluded"
         }
 
-        print(status_messages[status])
-
         wx.MessageBox(
             status_messages[status],
             f"{type_str.capitalize()} Report Status",
@@ -161,6 +159,16 @@ class MainFrame(wx.Frame):
         )
 
         self.Layout()
+
+    def on_a_user_deleted_comment(self, video_id, comment_id):
+        if video_id in self.videos_details:  # if the client has the video's file (if it has appeared in the feed)
+            self.videos_details[video_id].delete_comment(comment_id)  # delete comment from video details
+            self.user_profile_feed_panel.on_a_user_deleted_comment(video_id, comment_id)  # visually delete comment in the user panel feed
+            self.feed_panel.on_a_user_deleted_comment(video_id, comment_id) # visually delete comment in the feed
+
+        # update comments amount in the user profile panel
+        self.user_profile_panel.on_a_user_deleted_comment(video_id)
+
 
     def on_a_user_deleted_video(self, video_id):
 
@@ -170,7 +178,7 @@ class MainFrame(wx.Frame):
             self.feed_panel.on_a_user_deleted_video(video_id)
 
         # remove the video from the user profile panel
-        self.user_profile_panel.delete_video_ans(video_id)
+        self.user_profile_panel.on_a_user_deleted_video(video_id)
 
         if video_id in self.user.videos_ids:
             self.user.videos_ids.remove(video_id)

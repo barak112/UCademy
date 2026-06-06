@@ -181,6 +181,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         """
         self.frame.switch_panel(self.frame.feed_panel, self)
         event.Skip()
+        #todo check which feed panel was last active and switch to it
 
     def on_move_to_upload_video(self, event):
         """
@@ -388,20 +389,23 @@ class UserProfilePanel(wx.ScrolledWindow):
 
             self.frame.user_profile_feed_panel.videos_ids.insert(0, video_id)
 
-
-    def delete_video_ans(self, video_id):
+    def on_a_user_deleted_comment(self, video_id):
         videos = [video for video_list in self.videos_details.values() for video in video_list]
 
         for video in videos:
             if video.video_id == video_id:
-                # self.videos_details[video.creator].remove(video)
-                #todo checking for bug
-                videos_ids_of_creator = [video.video_id for video in self.videos_details[video.creator]]
-                print("videos_ids_of_creator before:", videos_ids_of_creator)
-                self.videos_details[video.creator].remove(video)
-                videos_ids_of_creator = [video.video_id for video in self.videos_details[video.creator]]
-                print("videos_ids_of_creator after:", videos_ids_of_creator)
+                video.comments_amount -= 1
+                break
 
+        if video_id in self.videos_ids:
+            self.Refresh()  # refresh if the video is currently on screen
+
+    def on_a_user_deleted_video(self, video_id):
+        videos = [video for video_list in self.videos_details.values() for video in video_list]
+
+        for video in videos:
+            if video.video_id == video_id:
+                self.videos_details[video.creator].remove(video)
                 self.frame.users[video.creator].videos_ids.remove(video_id)
 
                 if video_id in self.videos_ids: # if video is currently on screen
@@ -409,6 +413,7 @@ class UserProfilePanel(wx.ScrolledWindow):
                     self.profile_info.videos_numeric_amount_label.SetLabel(str(self.frame.users[video.creator].get_video_amount()))
 
                 break
+
 
 if __name__ == "__main__":
     app = wx.App()

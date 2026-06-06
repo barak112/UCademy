@@ -116,15 +116,26 @@ class Comments(wx.Panel):
                         self.frame.comm.send_msg(msg)
                         self.frame.comments_requests_by_feeds.append(self.parent)
                         self.waiting_for_comments = True
-                        self.parent.status_label.SetLabel("waiting for comments from server")
+                        self.parent.status_label.SetLabel("Waiting for comments from server")
                         self.parent.Layout()
 
             elif current >= max_pos:
-                self.parent.status_label.SetLabel("no more comments to load")
+                self.parent.status_label.SetLabel("No more comments to load")
                 self.parent.Layout()
         else:
             self.parent.status_label.SetLabel("")
         event.Skip()
+
+    def delete_comment(self, comment_id):
+        comment_widget_obj = self.comments_sizer.GetChildren()[self.comments_ids.index(comment_id)].GetWindow()
+        comment_widget_obj.comment_label.SetLabel("This comment has been deleted")
+        comment_widget_obj.username_label.SetForegroundColour((255, 0, 0))
+
+        comment_widget_obj.username_date_sizer.Clear(delete_windows=True)
+        comment_widget_obj.action_button.Destroy()
+
+        self.Layout()
+        self.Refresh()
 
     def update_pfp_bitmap(self):
         """
@@ -197,16 +208,17 @@ class Comments(wx.Panel):
 
     def on_a_user_added_comment(self, video_id, comment, index):
         """
-        Handles the server's confirmation of an added comment and inserts it at the top of the comments list.
+        Handles the server's confirmation of an added comment.
         :param video_id: The ID of the video the comment was added to.
         :param comment: The comment object returned by the server.
         """
 
-        if self.video and self.video.video_id == video_id:
+        if self.video and self.video.video_id == video_id and comment.comment_id not in self.comments_ids:
             # add comment visually
             comment_panel = comment_widget.CommentWidget( self.comments_panel, self.frame, comment)
 
             self.comments_sizer.Insert(index, comment_panel, 0, wx.EXPAND)
+            self.comments_ids.insert(index, comment.comment_id)
             if comment.commenter == self.frame.user.username:
                 self.comments_panel.Scroll(0,0)
 

@@ -416,7 +416,7 @@ class DataBase:
                                 videos.description,
                                 strftime('%d/%m/%Y %H:%M', videos.created_at),
                                (SELECT COUNT(*) FROM likes WHERE video_id = videos.video_id) AS likes_count,
-                               (SELECT COUNT(*) FROM comments WHERE video_id = videos.video_id) AS comments_count,
+                               (SELECT COUNT(*) FROM comments WHERE video_id = videos.video_id and deleted = 0) AS comments_count,
                                test_link
                          FROM videos
 

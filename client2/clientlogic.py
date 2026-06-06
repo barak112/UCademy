@@ -242,8 +242,9 @@ class ClientLogic:
         :param data: A list of comment info lists, each containing comment ID, video ID, commenter, content, and creation timestamp.
         """
         # data = [[comment_info], [comment_info]]
+        video_id = data[0]
+        data = data[1:]
         comments = []
-        video_id = 0
         for comment_info in data:
             comment_id, video_id, commenter, comment_content, created_at = comment_info
             video_id = int(video_id)
@@ -252,7 +253,7 @@ class ClientLogic:
             print(
                 f"comment added: comment_id: {comment_id} content: {comment_content} by {commenter} created at {created_at}")
 
-        print("video id in handle comments:", video_id)
+        print("video id in handle comments:", video_id, "comments:",comments)
         wx.CallAfter(pub.sendMessage, "load_new_comments", video_id=video_id, comments=comments)
         # todo maybe change so that comments are sent as video_id@#[...]@#[...]@#[...] so the video id wouldnt be sent with each comment
 
@@ -282,7 +283,7 @@ class ClientLogic:
         else:
             print("comment deletion failed")
 
-        wx.CallAfter(pub.sendMessage, "comment_deleted_ans", video_id=video_id)
+        wx.CallAfter(pub.sendMessage, "comment_deleted_ans", video_id=video_id, comment_id=comment_id)
 
     def handle_video_details_in_profile(self, data):  # command 13
         """Handles video details received for a profile view and notifies the UI.

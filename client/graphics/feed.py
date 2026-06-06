@@ -395,6 +395,9 @@ class FeedPanel(wx.Panel):
 
         self.Hide()
 
+    def on_a_user_deleted_comment(self, video_id, comment_id):
+        if self.current_video_id == video_id:
+            self.comments_panel.delete_comment(comment_id)
 
     def on_moderate(self, event):
         if self.frame.user.is_system_manager():
@@ -427,7 +430,6 @@ class FeedPanel(wx.Panel):
             self.frame.comm.send_msg(msg)
             self.frame.video_requests_by_feeds.append(self.frame.feed_panel)
             self.frame.comments_requests_by_feeds.append(self.frame.feed_panel)
-
 
     def on_videos_reports(self, event):
         if self.comments_or_videos_reports_filter != settings.VIDEO_DIGIT_REPR:
@@ -490,7 +492,7 @@ class FeedPanel(wx.Panel):
             answer = wx.MessageBox(
                 "Are you sure you want to delete this video?\nThis action is not reverseable\n",
                 f'Delete Video "{self.frame.videos_details[self.current_video_id].video_name}"?',
-                wx.YES_NO | wx.ICON_INFORMATION,
+                wx.YES | wx.CANCEL | wx.ICON_INFORMATION,
             )
 
             if answer == wx.YES:
@@ -1066,12 +1068,15 @@ class FeedPanel(wx.Panel):
         :param video_id: The ID of the video the comments belong to.
         :param comments: A list of comment data to add.
         """
-        print("loading new comments for video:", video_id)
+        print("loading new comments for video:", video_id, "comments:", comments)
         if video_id in self.frame.videos_details:
-            self.frame.videos_details[video_id].add_comments(comments)
+            if comments:
+                self.frame.videos_details[video_id].add_comments(comments)
 
-            if video_id == self.current_video_id:
-                self.comments_panel.add_comments(comments)
+                if video_id == self.current_video_id:
+                    self.comments_panel.add_comments(comments)
+            else:
+                self.status_label.SetLabel("No more comments to load")
 
     def update_comments_label(self, video_id):
         """

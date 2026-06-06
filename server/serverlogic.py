@@ -676,7 +676,7 @@ class ServerLogic:
             self.send_pfp(client_ip, commenter_name)
             print("sending pfp of user in comments:", commenter_name)
 
-        msg = serverProtocol.build_send_comments(comments_to_send)
+        msg = serverProtocol.build_send_comments(video_id, comments_to_send)
         print("msg of comments:", msg)
         self.clients[client_ip][1].send_msg(client_ip, msg)
 
@@ -705,6 +705,7 @@ class ServerLogic:
         else:
             msg = serverProtocol.build_del_video_confirmation(0)
             self.comm.send_msg(client_ip, msg)
+            #todo handle this in client
 
     def handle_del_comment(self, client_ip, data):  # command 12
         """
@@ -713,14 +714,22 @@ class ServerLogic:
         :param data: A list containing the comment ID to delete.
         """
         comment_id = data[0]
-        msg = serverProtocol.build_del_comment_confirmation(0)
         comment = self.db.get_specific_comment(comment_id)
         if comment:
             self.db.delete_comment(comment_id)
             video_id = comment[1]
             msg = serverProtocol.build_del_comment_confirmation(video_id, comment_id)
-            print("deleting comment")
-        self.comm.send_msg(client_ip, msg)
+            print("deleting comment", comment_id, "on video:", video_id)
+
+            clients_to_send = [ip for ip in self.clients.keys() if
+                               video_id in (self.videos_sent[ip] + self.thumbnails_sent[ip])]
+
+            for client in clients_to_send:
+                self.comm.send_msg(client, msg)
+        else:
+            msg = serverProtocol.build_del_comment_confirmation(0)
+            self.comm.send_msg(client_ip, msg)
+            #todo handle also this in client
 
     def handle_creator_videos_req(self, client_ip, data):  # command 13
         """

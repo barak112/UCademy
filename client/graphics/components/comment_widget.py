@@ -105,28 +105,45 @@ class CommentWidget(wx.Panel):
 
     def on_comment_action(self, event):
         print("comment action")
-
-        if self.frame.user.is_system_manager():
+        msg = ""
+        if self.frame.user.is_system_manager(): # if system manager moderating comment
             answer = wx.MessageBox(
                 "Would you like to delete this comment?\nThis action is not reversable\nClick Yes to delete\nClick No to keep\nClick cancel to avoid moderating this comment",
-                "Moderate Comment", wx.ICON_INFORMATION | wx.YES_NO | wx.CANCEL, )
+                "Moderate Comment", wx.ICON_INFORMATION | wx.YES_NO | wx.CANCEL)
 
             if answer != wx.CANCEL:
                 status = settings.REPORT_ACCEPTED if answer == wx.YES else settings.REPORT_DENIED
 
-                msg = clientProtocol.build_comment_or_video_status(self.comment.comment_id, settings.VIDEO_DIGIT_REPR,
-                                                                   status)
-                self.frame.comm.send_msg(msg)
-                self.status_label.SetLabel("Moderation sent to the server")
-                wx.MessageBox("Moderation has been sent to the server", "Moderation sent",
-                              wx.OK | wx.ICON_INFORMATION)
+                msg = clientProtocol.build_comment_or_video_status(self.comment.comment_id, settings.VIDEO_DIGIT_REPR,status)
+                self.parent.GetParent().parent.status_label.SetLabel("Moderation sent to the server")
+                wx.MessageBox("Moderation has been sent to the server", "Moderation sent",wx.OK | wx.ICON_INFORMATION)
 
-        elif self.parent.GetParent().frame.user.username == self.comment.commenter:
-            pass
-        else:
-            pass
-        #todo fill this func
-        # add delete_comment to protocol (if there isnt one yet)
+        elif self.parent.GetParent().frame.user.username == self.comment.commenter: # if commenter deleting comment
+            answer = wx.MessageBox(
+                "Are you sure you want to delete this comment?\nThis action is not reverseable\n",
+                "Delete Comment", wx.ICON_INFORMATION | wx.YES_NO)
+
+            if answer == wx.YES:
+                msg = clientProtocol.build_del_comment(self.comment.comment_id)
+                self.parent.GetParent().parent.status_label.SetLabel("Delete req sent to the server")
+                wx.MessageBox("Delete req has been sent to the server", "Delete req sent", wx.OK | wx.ICON_INFORMATION)
+
+        else: # if a user reporting comment
+            answer = wx.MessageBox(
+                "Are you sure you want to report this comment?\nReport this comment only if its content is harmful\n",
+                f'Report comment "{self.comment.comment}"?',
+                wx.YES_NO | wx.ICON_INFORMATION,
+            )
+
+            if answer == wx.YES:
+                wx.MessageBox("Your report has been sent to the server", "Report Sent", wx.OK | wx.ICON_INFORMATION)
+                msg = clientProtocol.build_report(self.comment.comment_id, settings.COMMENT_DIGIT_REPR)
+
+
+        if msg:
+            self.frame.comm.send_msg(msg)
+
+        self.parent.GetParent().parent.Layout()
         event.Skip()
 
     def move_to_commenter_profile(self, event):
