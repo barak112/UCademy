@@ -634,9 +634,7 @@ class ServerLogic:
 
                 for manager_ip, filter in self.system_managers_type_filter.items(): #
                     if filter == settings.COMMENT_DIGIT_REPR and video_id in self.videos_sent[manager_ip]:  # if currently filtering comments
-                        # self.comm.send_msg(manager_ip, msg)
-                        pass
-                        #todo use feed_id instead of a list of requests
+                        self.comm.send_msg(manager_ip, msg)
 
             if no_reports:
                 currently_filtering_type = [manager_ip for manager_ip, filter in self.system_managers_type_filter.items() if filter == type]
@@ -715,9 +713,8 @@ class ServerLogic:
 
         if client_ip in self.clients and self.db.is_the_video_creator(video_id, self.clients[client_ip][0]) or self.db.is_system_manager(
                 self.clients[client_ip][0]):
-            #todo return
-            # self.db.delete_video(video_id)
-            # self.delete_video_files(video_id)
+            self.db.delete_video(video_id)
+            self.delete_video_files(video_id)
 
             clients_to_send = [ip for ip in self.clients.keys() if
                                video_id in (self.videos_sent[ip] + self.thumbnails_sent[ip])]
@@ -740,7 +737,7 @@ class ServerLogic:
         comment = self.db.get_specific_comment(comment_id)
         if comment:
             #todo return this
-            # self.db.delete_comment(comment_id)
+            self.db.delete_comment(comment_id)
             video_id = comment[1]
             msg = serverProtocol.build_del_comment_confirmation(video_id, comment_id)
             print("deleting comment", comment_id, "on video:", video_id)
@@ -853,6 +850,16 @@ class ServerLogic:
 
 
                 print("system manager video id:", video_id)
+                #todo fix bug!!
+                # when i moved back to videos filtering, and there were no more videos to moderate (moderated the last one when i was on comments filtering)
+                # it didnt update me that there were no more videos to moderate, it just stayed on switching filtering mode
+                # most likley happened because i deleted the last video to moderate while i was comment moderating
+                # though it should have updated me when i moved to videos because it requested new videos, who should have come back with settings.NO_VIDEOS_ID
+                # problematic code most likely is:
+                # elif self.db.is_system_manager(username):
+                # if self.db.no_reports(filter_type):
+                #     video_id = settings.NO_VIDEOS_ID
+
             else:
                 video_id = self.db.get_video_for_user(username, self.clients[client_ip][2])
 
@@ -885,10 +892,8 @@ class ServerLogic:
             if video_id == settings.END_OF_LIST_ID:
                 if self.db.is_system_manager(username) and filter_type == settings.COMMENT_DIGIT_REPR:
                    self.db.remove_reviewed_reported_comments_video_for_user(username)
-                   # self.db.add_reviewed_reported_comments_video(username, self.db.get_last_watched_video)
                 else:
                     self.db.remove_watched_videos_for_user(username)
-                    # self.db.add_watched_video(username, video_id)
 
             msg_to_send = serverProtocol.build_video_details(feed_id,video_id, "", "", "", "", 0, 0, 0, "")
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
