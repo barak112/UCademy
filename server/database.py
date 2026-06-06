@@ -637,7 +637,7 @@ class DataBase:
         :return: List of comment rows from the comments table, when the comments of username are first, returns deleted comments also
         """
         self.cur.execute("""
-                         SELECT comment_id, video_id, commenter, comment, strftime('%d/%m/%Y %H:%M', created_at)
+                         SELECT comment_id, commenter, comment, strftime('%d/%m/%Y %H:%M', created_at)
                          FROM comments
                          WHERE video_id = ?
                          ORDER BY CASE WHEN commenter = ? THEN 0 ELSE 1 END, comment_id DESC;""", (video_id, username))

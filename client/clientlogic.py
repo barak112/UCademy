@@ -241,20 +241,20 @@ class ClientLogic:
 
         :param data: A list of comment info lists, each containing comment ID, video ID, commenter, content, and creation timestamp.
         """
-        # data = [[comment_info], [comment_info]]
+        # data = [video_id, [comment_info], [comment_info], [comment_info]...]
+        video_id = data[0]
+        data = data[1:]
         comments = []
-        video_id = 0
         for comment_info in data:
-            comment_id, video_id, commenter, comment_content, created_at = comment_info
+            comment_id, commenter, comment_content, created_at = comment_info
             video_id = int(video_id)
             comment_id = int(comment_id)
             comments.append(comment.Comment(comment_id, comment_content, commenter, created_at))
             print(
                 f"comment added: comment_id: {comment_id} content: {comment_content} by {commenter} created at {created_at}")
 
-        print("video id in handle comments:", video_id)
+        print("video id in handle comments:", video_id, "comments:", comments)
         wx.CallAfter(pub.sendMessage, "load_new_comments", video_id=video_id, comments=comments)
-        # todo maybe change so that comments are sent as video_id@#[...]@#[...]@#[...] so the video id wouldnt be sent with each comment
 
     def handle_vid_del_confirmation(self, data):  # command 11
         """Handles the server's confirmation of a video deletion and notifies the UI.

@@ -159,12 +159,13 @@ def build_report_status(status, id, type, content, content_publisher, created_at
 def build_send_comments(video_id, comments):
     """
         Builds a response command containing a batch of comments for a video.
+    :param video_id: video id of the video that includes the comments
     :param comments: A list of comment entries, each containing comment_id, video_id,
                      commenter_name, comment text, and created_at timestamp.
     :return: Formatted send-comments command string.
     """
-    # comments = [[comment_id, video_id, commenter_name, comment, created_at], ...]
-    return build_command(10, [video_id, comments])
+    # comments = [[comment_id, commenter_name, comment, created_at], ...]
+    return build_command(10, [video_id] + comments)
 
 def build_del_video_confirmation(video_id):
     """
