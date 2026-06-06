@@ -306,6 +306,7 @@ class ClientLogic:
         :param data: The response data containing video details.
         """
         feed_id = data[0]
+        feed_id = int(feed_id)
         video_obj = self.get_video_obj(data[1:])
         print(video_obj.video_id, "new video's test link:", video_obj.test_link)
         wx.CallAfter(pub.sendMessage, "load_new_video", feed_id=feed_id, video=video_obj)
@@ -370,7 +371,7 @@ class ClientLogic:
 
     def handle_comment_or_video_status_confirmation(self, data):  # command 98
         id, type, status = data
-        id, type, status = int(id), int(type), int(status)
+        id, type, status = id, int(type), int(status)
         print("comment or video status:", id, type, status)
         wx.CallAfter(pub.sendMessage, "moderate_ans", id=id, type=type, status=status)
 
