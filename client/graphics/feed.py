@@ -401,7 +401,10 @@ class FeedPanel(wx.Panel):
         :param video_id: The ID of the video the deleted comment belonged to.
         :param comment_id: The ID of the comment that was deleted.
         """
-        if self.current_video_id == video_id:
+        if not video_id:
+            self.status_label.SetLabel("Comment deletion failed")
+
+        elif self.current_video_id == video_id:
             self.comments_panel.delete_comment(comment_id)
 
             self.update_comments_label(video_id)
@@ -625,7 +628,12 @@ class FeedPanel(wx.Panel):
             requesting a replacement, and navigating away if the deleted video was active.
         :param video_id: The ID of the video that was deleted.
         """
-        if video_id in self.videos_ids:
+
+        if not video_id: # video deletion failed
+            self.status_label.SetLabel("Video deletion failed")
+
+
+        elif video_id in self.videos_ids:
             self.videos_ids = [v for v in self.videos_ids if
                                v != video_id]  # removes any occurrence of video_id in videos_ids
 

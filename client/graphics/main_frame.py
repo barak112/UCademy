@@ -172,14 +172,17 @@ class MainFrame(wx.Frame):
         :param video_id: The ID of the video the deleted comment belonged to.
         :param comment_id: The ID of the comment that was deleted.
         """
-        if video_id in self.videos_details:  # if the client has the video's file (if it has appeared in the feed)
-            self.videos_details[video_id].delete_comment(comment_id)  # delete comment from video details
+        if not video_id or video_id in self.videos_details:  # if the client has the video's file (if it has appeared in the feed)
+            if video_id:
+                self.videos_details[video_id].delete_comment(comment_id)  # delete comment from video details
+
             self.user_profile_feed_panel.on_a_user_deleted_comment(video_id,
                                                                    comment_id)  # visually delete comment in the user panel feed
             self.feed_panel.on_a_user_deleted_comment(video_id, comment_id)  # visually delete comment in the feed
 
-        # update comments amount in the user profile panel
-        self.user_profile_panel.on_a_user_deleted_comment(video_id)
+        if video_id:
+            # update comments amount in the user profile panel
+            self.user_profile_panel.on_a_user_deleted_comment(video_id)
 
     def on_a_user_deleted_video(self, video_id):
         """
@@ -187,13 +190,15 @@ class MainFrame(wx.Frame):
             local details and updating both feed panels, the user profile panel, and the user's video list.
         :param video_id: The ID of the video that was deleted.
         """
-        if video_id in self.videos_details:  # if the client has the video's file (if it has appeared in the feed)
-            del self.videos_details[video_id]  # delete video from video details
+        # if video_id == 0 (deletion failed) or if its in self.videos_details
+        if not video_id or video_id in self.videos_details:  # if the client has the video's file (if it has appeared in the feed)
+            self.videos_details.pop(video_id, None)  # delete video from video details, if video_id != 0
             self.user_profile_feed_panel.on_a_user_deleted_video(video_id)
             self.feed_panel.on_a_user_deleted_video(video_id)
 
-        # remove the video from the user profile panel
-        self.user_profile_panel.on_a_user_deleted_video(video_id)
+        if video_id:
+            # remove the video from the user profile panel
+            self.user_profile_panel.on_a_user_deleted_video(video_id)
 
         if video_id in self.user.videos_ids:
             self.user.videos_ids.remove(video_id)

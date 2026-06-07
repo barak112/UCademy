@@ -717,8 +717,8 @@ class ServerLogic:
         video_id = int(video_id)
         print("trying to deleting video:", video_id)
 
-        if client_ip in self.clients and self.db.is_the_video_creator(video_id, self.clients[client_ip][0]) or self.db.is_system_manager(
-                self.clients[client_ip][0]):
+        if client_ip in self.clients and (self.db.is_the_video_creator(video_id, self.clients[client_ip][0]) or self.db.is_system_manager(
+                self.clients[client_ip][0])):
             self.db.delete_video(video_id)
             self.delete_video_files(video_id)
 

@@ -272,10 +272,6 @@ class ClientLogic:
         :param data: The response data containing the deleted video ID (0 if deletion failed).
         """
         video_id = int(data[0])
-        if video_id:
-            print(f"video {video_id} is deleted")
-        else:
-            print("video deletion failed")
 
         wx.CallAfter(pub.sendMessage, "video_deleted_ans", video_id=video_id)
 
