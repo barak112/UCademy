@@ -101,6 +101,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         pub.subscribe(self.user_info_ans, "user_details_in_profile_ans")
         pub.subscribe(self.video_details_ans, "video_details_in_profile_ans")
         pub.subscribe(self.update_pfp, "update_pfp_ans")
+        pub.subscribe(self.uploaded_pfp_ans, "uploaded_pfp_ans")
 
         self.Hide()
         # todo be able to change topics
@@ -138,6 +139,14 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         event.Skip()
 
+    def uploaded_pfp_ans(self, status):
+        if status == settings.SUCCESSFUL:
+            wx.MessageBox("Profile picture has been change",
+                          "Profile Picture Upload Successful", wx.OK | wx.ICON_INFORMATION)
+
+        elif status == settings.INVALID_IMAGE:
+            wx.MessageBox("The image you uploaded is not valid, please try another one!", "Error uploading new profile picture", wx.OK | wx.ICON_ERROR)
+
     def update_pfp(self):
         """
         Refreshes the profile picture across the profile panel and both feed panels.
@@ -156,6 +165,9 @@ class UserProfilePanel(wx.ScrolledWindow):
             self.frame.video_comm.send_file(f"{self.frame.user.username}.png", img_path)
 
         dlg.Destroy()
+
+        wx.MessageBox("Profile picture change req sent to server",
+                      "Profile Picture Upload", wx.OK | wx.ICON_INFORMATION)
 
     def video_selected(self, video):
         """

@@ -459,7 +459,7 @@ class UploadVideoPanel(wx.ScrolledWindow):
         :param video_id: The ID assigned to the uploaded video, or None/falsy if the upload failed.
         """
         print("video uploaded", video_id)
-        if video_id:
+        if video_id > 0:
             self.dots_animation_timer.Stop()
             self.upload_video_btn.label_or_path = "Video uploaded"
             self.test_link_field.set_value("")
@@ -482,11 +482,23 @@ class UploadVideoPanel(wx.ScrolledWindow):
             msg = clientProtocol.build_req_video(settings.FEED_ID, video_id)
             self.frame.video_comm.send_msg(msg)
 
-        else:
+        elif video_id == settings.VIDEO_ALREADY_EXISTS:
             self.upload_video_btn.label_or_path = "Video file already exists, upload a different one"
             self.video_path = None
             self.upload_video_btn.set_active(False)
             self.filled_fields["video"] = False
+
+        elif video_id == settings.INVALID_VIDEO:
+            self.upload_video_btn.label_or_path = "Video file is not a valid video, upload a different one"
+            self.video_path = None
+            self.upload_video_btn.set_active(False)
+            self.filled_fields["video"] = False
+
+        elif video_id == settings.INVALID_IMAGE:
+            self.upload_video_btn.label_or_path = "Thumbnail file is not a valid image, upload a different one"
+            self.thumbnail_path = None
+            self.upload_video_btn.set_active(False)
+            self.filled_fields["thumbnail"] = False
 
         self.Refresh()
 

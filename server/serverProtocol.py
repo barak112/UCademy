@@ -287,6 +287,16 @@ def build_update_pfp():
     """
     return build_command(19, [])
 
+def pfp_upload_confirmation(status):
+    """
+        Builds and returns a command for confirming profile picture uploads.
+    :param status: A boolean value indicating the status of the profile picture
+        upload operation (e.g., success or failure).
+    :return: Returns a command represented as a constructed object or structure
+        based on the input status.
+    """
+    return build_command(20, [status])
+
 
 # ----- System Manager protocol -----
 

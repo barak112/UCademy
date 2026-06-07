@@ -30,7 +30,8 @@ class ServerCommVideos (serverComm.ServerComm):
         :param recvQ: The queue object used for sending data to the server logic.
         """
         super().__init__(port, recvQ)
-        self.idsQ = queue.Queue()
+        # self.idsQ = queue.Queue()
+        self.thumbnail_content = None
         self.client_socket = None
         self.client_ip = client_ip
         self.client_cipher = None
@@ -129,21 +130,20 @@ class ServerCommVideos (serverComm.ServerComm):
 
 
             # this code assumes that pfp names are strings (the user's name) and video and thumbnail file names are a rnd int
-            file_path = "media\\pfps"
             if file_name.isnumeric():
-                file_path = "media\\videos"
-                if video_details: # if video details is not empty, it means that it is a video
-                    self.recvQ.put((self.client_ip, (file_content, extension, video_details))) # sending file content with details to logic
+                if video_details: # if video_details is not empty, it means that it is a video
+                    self.recvQ.put(("16", self.client_ip, (file_content, self.thumbnail_content, extension, video_details))) # sending file content with details to logic
 
                 else: # if file_name is a number but video_details is empty, it is a thumbnail
-                    file_name = self.idsQ.get()
-
-            if file_name and not video_details: # id 0 indicates that the video already exists, so to not save the thumbnail
-                with open(f"{file_path}\\{file_name}.{extension}", 'wb') as f:
-                    f.write(file_content)
+                    self.thumbnail_content = file_content
+            else:
+                #todo handle pfp: check that the file is valid
+                pass
+                # with open(f"{file_path}\\{file_name}.{extension}", 'wb') as f: # saving
+                #     f.write(file_content)
 
             if isinstance(file_name, str): # if filename is a str, it means the file is a pfp, so send user its pfp
-                self.recvQ.put((self.client_ip, "19"))
+                self.recvQ.put((self.client_ip, ("20", file_content)))
 
         else:
             self._close_client(self.client_socket)

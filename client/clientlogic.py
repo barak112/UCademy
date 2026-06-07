@@ -362,7 +362,11 @@ class ClientLogic:
         """
         wx.CallAfter(pub.sendMessage, "update_pfp_ans")
 
-    def comm_disconnected(self, data): # command 20
+    def handle_uploaded_pfp_confirmation(self, data):
+        status = int(data[0])
+        wx.CallAfter(pub.sendMessage, "uploaded_pfp_ans", status=status)
+
+    def comm_disconnected(self, data): # command 96
         """
         Handles the communication disconnection event and sends a notification message
         using the publish-subscribe (pubsub) mechanism.

@@ -95,6 +95,7 @@ class ServerLogic:
             '17': self.handle_follow_user,
             '18': self.handle_like_video,
             '19': self.send_user_his_pfp,
+            '20': self.handle_user_uploaded_pfp,
 
             '96': self.handle_client_disconnected,
             '97': self.handle_filter_comments_or_videos_reports,
@@ -138,12 +139,13 @@ class ServerLogic:
             ip, msg = self.recvQ.get()
 
             if isinstance(msg, tuple):
-                self.handle_video_upload(ip, msg)
+                opcode, *data = msg
+                print("opcode, data in tuple:", opcode, "    ", data)
             else:
                 opcode, data = serverProtocol.unpack(msg)
 
-                if opcode in self.commands.keys():
-                    self.commands[opcode](ip, data)
+            if opcode in self.commands.keys():
+                self.commands[opcode](ip, data)
 
     def handle_registration(self, client_ip, data):  # command 0
         """
@@ -924,26 +926,39 @@ class ServerLogic:
                      contains the video name, description, test link, and topics.
         """
         #todo
-        file_content, extension, video_details = data
+        video_content, thumbnail_content, extension, video_details = data
         video_name, video_desc, test_link, topics = video_details
         print("video_name", video_name, "video_desc", video_desc, "test_link", test_link, "topics", topics)
 
         username = self.clients[client_ip][0]
 
-        video_hash = self.hash_video(file_content)
-        if not self.db.hash_exists(video_hash) and self.is_video_valid_from_bytes(file_content):
+        video_hash = self.hash_video(video_content)
+
+        if self.db.hash_exists(video_hash):
+            video_id = settings.VIDEO_ALREADY_EXISTS
+
+        elif not self.is_video_valid_from_bytes(video_content):
+            video_id = settings.INVALID_VIDEO
+
+        elif not self.is_image_valid_from_bytes(thumbnail_content):
+            video_id = settings.INVALID_IMAGE
+
+        else: # no problem with the video
             video_id = self.db.add_video(username, video_name, video_desc, test_link)
             self.db.add_video_topics(video_id, topics)
 
             with open(f"media\\videos\\{video_id}.{extension}", 'wb') as f:
-                f.write(file_content)
+                f.write(video_content)
+
+            with open(f"media\\videos\\{video_id}.png", 'wb') as f:
+                f.write(thumbnail_content)
+
             self.db.add_video_hash(video_id, video_hash)
-            # puts the id for the thumbnail filename
-            self.clients[client_ip][1].idsQ.put(video_id)
             print("video uploaded")
 
             msg = serverProtocol.build_video_upload_confirmation(video_id, username)
 
+            # the creator of this videos is present because to get to upload you need to go through the profile panel
             clients_to_send = [ip for ip in self.clients.keys() if
                                username in self.creator_videos_sent[ip]]
             print("clients_to_send in video_upload:",clients_to_send)
@@ -951,32 +966,26 @@ class ServerLogic:
             for client in clients_to_send:
                 self.comm.send_msg(client, msg)
 
-        else:
-            status = settings.VIDEO_ALREADY_EXISTS if self.db.hash_exists(video_hash) else settings.INVALID_VIDEO
-            # 0 indicates that the video already exists or invalid, so to not save the thumbnail
-            self.clients[client_ip][1].idsQ.put(0)
-            msg = serverProtocol.build_video_upload_confirmation(status, username)
+        if video_id <= 0: # if there was a problem with the video
+            msg = serverProtocol.build_video_upload_confirmation(video_id, username)
             self.comm.send_msg(client_ip, msg)
             print("video already exists")
 
-
-
     @staticmethod
-    def is_img_valid(path):
+    def is_image_valid_from_bytes(data: bytes):
         """
             Checks whether a file at the given path is a valid image.
             Attempts to open and verify the file's integrity using PIL.
         :param path: The file path of the image to validate.
         :return: True if the file is a valid image, False otherwise.
         """
-        try:
-            with Image.open(path) as img:
-                img.verify()  # checks file integrity
-            ret_val = True
-        except Exception:
-            ret_val = False
+        with tempfile.NamedTemporaryFile(suffix=".png") as f:
+            f.write(data)
+            f.flush()
 
-        return ret_val
+            img = cv2.imread(f.name)
+
+            return img is not None
 
     @staticmethod
     def is_video_valid_from_bytes(data: bytes):
@@ -998,19 +1007,6 @@ class ServerLogic:
             ret, _ = cap.read()
             cap.release()
             return ret
-
-    # @staticmethod
-    # def is_video_valid(path):
-    #
-    #     cap = cv2.VideoCapture(path)
-    #
-    #     if not cap.isOpened():
-    #         ret = False
-    #     else:
-    #         ret, frame = cap.read()
-    #         cap.release()
-    #
-    #     return ret
 
     def get_video_details(self, client_ip, video_id):  # helper function
         """
@@ -1074,13 +1070,30 @@ class ServerLogic:
         :param client_ip: The IP address of the client requesting their profile picture.
         :param data: Not used.
         """
+        # if this clients pfp has already been sent to him, remove it from list
         if self.clients[client_ip][0] in self.pfps_sent[client_ip]:
             self.pfps_sent[client_ip].remove(self.clients[client_ip][0])
+
         print(self.pfps_sent)
         self.send_pfp(client_ip, self.clients[client_ip][0])
         msg = serverProtocol.build_update_pfp()
         self.clients[client_ip][1].send_msg(client_ip, msg)
         print("sending user pfp")
+
+    def handle_user_uploaded_pfp(self, client_ip, data): # command 20
+        file_content = data[0]
+        status = settings.INVALID_IMAGE
+        if self.is_image_valid_from_bytes(file_content):
+            with open(f"media\\pfps\\{self.clients[client_ip][0]}.png", 'wb') as f:
+                f.write(file_content)
+
+            status = settings.SUCCESSFUL
+            self.send_user_his_pfp(client_ip, data)
+
+        msg = serverProtocol.pfp_upload_confirmation(status)
+        self.clients[client_ip][1].send_msg(client_ip, msg)
+        print("invalid pfp")
+
 
     # Called by System Manager
 
