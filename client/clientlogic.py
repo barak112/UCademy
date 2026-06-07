@@ -45,6 +45,7 @@ class ClientLogic:
             "17": self.handle_follow_status,
             "18": self.handle_like_video_confirmation,
             "19": self.handle_update_pfp,
+            "20": self.handle_uploaded_pfp_confirmation,
 
             "96": self.comm_disconnected,
 
@@ -363,6 +364,13 @@ class ClientLogic:
         wx.CallAfter(pub.sendMessage, "update_pfp_ans")
 
     def handle_uploaded_pfp_confirmation(self, data):
+        """
+        Processes the confirmation of an uploaded profile picture and communicates the
+        status through a message.
+
+        :param data: A sequence where the first element is expected to be a status
+            code indicating the outcome of the upload.
+        """
         status = int(data[0])
         wx.CallAfter(pub.sendMessage, "uploaded_pfp_ans", status=status)
 

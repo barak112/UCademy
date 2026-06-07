@@ -10,6 +10,7 @@ import time
 from email.message import EmailMessage
 
 import cv2
+import numpy as np
 from PIL import Image
 
 import database
@@ -140,7 +141,6 @@ class ServerLogic:
 
             if isinstance(msg, tuple):
                 opcode, *data = msg
-                print("opcode, data in tuple:", opcode, "    ", data)
             else:
                 opcode, data = serverProtocol.unpack(msg)
 
@@ -925,7 +925,6 @@ class ServerLogic:
         :param data: A tuple of (file_content, extension, video_details), where video_details
                      contains the video name, description, test link, and topics.
         """
-        #todo
         video_content, thumbnail_content, extension, video_details = data
         video_name, video_desc, test_link, topics = video_details
         print("video_name", video_name, "video_desc", video_desc, "test_link", test_link, "topics", topics)
@@ -979,13 +978,9 @@ class ServerLogic:
         :param path: The file path of the image to validate.
         :return: True if the file is a valid image, False otherwise.
         """
-        with tempfile.NamedTemporaryFile(suffix=".png") as f:
-            f.write(data)
-            f.flush()
-
-            img = cv2.imread(f.name)
-
-            return img is not None
+        nparr = np.frombuffer(data, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)
+        return img is not None
 
     @staticmethod
     def is_video_valid_from_bytes(data: bytes):
@@ -1081,6 +1076,15 @@ class ServerLogic:
         print("sending user pfp")
 
     def handle_user_uploaded_pfp(self, client_ip, data): # command 20
+        """
+        Handles the user-uploaded profile picture (PFP) image and processes it based on its validity.
+
+        This method checks if the uploaded image is valid.
+        If valid, the image is saved to a file specific to the client. A confirmation message is sent
+        to the user regarding the status of the processing. If invalid, the user is notified accordingly.
+
+        :param client_ip: The IP address of the client uploading the profile picture.
+        :param data: A list where the first element contains the raw file content of the pfp"""
         file_content = data[0]
         status = settings.INVALID_IMAGE
         if self.is_image_valid_from_bytes(file_content):
@@ -1092,7 +1096,6 @@ class ServerLogic:
 
         msg = serverProtocol.pfp_upload_confirmation(status)
         self.clients[client_ip][1].send_msg(client_ip, msg)
-        print("invalid pfp")
 
 
     # Called by System Manager

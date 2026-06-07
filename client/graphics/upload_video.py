@@ -418,9 +418,9 @@ class UploadVideoPanel(wx.ScrolledWindow):
                 self.upload_video_btn.label_or_path = "Uploading"
                 self.dots_animation_timer.Start(500)  # every half a minute
 
+                self.frame.video_comm.send_file("0.png", self.thumbnail_path) # sending thumbnail
                 self.frame.video_comm.send_file("0.mp4", self.video_path, video_name, description, test_link,
-                                                self.topic_ids)
-                self.frame.video_comm.send_file("0.png", self.thumbnail_path)
+                                                self.topic_ids) # sending video
 
         self.Layout()
         event.Skip()

@@ -132,17 +132,11 @@ class ServerCommVideos (serverComm.ServerComm):
             # this code assumes that pfp names are strings (the user's name) and video and thumbnail file names are a rnd int
             if file_name.isnumeric():
                 if video_details: # if video_details is not empty, it means that it is a video
-                    self.recvQ.put(("16", self.client_ip, (file_content, self.thumbnail_content, extension, video_details))) # sending file content with details to logic
+                    self.recvQ.put((self.client_ip, ("16", file_content, self.thumbnail_content, extension, video_details))) # sending file content with details to logic
 
                 else: # if file_name is a number but video_details is empty, it is a thumbnail
                     self.thumbnail_content = file_content
             else:
-                #todo handle pfp: check that the file is valid
-                pass
-                # with open(f"{file_path}\\{file_name}.{extension}", 'wb') as f: # saving
-                #     f.write(file_content)
-
-            if isinstance(file_name, str): # if filename is a str, it means the file is a pfp, so send user its pfp
                 self.recvQ.put((self.client_ip, ("20", file_content)))
 
         else:

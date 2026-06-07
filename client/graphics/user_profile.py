@@ -4,6 +4,7 @@ import shutil
 
 import wx
 import wx.media
+from PIL import Image
 from pubsub import pub
 
 import clientProtocol
@@ -131,7 +132,7 @@ class UserProfilePanel(wx.ScrolledWindow):
                             self.status_label.SetLabel("waiting for videos from server")
                             self.Layout()
                             print("req more videos: last id:", self.videos_ids[-1], "videos ids:", self.videos_ids)
-                elif current >= max_pos:
+                elif current >= max_pos: # if this user doesnt have more videos and trying to scroll past the end of the videos list
                     self.status_label.SetLabel("this user does not have more videos")
                     self.Layout()
             else:
@@ -159,15 +160,37 @@ class UserProfilePanel(wx.ScrolledWindow):
         """
             Opens a file dialog for the user to select a new profile picture and sends it to the server.
         """
+        img_path = None
         dlg = wx.FileDialog(self, "Choose an Image to Set Your pfp", "", "", "PNG files (*.png)|*.png", wx.FD_OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             img_path = dlg.GetPath()
-            self.frame.video_comm.send_file(f"{self.frame.user.username}.png", img_path)
 
         dlg.Destroy()
 
-        wx.MessageBox("Profile picture change req sent to server",
-                      "Profile Picture Upload", wx.OK | wx.ICON_INFORMATION)
+        if self.is_img_valid(img_path):
+            self.frame.video_comm.send_file(f"{self.frame.user.username}.png", img_path)
+            wx.MessageBox("Profile picture change req sent to server",
+                          "Profile Picture Upload", wx.OK | wx.ICON_INFORMATION)
+        else:
+            wx.MessageBox("The image you uploaded is not valid, please try another one!",
+                          "Error uploading new profile picture", wx.OK | wx.ICON_ERROR)
+
+    @staticmethod
+    def is_img_valid(path):
+        """
+            Checks whether a file at the given path is a valid image.
+            Attempts to open and verify the file's integrity using PIL.
+        :param path: The file path of the image to validate.
+        :return: True if the file is a valid image, False otherwise.
+        """
+        try:
+            with Image.open(path) as img:
+                img.verify()  # checks file integrity
+            ret_val = True
+        except Exception:
+            ret_val = False
+
+        return ret_val
 
     def video_selected(self, video):
         """
@@ -179,9 +202,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         msg = clientProtocol.build_req_video(settings.USER_PROFILE_FEED_ID, video.video_id)
         self.frame.comm.send_msg(msg)
 
-        # set video ids to scroll through in user_profile_feed_panel
-        self.frame.user_profile_feed_panel.videos_ids = self.frame.users[self.current_username].videos_ids + [
-            0]  # 0 indicates the end of the ids list
+
         print("ids list:", self.frame.user_profile_feed_panel.videos_ids)
         # switch to feed associated with user profile
         self.frame.user_profile_feed_panel.video_ctrl.Hide()
@@ -287,6 +308,12 @@ class UserProfilePanel(wx.ScrolledWindow):
         """
         self.current_username = user.username
         self.profile_info.set_user(user)
+
+        # set video ids to scroll through in user_profile_feed_panel
+        self.frame.user_profile_feed_panel.videos_ids = user.videos_ids.copy() + [
+            0]  # 0 indicates the end of the ids list
+
+        print("videos ids in user profile feed:", self.frame.user_profile_feed_panel.videos_ids)
 
     def set_new_user(self, username):
         """
@@ -397,6 +424,8 @@ class UserProfilePanel(wx.ScrolledWindow):
             self.Layout()
 
             self.frame.user_profile_feed_panel.videos_ids.insert(0, video_id)
+
+            print("inserted video id:",video_id, "new videos_ids:", self.frame.user_profile_feed_panel.videos_ids )
 
             self.profile_info.videos_numeric_amount_label.SetLabel(
                 str(self.frame.users[username].get_video_amount()))
