@@ -816,10 +816,12 @@ class FeedPanel(wx.Panel):
             Updates the video name and description labels with the current video's details.
         """
         if self.current_video_id in self.frame.videos_details:
-            # todo remove the video id in the video name label
+            # todo return the video id in the video name label for testings
             self.video_desc_label.SetLabel(self.frame.videos_details[self.current_video_id].video_desc)
-            self.video_name_label.SetLabel(
-                str(self.current_video_id) + " " + self.frame.videos_details[self.current_video_id].video_name)
+            self.video_name_label.SetLabel(self.frame.videos_details[self.current_video_id].video_name)
+
+            # self.video_name_label.SetLabel(
+            #     str(self.current_video_id) + " " + self.frame.videos_details[self.current_video_id].video_name)
 
             self.video_name_label.Wrap(self.desc_and_name_panel.GetSize()[0])
             self.video_desc_label.Wrap(self.desc_and_name_panel.GetSize()[0])

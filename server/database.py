@@ -1265,7 +1265,10 @@ if __name__ == "__main__":
 
     # --- testing ---
 
-    print(db.no_reports(0))
+    # print(db.no_reports(0))
+    #
+    # db.cur.execute("UPDATE videos SET name = ? WHERE video_id = ?", ("Make the best sushi🍣", 3))
+    # db.conn.commit()
 
     # print(db.get_reported_comments(3))
     # print(db.get_comment_video_for_system_manager("Barak"))
