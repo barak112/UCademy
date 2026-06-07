@@ -363,16 +363,26 @@ class ClientLogic:
         wx.CallAfter(pub.sendMessage, "comm_disconnected")
 
     # system manager
-    def handle_filter_comments_or_videos_reports_confirmation(self, data): # command 97
+    def handle_filter_comments_or_videos_reports_confirmation(self, data):  # command 97
+        """
+    	    Handles the server's response to a filter reports request (command 97).
+    	    Extracts the report type from the response and broadcasts it via a PubSub message.
+        :param data: A list where the first element is the report type (cast to int).
+        """
         type = data[0]
         type = int(type)
         wx.CallAfter(pub.sendMessage, "comments_or_videos_reports_ans", type=type)
 
-    def handle_comment_or_video_status_confirmation(self, data): # command 98
+    def handle_comment_or_video_status_confirmation(self, data):  # command 98
+        """
+    	Handles the server's confirmation of a moderation action on a comment or video (command 98).
+    	Extracts the item ID, type, and new status from the response and broadcasts them via a PubSub message.
+        :param data: A list of three elements: the item ID, the item type (cast to int), and the moderation status (cast to int).
+        """
         id, type, status = data
         id, type, status = id, int(type), int(status)
         print("comment or video status:", id, type, status)
-        wx.CallAfter(pub.sendMessage, "moderate_ans", id = id, type = type, status = status)
+        wx.CallAfter(pub.sendMessage, "moderate_ans", id=id, type=type, status=status)
 
     def handle_kick_user_confirmation(self, username): # command 99
         pass

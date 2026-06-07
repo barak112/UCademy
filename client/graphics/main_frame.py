@@ -37,14 +37,14 @@ class MainFrame(wx.Frame):
 
         self.users = {}  # [username] = user_object
 
-        self.status_labels = [] # list of all status labels
+        self.status_labels = []  # list of all status labels
         self.animated_dot_labels = ["waiting for video from server", "Loading video", "Sending verification code",
                                     "Waiting for comments from server", "Loading Video From Server", "Loading Content",
                                     "Uploading", "Resending code", "sending credentials to the server",
                                     "Loading Content From Server", "waiting for videos from server",
-                                    "Disconnected from server, Closing application in 5 seconds", "Creator uploaded a new video, loading it now from server",
+                                    "Disconnected from server, Closing application in 5 seconds",
+                                    "Creator uploaded a new video, loading it now from server",
                                     "The video you were watching has been deleted, waiting for video from the server"]
-
 
         self.dots_animation_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.status_label_dots_animation, self.dots_animation_timer)
@@ -96,8 +96,6 @@ class MainFrame(wx.Frame):
             msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
             self.comm.send_msg(msg)
 
-
-
         # self.upload_video_panel.Show()
         # self.feed_panel.Hide()
         # time.sleep(1)
@@ -127,8 +125,17 @@ class MainFrame(wx.Frame):
 
         pub.subscribe(self.on_report_ans, "report_ans")
 
-
     def on_report_ans(self, status, id, type, content, content_publisher, created_at):
+        """
+            Handles the server's report status response by displaying an appropriate
+            message box to the user describing the outcome of their report.
+        :param status: The report status code (e.g. REPORT_ACCEPTED, REPORT_DENIED, etc.).
+        :param id: The ID of the reported content.
+        :param type: The content type digit repr, either VIDEO_DIGIT_REPR or COMMENT_DIGIT_REPR.
+        :param content: The content that was reported (video name, or (comment, video_name) tuple for comments).
+        :param content_publisher: The publisher of the reported content (username, or (commenter, video_creator) tuple for comments).
+        :param created_at: The timestamp when the report was originally submitted.
+        """
         msg2 = f"has been examined and it has been decided that the"
 
         msg1 = f'report of video "{content}" by "{content_publisher}"'
@@ -159,17 +166,27 @@ class MainFrame(wx.Frame):
         self.Layout()
 
     def on_a_user_deleted_comment(self, video_id, comment_id):
+        """
+            Handles a comment deletion event from the server, removing the comment
+            from the local video details and updating both feed panels and the user profile panel.
+        :param video_id: The ID of the video the deleted comment belonged to.
+        :param comment_id: The ID of the comment that was deleted.
+        """
         if video_id in self.videos_details:  # if the client has the video's file (if it has appeared in the feed)
             self.videos_details[video_id].delete_comment(comment_id)  # delete comment from video details
-            self.user_profile_feed_panel.on_a_user_deleted_comment(video_id, comment_id)  # visually delete comment in the user panel feed
-            self.feed_panel.on_a_user_deleted_comment(video_id, comment_id) # visually delete comment in the feed
+            self.user_profile_feed_panel.on_a_user_deleted_comment(video_id,
+                                                                   comment_id)  # visually delete comment in the user panel feed
+            self.feed_panel.on_a_user_deleted_comment(video_id, comment_id)  # visually delete comment in the feed
 
         # update comments amount in the user profile panel
         self.user_profile_panel.on_a_user_deleted_comment(video_id)
 
-
     def on_a_user_deleted_video(self, video_id):
-
+        """
+            Handles a video deletion event from the server, removing the video from
+            local details and updating both feed panels, the user profile panel, and the user's video list.
+        :param video_id: The ID of the video that was deleted.
+        """
         if video_id in self.videos_details:  # if the client has the video's file (if it has appeared in the feed)
             del self.videos_details[video_id]  # delete video from video details
             self.user_profile_feed_panel.on_a_user_deleted_video(video_id)
@@ -181,7 +198,6 @@ class MainFrame(wx.Frame):
         if video_id in self.user.videos_ids:
             self.user.videos_ids.remove(video_id)
 
-
     def load_new_video(self, feed_id, video):
         """
         Routes an incoming video to the feed panel that originally requested it.
@@ -189,7 +205,7 @@ class MainFrame(wx.Frame):
         :param video: The video object to load into the appropriate feed panel.
         """
 
-        print("loading new video:",feed_id, video.video_id)
+        print("loading new video:", feed_id, video.video_id)
 
         if feed_id == settings.FEED_ID:
             self.feed_panel.load_new_video(video)
@@ -199,6 +215,7 @@ class MainFrame(wx.Frame):
     def load_new_comments(self, feed_id, video_id, comments):
         """
         Routes an incoming list of comments to the feed panel that originally requested them.
+        :param feed_id: The ID of the feed panel that requested the comments.
         :param video_id: The ID of the video whose comments are being loaded.
         :param comments: The list of comment objects to load.
         """
@@ -218,12 +235,14 @@ class MainFrame(wx.Frame):
         """
 
         if video_id in self.videos_details:  # if the client has the video's file (if it has appeared in the feed)
-            self.videos_details[video_id].amount_of_likes += 1 if status else -1  # either adds or removes a like from the video
+            self.videos_details[
+                video_id].amount_of_likes += 1 if status else -1  # either adds or removes a like from the video
             self.user_profile_feed_panel.on_a_user_liked_video(status, video_id, username)
             self.feed_panel.on_a_user_liked_video(status, video_id, username)
 
         # update the video's comments amount in the user profile panel
         self.user_profile_panel.on_a_user_liked_video(status, video_id)
+
     def on_a_user_added_comment(self, video_id, comment):
         """
         Routes an add-comment response from the server to the feed panel that sent the request.
@@ -231,10 +250,10 @@ class MainFrame(wx.Frame):
         :param comment: The comment object returned by the server.
         """
         index = 0
-        if not comment.commenter == self.user.username: # if the comment is not from the current user, add it after the last comment by the user
+        if not comment.commenter == self.user.username:  # if the comment is not from the current user, add it after the last comment by the user
             index = self.get_last_comment_index_by_user(self.videos_details[video_id], self.user.username) + 1
 
-        if video_id in self.videos_details: # if the client has the video's file (if it has appeared in the feed)
+        if video_id in self.videos_details:  # if the client has the video's file (if it has appeared in the feed)
             self.videos_details[video_id].add_comment_at_index(comment, index)
             self.user_profile_feed_panel.on_a_user_added_comment(video_id, comment, index)
             self.feed_panel.on_a_user_added_comment(video_id, comment, index)
@@ -244,6 +263,12 @@ class MainFrame(wx.Frame):
 
     @staticmethod
     def get_last_comment_index_by_user(video, username):
+        """
+            Returns the index of the last comment made by the given user in the video's comment list.
+        :param video: The video object whose comments are being searched.
+        :param username: The username to search for in the comment list.
+        :return: The index of the user's last comment, or -1 if they have not commented.
+        """
         comments = video.get_comments()
         commenter_names = [c.commenter for c in comments]
         if username in commenter_names:
@@ -254,6 +279,12 @@ class MainFrame(wx.Frame):
         return index
 
     def on_a_user_upload_video(self, video_id, username):
+        """
+            Handles a video upload event, updating the uploader's video list,
+            the upload panel, and the user profile panel accordingly.
+        :param video_id: The ID of the newly uploaded video.
+        :param username: The username of the user who uploaded the video.
+        """
         if username in self.users:
             self.users[username].videos_ids.insert(0, video_id)
 
@@ -262,7 +293,6 @@ class MainFrame(wx.Frame):
             self.user.videos_ids.insert(0, video_id)
 
         self.user_profile_panel.on_a_user_upload_video(username, video_id)
-
 
     def switch_panel(self, new_panel, old_panel):
         """
@@ -279,10 +309,17 @@ class MainFrame(wx.Frame):
         new_panel.Refresh()
 
     def change_text_status(self, text):
-        """Event handler to update the status bar text."""
+        """
+            Updates the status bar text at the bottom of the frame.
+        :param text: The string to display in the status bar.
+        """
         self.SetStatusText(text, 0)
 
     def comm_disconnected(self):
+        """
+            Handles a server disconnection by notifying the user, updating all status
+            labels, and scheduling the application to close after 5 seconds.
+        """
         wx.CallLater(5000, self.Close)
 
         self.change_text_status("Disconnected from server, Closing application in 5 seconds.")
@@ -298,15 +335,19 @@ class MainFrame(wx.Frame):
             wx.OK | wx.ICON_INFORMATION
         )
 
-
-
     def status_label_dots_animation(self, event):
+        """
+            Animates status labels by appending or removing trailing dots,
+            creating a loading indicator effect for recognized status messages.
+        :param event: The timer event that triggers this animation tick.
+        """
         for status_label in self.status_labels:
             if status_label.GetLabel().strip(".") in self.animated_dot_labels:
                 if status_label.GetLabel()[-3:] == "...":
                     status_label.SetLabel(status_label.GetLabel()[:-3])
                 else:
                     status_label.SetLabel(status_label.GetLabel() + ".")
+
 
 # ----------------------------
 # App Entry Point

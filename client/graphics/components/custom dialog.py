@@ -57,7 +57,7 @@ class ReportDialog(wx.Dialog):
     def on_no(self, event):
         print("User clicked NO")
         self.EndModal(wx.ID_NO)
-#todo delete scratch
+#todo use this to make the report dialogs better
 
 class MainFrame(wx.Frame):
     def __init__(self):

@@ -126,11 +126,21 @@ class Comments(wx.Panel):
         event.Skip()
 
     def destroy_comment(self, comment_id):
+        """
+            Hides the widget for the given comment without modifying its content,
+            used when a moderation decision removes a comment from view.
+        :param comment_id: The ID of the comment to hide.
+        """
         comment_widget_obj = self.comments_sizer.GetChildren()[self.comments_ids.index(comment_id)].GetWindow()
         comment_widget_obj.Hide()
         self.Layout()
 
     def delete_comment(self, comment_id):
+        """
+            Marks a comment widget as deleted by updating its label and hiding
+            the username, timestamp, and action button.
+        :param comment_id: The ID of the comment to mark as deleted.
+        """
         if comment_id in self.comments_ids:
             comment_widget_obj = self.comments_sizer.GetChildren()[self.comments_ids.index(comment_id)].GetWindow()
 
@@ -140,8 +150,8 @@ class Comments(wx.Panel):
             comment_widget_obj.username_label.Hide()
             comment_widget_obj.commented_ago_label.Hide()
             comment_widget_obj.action_button.Hide()
-            comment_widget_obj.pfp.SetBitmap(wx.Bitmap(wx.Image("assets\\null_pfp.png").Scale(settings.PFP_SIZE, settings.PFP_SIZE)))
-
+            comment_widget_obj.pfp.SetBitmap(
+                wx.Bitmap(wx.Image("assets\\null_pfp.png").Scale(settings.PFP_SIZE, settings.PFP_SIZE)))
 
             self.Layout()
             self.Refresh()
@@ -180,12 +190,12 @@ class Comments(wx.Panel):
         Activates the add-comment button when the comment input field has content.
         :param field_name: The name of the field that became filled.
         """
-
         if len(self.add_comment_field.get_value().strip()) >= settings.MAX_COMMENT_LENGTH:
             self.add_comment_button.set_active(False)
-            self.parent.status_label.SetLabel(f"comment is too long, change comment to be less than {settings.MAX_COMMENT_LENGTH} characters")
+            self.parent.status_label.SetLabel(
+                f"comment is too long, change comment to be less than {settings.MAX_COMMENT_LENGTH} characters")
             self.parent.Layout()
-        else:
+        elif self.add_comment_field.text_visible.IsEditable():
             self.add_comment_button.set_active(True)
             self.parent.status_label.SetLabel("")
 
@@ -194,7 +204,6 @@ class Comments(wx.Panel):
         Deactivates the add-comment button when the comment input field is empty.
         :param field_name: The name of the field that was cleared.
         """
-
         self.add_comment_button.set_active(False)
 
     def on_add_comment(self, event):
@@ -203,13 +212,14 @@ class Comments(wx.Panel):
         :param event: The wx mouse click event, or None if triggered by Enter key.
         """
         comment = self.add_comment_field.get_value().strip()
-        if comment and self.video:
+        if comment and self.video and self.add_comment_field.text_visible.IsEditable():
             if len(comment) < settings.MAX_COMMENT_LENGTH:
                 msg = clientProtocol.build_comment(self.video.video_id, comment)
                 self.frame.comm.send_msg(msg)
                 self.add_comment_field.set_value("")
             else:
-                self.parent.status_label.SetLabel(f"comment is too long, change comment to be less than {settings.MAX_COMMENT_LENGTH} characters")
+                self.parent.status_label.SetLabel(
+                    f"comment is too long, change comment to be less than {settings.MAX_COMMENT_LENGTH} characters")
                 self.parent.Layout()
 
         if event:
@@ -220,16 +230,16 @@ class Comments(wx.Panel):
         Handles the server's confirmation of an added comment.
         :param video_id: The ID of the video the comment was added to.
         :param comment: The comment object returned by the server.
+        :param index: The position in the comments list where the comment should be inserted.
         """
-
         if self.video and self.video.video_id == video_id and comment.comment_id not in self.comments_ids:
             # add comment visually
-            comment_panel = comment_widget.CommentWidget( self.comments_panel, self.frame, comment)
+            comment_panel = comment_widget.CommentWidget(self.comments_panel, self.frame, comment)
 
             self.comments_sizer.Insert(index, comment_panel, 0, wx.EXPAND)
             self.comments_ids.insert(index, comment.comment_id)
             if comment.commenter == self.frame.user.username:
-                self.comments_panel.Scroll(0,0)
+                self.comments_panel.Scroll(0, 0)
 
             self.update_comments_label()
             self.parent.update_comments_label(video_id)
@@ -275,13 +285,12 @@ class Comments(wx.Panel):
         self.comments_panel.Scroll(0, 0)
 
         if not self.frame.user.is_system_manager():
-            if video.video_id == settings.DELETED_ID :
-                self.add_comment_field.set_value("You can't add a comment to a deleted video...")
+            if video.video_id == settings.DELETED_ID:
                 self.add_comment_field.text_visible.SetEditable(False)
+                self.add_comment_field.set_value("You can't add a comment to a deleted video...")
             else:
-                self.add_comment_field.set_value("")
                 self.add_comment_field.text_visible.SetEditable(True)
-
+                self.add_comment_field.set_value("")
 
     def update_comments_label(self):
         """

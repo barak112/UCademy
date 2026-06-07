@@ -1065,6 +1065,11 @@ class DataBase:
         return res[0] if res else None
 
     def no_reports(self, type):
+        """
+            returns whether there are no reports of a given type
+        :param type: 0 - comments 1 - videos
+        :return: True if there are no reports of the given type, False otherwise
+        """
         query = "SELECT 1 FROM reports r WHERE r.target_type = ? AND r.status IS NULL"
 
         if type == settings.VIDEO_DIGIT_REPR:

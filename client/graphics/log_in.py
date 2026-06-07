@@ -157,16 +157,29 @@ class LoginPanel(wx.Panel):
         self.Hide()
 
     def set_fields(self, username_or_email, password):
+        """
+            Populates the login form fields with the given credentials.
+        :param username_or_email: The username or email to set in the corresponding input field.
+        :param password: The password to set in the password input field.
+        """
         self.username_or_email_input_obj.set_value(username_or_email)
         self.password_input_obj.set_value(password)
 
     def field_is_filled(self, field_name):
+        """
+            Marks a form field as filled and activates the login button if all fields are filled.
+        :param field_name: The name of the field that has been filled.
+        """
         self.filled_fields[field_name] = 1
         if all(self.filled_fields.values()):
             self.login_button.set_active(True)
         self.login_button.Refresh()
 
     def field_is_unfilled(self, field_name):
+        """
+            Marks a form field as unfilled and deactivates the login button.
+        :param field_name: The name of the field that has been cleared or left empty.
+        """
         self.filled_fields[field_name] = 0
         self.login_button.set_active(False)
         self.login_button.Refresh()
@@ -200,6 +213,12 @@ class LoginPanel(wx.Panel):
         return sizer, text_box
 
     def on_resize(self, event):
+        """
+            Handles the window resize event.
+            Hides the left panel when the window is too narrow to display it alongside the right panel,
+            and shows it again when there is enough space.
+        :param event: The wx resize event, passed to Skip() to allow further processing.
+        """
         if self.GetSize()[0] - self.right.GetSize()[0] == 1:
             self.left.Hide()
         else:

@@ -291,12 +291,31 @@ def build_update_pfp():
 # ----- System Manager protocol -----
 
 def build_filter_comments_or_videos_reports_confirmation(type):
+    """
+        Builds a response command confirming the result of a filter reports request.
+    :param type: The type of reports to filter (0 for comments, 1 for videos).
+    :return: Formatted filter-reports confirmation command string.
+    """
     return build_command(97, [type])
 
+
 def build_comment_or_video_status_confirmation(id, type, status):
+    """
+        Builds a response command confirming a moderation status change on a comment or video.
+    :param id: The ID of the moderated item.
+    :param type: The type of the moderated item (0 for comment, 1 for video).
+    :param status: The new moderation status applied to the item.
+    :return: Formatted moderation-status confirmation command string.
+    """
     return build_command(98, [id, type, status])
 
+
 def build_kick_user_confirmation(username):
+    """
+        Builds a response command confirming that a user has been kicked by the system manager.
+    :param username: The username of the kicked user.
+    :return: Formatted kick-user confirmation command string.
+    """
     return build_command(99, [username])
 
 # ----- Video transfer protocol -----

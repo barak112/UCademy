@@ -17,6 +17,7 @@ class CommentWidget(wx.Panel):
         Initializes the CommentWidget, building the UI with the commenter's profile picture,
         username, timestamp, and comment text.
         :param parent: The parent wx window this widget belongs to.
+        :param frame: The main application frame.
         :param comment: A comment object containing commenter, comment, and created_at fields.
         """
         super().__init__(parent)
@@ -66,7 +67,8 @@ class CommentWidget(wx.Panel):
         elif self.parent.GetParent().frame.user.username == self.comment.commenter:
             img_path = "assets\\delete_video_icon.png"
 
-        self.action_button = rounded_button.RoundedButton(self, img_path, wx.WHITE, self.BG_COLOR, circle=True, use_image=True, icon_size=24)
+        self.action_button = rounded_button.RoundedButton(self, img_path, wx.WHITE, self.BG_COLOR, circle=True,
+                                                          use_image=True, icon_size=24)
 
         self.action_button.SetMinSize((32, 32))
 
@@ -104,9 +106,15 @@ class CommentWidget(wx.Panel):
         self.action_button.Bind(wx.EVT_LEFT_UP, self.on_comment_action)
 
     def on_comment_action(self, event):
+        """
+            Handles the action button click on a comment. Depending on who the current
+            user is, opens a dialog to moderate (system manager), delete (commenter),
+            or report (other users) the comment, then sends the appropriate message to the server.
+        :param event: The mouse click event that triggered this handler.
+        """
         print("comment action")
         msg = ""
-        if self.frame.user.is_system_manager(): # if system manager moderating comment
+        if self.frame.user.is_system_manager():  # if system manager moderating comment
             answer = wx.MessageBox(
                 "Would you like to delete this comment?\nThis action is not reversable\nClick Yes to delete\nClick No to keep\nClick cancel to avoid moderating this comment",
                 "Moderate Comment", wx.ICON_INFORMATION | wx.YES_NO | wx.CANCEL)
@@ -114,12 +122,13 @@ class CommentWidget(wx.Panel):
             if answer != wx.CANCEL:
                 status = settings.REPORT_ACCEPTED if answer == wx.YES else settings.REPORT_DENIED
 
-                msg = clientProtocol.build_comment_or_video_status(self.comment.comment_id, settings.COMMENT_DIGIT_REPR,status)
+                msg = clientProtocol.build_comment_or_video_status(self.comment.comment_id, settings.COMMENT_DIGIT_REPR,
+                                                                   status)
                 self.parent.GetParent().parent.status_label.SetLabel("Moderation sent to the server")
                 self.parent.GetParent().parent.Layout()
-                wx.MessageBox("Moderation has been sent to the server", "Moderation sent",wx.OK | wx.ICON_INFORMATION)
+                wx.MessageBox("Moderation has been sent to the server", "Moderation sent", wx.OK | wx.ICON_INFORMATION)
 
-        elif self.parent.GetParent().frame.user.username == self.comment.commenter: # if commenter deleting comment
+        elif self.parent.GetParent().frame.user.username == self.comment.commenter:  # if commenter deleting comment
             answer = wx.MessageBox(
                 "Are you sure you want to delete this comment?\nThis action is not reverseable\n",
                 "Delete Comment", wx.ICON_INFORMATION | wx.YES_NO)
@@ -131,7 +140,7 @@ class CommentWidget(wx.Panel):
 
                 wx.MessageBox("Delete req has been sent to the server", "Delete req sent", wx.OK | wx.ICON_INFORMATION)
 
-        else: # if a user reporting comment
+        else:  # if a user reporting comment
             answer = wx.MessageBox(
                 "Are you sure you want to report this comment?\nReport this comment only if its content is harmful\n",
                 f'Report comment "{self.comment.comment}"?',
@@ -145,15 +154,19 @@ class CommentWidget(wx.Panel):
                 wx.MessageBox("Your report has been sent to the server", "Report Sent", wx.OK | wx.ICON_INFORMATION)
                 msg = clientProtocol.build_report(self.comment.comment_id, settings.COMMENT_DIGIT_REPR)
 
-
         if msg:
             self.frame.comm.send_msg(msg)
 
         event.Skip()
 
     def move_to_commenter_profile(self, event):
+        """
+            Navigates to the profile page of the comment's author.
+        :param event: The mouse click event that triggered this handler.
+        """
         self.parent.GetParent().frame.user_profile_panel.set_new_user(self.comment.commenter)
-        self.parent.GetParent().frame.switch_panel(self.parent.GetParent().frame.user_profile_panel, self.parent.GetParent().parent)
+        self.parent.GetParent().frame.switch_panel(self.parent.GetParent().frame.user_profile_panel,
+                                                   self.parent.GetParent().parent)
         event.Skip()
 
     def on_check_hover(self, event):

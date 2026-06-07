@@ -20,7 +20,7 @@ class FeedPanel(wx.Panel):
 
     volume = 0
 
-    def __init__(self, frame, parent, feed_id = settings.FEED_ID):
+    def __init__(self, frame, parent, feed_id=settings.FEED_ID):
         super().__init__(parent)
 
         self.frame = frame
@@ -42,7 +42,7 @@ class FeedPanel(wx.Panel):
         self.videos_ids = []
 
         self.can_scroll = True
-        self.negative_scroll_pos = 0 # used to preload videos only when scrolling down and not up then down
+        self.negative_scroll_pos = 0  # used to preload videos only when scrolling down and not up then down
 
         self.current_video_id = 0  # video_id
 
@@ -102,12 +102,11 @@ class FeedPanel(wx.Panel):
         filter_sizer.Add(self.filter_btn)
         filter_sizer.Add(self.filter_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
-
         # comments reports
         comments_reports_sizer = wx.BoxSizer(wx.VERTICAL)
         img_path = "assets\\open_comments_icon.png"
         self.comments_reports_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
-                                                             self.BG_COLOR, circle=True, use_image=True)
+                                                                 self.BG_COLOR, circle=True, use_image=True)
         self.comments_reports_btn.SetMinSize((50, 50))
         self.comments_reports_label = wx.StaticText(self, label="comments")
 
@@ -117,12 +116,11 @@ class FeedPanel(wx.Panel):
         self.comments_reports_btn.Hide()
         self.comments_reports_label.Hide()
 
-
         # video reports
         videos_reports_sizer = wx.BoxSizer(wx.VERTICAL)
         img_path = "assets\\video_icon.png"
         self.videos_reports_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
-                                                                 self.BG_COLOR, circle=True, use_image=True)
+                                                               self.BG_COLOR, circle=True, use_image=True)
         self.videos_reports_btn.set_active(True)
         self.videos_reports_btn.SetMinSize((50, 50))
         self.videos_reports_label = wx.StaticText(self, label="videos")
@@ -132,12 +130,12 @@ class FeedPanel(wx.Panel):
 
         self.videos_reports_btn.Hide()
         self.videos_reports_label.Hide()
-        
+
         # Moderate
         moderate_sizer = wx.BoxSizer(wx.VERTICAL)
         img_path = "assets\\moderate.png"
         self.moderate_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
-                                                               self.BG_COLOR, circle=True, use_image=True)
+                                                         self.BG_COLOR, circle=True, use_image=True)
         self.moderate_btn.SetMinSize((50, 50))
         self.moderate_label = wx.StaticText(self, label="Moderate")
 
@@ -146,13 +144,12 @@ class FeedPanel(wx.Panel):
 
         self.moderate_btn.Hide()
         self.moderate_label.Hide()
-        
 
         # delete
         delete_video_sizer = wx.BoxSizer(wx.VERTICAL)
         img_path = "assets\\delete_video_icon.png"
         self.delete_video_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
-                                                       self.BG_COLOR, circle=True, use_image=True)
+                                                             self.BG_COLOR, circle=True, use_image=True)
         self.delete_video_btn.SetMinSize((50, 50))
         self.delete_video_label = wx.StaticText(self, label="delete")
 
@@ -328,7 +325,7 @@ class FeedPanel(wx.Panel):
             wx.Font(settings.status_label_font_size, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
         self.status_label.SetForegroundColour(wx.Colour(wx.RED))
 
-        main_sizer.AddSpacer(20) # headspace
+        main_sizer.AddSpacer(20)  # headspace
         main_sizer.Add(status_and_back_button_sizer, 0, wx.EXPAND)
 
         if self.feed_id == settings.USER_PROFILE_FEED_ID:
@@ -398,32 +395,52 @@ class FeedPanel(wx.Panel):
         self.Hide()
 
     def on_a_user_deleted_comment(self, video_id, comment_id):
+        """
+            Handles a comment deletion by another user, removing it from the
+            comments panel and updating the comment count if the video is currently displayed.
+        :param video_id: The ID of the video the deleted comment belonged to.
+        :param comment_id: The ID of the comment that was deleted.
+        """
         if self.current_video_id == video_id:
             self.comments_panel.delete_comment(comment_id)
 
             self.update_comments_label(video_id)
             self.comments_panel.update_comments_label()
 
-
     def on_moderate(self, event):
+        """
+            Opens a moderation dialog for the current video, allowing a system manager
+            to accept or deny the report, and sends the moderation decision to the server.
+        :param event: The mouse click event that triggered this handler.
+        """
         if self.frame.user.is_system_manager() and self.current_video_id > 0:
-            answer = wx.MessageBox("Would you like to delete this video?\nThis action is not reversable\nClick Yes to delete\nClick No to keep\nClick cancel to avoid moderating this video", "Moderate Video", wx.ICON_INFORMATION | wx.YES_NO | wx.CANCEL, )
+            answer = wx.MessageBox(
+                "Would you like to delete this video?\nThis action is not reversable\nClick Yes to delete\nClick No to keep\nClick cancel to avoid moderating this video",
+                "Moderate Video", wx.ICON_INFORMATION | wx.YES_NO | wx.CANCEL, )
 
             if answer != wx.CANCEL:
                 status = settings.REPORT_ACCEPTED if answer == wx.YES else settings.REPORT_DENIED
 
-                msg = clientProtocol.build_comment_or_video_status(self.current_video_id, settings.VIDEO_DIGIT_REPR, status)
+                msg = clientProtocol.build_comment_or_video_status(self.current_video_id, settings.VIDEO_DIGIT_REPR,
+                                                                   status)
                 self.frame.comm.send_msg(msg)
                 self.status_label.SetLabel("Moderation sent to the server")
                 wx.MessageBox("Moderation has been sent to the server", "Moderation sent", wx.OK | wx.ICON_INFORMATION)
         event.Skip()
 
     def on_moderate_ans(self, id, type, status):
+        """
+            Handles the server's response to a moderation action, updating the UI
+            and feed state based on whether a comment or video was accepted or denied.
+        :param id: The ID of the moderated content (video_id, or (video_id, comment_id) for comments).
+        :param type: The content type digit repr, either VIDEO_DIGIT_REPR or COMMENT_DIGIT_REPR.
+        :param status: The moderation result, either REPORT_ACCEPTED, REPORT_DENIED, or REPORT_CONTENT_DOESNT_EXISTS.
+        """
         if status == settings.REPORT_CONTENT_DOESNT_EXISTS:
             content_str_repr = "comment" if self.comments_or_videos_reports_filter == settings.COMMENT_DIGIT_REPR else "video"
             self.status_label.SetLabel(f"The {content_str_repr} You tried to moderate does not exist")
 
-        elif type == settings.COMMENT_DIGIT_REPR: # if comment
+        elif type == settings.COMMENT_DIGIT_REPR:  # if comment
             video_id, comment_id = id
             video_id, comment_id = int(video_id), int(comment_id)
             if status == settings.REPORT_ACCEPTED:
@@ -437,7 +454,7 @@ class FeedPanel(wx.Panel):
                     if video_id == self.current_video_id:
                         self.comments_panel.destroy_comment(comment_id)
 
-        elif type == settings.VIDEO_DIGIT_REPR: # if video
+        elif type == settings.VIDEO_DIGIT_REPR:  # if video
             id = int(id)
             if status == settings.REPORT_ACCEPTED:
                 self.status_label.SetLabel("Video deleted")
@@ -445,7 +462,8 @@ class FeedPanel(wx.Panel):
             elif status == settings.REPORT_DENIED:
                 self.status_label.SetLabel("Video kept")
                 if self.feed_id == settings.FEED_ID and self.comments_or_videos_reports_filter == settings.VIDEO_DIGIT_REPR:
-                    self.videos_ids = [v for v in self.videos_ids if v != id] # removes any occurrence of video from videos_ids
+                    self.videos_ids = [v for v in self.videos_ids if
+                                       v != id]  # removes any occurrence of video from videos_ids
 
                     if self.current_video_id == id:
 
@@ -473,6 +491,11 @@ class FeedPanel(wx.Panel):
         self.Layout()
 
     def on_comments_or_videos_reports_ans(self, type):
+        """
+            Handles the server's confirmation of a filter switch between video and comment
+            reports, resetting the feed and requesting new videos with the updated filter.
+        :param type: The new active filter type, either VIDEO_DIGIT_REPR or COMMENT_DIGIT_REPR.
+        """
         self.comments_or_videos_reports_filter = type
 
         if type == settings.VIDEO_DIGIT_REPR:
@@ -496,6 +519,11 @@ class FeedPanel(wx.Panel):
             self.frame.comm.send_msg(msg)
 
     def on_videos_reports(self, event):
+        """
+            Sends a request to the server to switch the feed filter to video reports,
+            if it is not already set to that filter.
+        :param event: The mouse click event that triggered this handler.
+        """
         if self.comments_or_videos_reports_filter != settings.VIDEO_DIGIT_REPR:
             msg = clientProtocol.build_filter_comments_or_videos_reports(settings.VIDEO_DIGIT_REPR)
             self.frame.comm.send_msg(msg)
@@ -504,6 +532,11 @@ class FeedPanel(wx.Panel):
         event.Skip()
 
     def on_comments_reports(self, event):
+        """
+            Sends a request to the server to switch the feed filter to comment reports,
+            if it is not already set to that filter.
+        :param event: The mouse click event that triggered this handler.
+        """
         if self.comments_or_videos_reports_filter != settings.COMMENT_DIGIT_REPR:
             msg = clientProtocol.build_filter_comments_or_videos_reports(settings.COMMENT_DIGIT_REPR)
             self.frame.comm.send_msg(msg)
@@ -512,28 +545,39 @@ class FeedPanel(wx.Panel):
         event.Skip()
 
     def on_filter(self, event):
+        """
+            Opens the topic filter selection panel so the user can update their feed filter.
+        :param event: The mouse click event that triggered this handler.
+        """
         self.frame.pick_video_topics_panel.set_selected_topics(self.filter)
         self.frame.switch_panel(self.frame.pick_filter_panel, self)
         event.Skip()
 
-    # set filter topics, called from pick_filter_panel
     def handle_set_topics(self, topics):
+        """
+            Sends the selected filter topics to the server to update the feed filter.
+        :param topics: A list of topic identifiers to filter the feed by.
+        """
         msg = clientProtocol.build_set_filter(topics)
         self.frame.comm.send_msg(msg)
         self.status_label.SetLabel("Sent filter req to server")
 
     def filter_ans(self, topics):
+        """
+            Handles the server's confirmation that the filter has been applied,
+            storing the active topics and updating the status label.
+        :param topics: The list of topic identifiers that are now active as the feed filter.
+        """
         self.filter = topics
         self.status_label.SetLabel("Filter has been set")
 
     def on_report_video(self, event):
         """
-
-            answer will be delt with in main_frame
-        :param event:
-        :return:
+            Prompts the user to confirm reporting the current video, and sends the
+            report to the server if confirmed.
+        :param event: The mouse click event that triggered this handler.
         """
-        if self.current_video_id>0:
+        if self.current_video_id > 0:
             answer = wx.MessageBox(
                 "Are you sure you want to report this video?\nReport this video only if it does not include any educational content or if its content is harmful\n",
                 f'Report Video "{self.frame.videos_details[self.current_video_id].video_name}"?',
@@ -549,9 +593,14 @@ class FeedPanel(wx.Panel):
         event.Skip()
 
     def on_delete_video(self, event):
+        """
+            Prompts the user to confirm deletion of the current video if they are its
+            creator, and sends the delete request to the server if confirmed.
+        :param event: The mouse click event that triggered this handler.
+        """
         self.status_label.SetLabel("sending delete req to server")
-        #todo make the message boxes a dialog message
-        #todo understand if the video deletion affects scrolling points, and if it does then make it okay
+        # todo make the message boxes a dialog message
+        # todo understand if the video deletion affects scrolling points, and if it does then make it okay
         if self.frame.videos_details[self.current_video_id].creator == self.frame.user.username:
             answer = wx.MessageBox(
                 "Are you sure you want to delete this video?\nThis action is not reverseable\n",
@@ -560,33 +609,41 @@ class FeedPanel(wx.Panel):
             )
 
             if answer == wx.YES:
-
-                    wx.MessageBox("Delete req has been sent to the server", "Delete req sent", wx.OK | wx.ICON_INFORMATION)
-                    msg = clientProtocol.build_del_video(self.current_video_id)
-                    self.frame.comm.send_msg(msg)
+                wx.MessageBox("Delete req has been sent to the server", "Delete req sent", wx.OK | wx.ICON_INFORMATION)
+                msg = clientProtocol.build_del_video(self.current_video_id)
+                self.frame.comm.send_msg(msg)
 
         self.Layout()
         event.Skip()
 
     def on_a_user_deleted_video(self, video_id):
+        """
+            Handles a video deletion by another user, removing it from the feed,
+            requesting a replacement, and navigating away if the deleted video was active.
+        :param video_id: The ID of the video that was deleted.
+        """
         if video_id in self.videos_ids:
-            self.videos_ids = [v for v in self.videos_ids if v!=video_id] # removes any occurrence of video_id in videos_ids
+            self.videos_ids = [v for v in self.videos_ids if
+                               v != video_id]  # removes any occurrence of video_id in videos_ids
 
             # deleted a video, so req another one instead of it
             msg = clientProtocol.build_req_video(self.feed_id)
             self.frame.comm.send_msg(msg)
 
             deleted_video = Video(settings.DELETED_ID)
-            self.frame.videos_details[settings.DELETED_ID] = deleted_video  # so when updating the comments on the video using frame. it wont break
+            self.frame.videos_details[
+                settings.DELETED_ID] = deleted_video  # so when updating the comments on the video using frame. it wont break
 
-            if not self.videos_ids: # if videos_ids is now empty
-                self.status_label.SetLabel("The video you were watching has been deleted, waiting for video from the server")
+            if not self.videos_ids:  # if videos_ids is now empty
+                self.status_label.SetLabel(
+                    "The video you were watching has been deleted, waiting for video from the server")
                 self.load_video(deleted_video)
                 self.waiting_for_video = True
             else:
                 self.status_label.SetLabel("The video you were watching has been deleted, returning to last video")
-                self.video_index = max(0, self.video_index-1)
-                print("deleted video:", video_id, "new index:", self.video_index, "video ids:", self.videos_ids, "videos details:", self.frame.videos_details)
+                self.video_index = max(0, self.video_index - 1)
+                print("deleted video:", video_id, "new index:", self.video_index, "video ids:", self.videos_ids,
+                      "videos details:", self.frame.videos_details)
                 if self.videos_ids[self.video_index] in self.frame.videos_details:
                     self.load_video(self.frame.videos_details[self.videos_ids[self.video_index]])
                 else:
@@ -612,7 +669,6 @@ class FeedPanel(wx.Panel):
 
         self.Layout()
 
-
     @staticmethod
     def gform_exists(url):
         """
@@ -633,6 +689,11 @@ class FeedPanel(wx.Panel):
         return ret_val
 
     def on_open_test(self, event):
+        """
+            Opens the current video's test link in the browser if it exists and is valid,
+            otherwise updates the status label with an appropriate message.
+        :param event: The mouse click event that triggered this handler.
+        """
         test_link = self.frame.videos_details[self.current_video_id].test_link
         print("test link:", test_link)
         if test_link:
@@ -755,7 +816,7 @@ class FeedPanel(wx.Panel):
             Updates the video name and description labels with the current video's details.
         """
         if self.current_video_id in self.frame.videos_details:
-            #todo remove the video id in the video name label
+            # todo remove the video id in the video name label
             self.video_desc_label.SetLabel(self.frame.videos_details[self.current_video_id].video_desc)
             self.video_name_label.SetLabel(
                 str(self.current_video_id) + " " + self.frame.videos_details[self.current_video_id].video_name)
@@ -880,16 +941,16 @@ class FeedPanel(wx.Panel):
                     print("current video index:", self.video_index, "ids:", self.videos_ids)
                     new_index -= 1  # last video
                     load_a_new_video = True
-                    self.negative_scroll_pos +=1
-                else: # no previous video
+                    self.negative_scroll_pos += 1
+                else:  # no previous video
                     self.status_label.SetLabel("No more videos above")
 
-            else: # scroll down
-                if len(self.videos_ids) > self.video_index + 1: # if there is a next video
+            else:  # scroll down
+                if len(self.videos_ids) > self.video_index + 1:  # if there is a next video
                     new_index += 1
                     load_a_new_video = True
 
-                    if self.negative_scroll_pos <= 0: # scrolled down to a new video
+                    if self.negative_scroll_pos <= 0:  # scrolled down to a new video
                         if self.feed_id == settings.FEED_ID:  # if in the feed, then preload a video when a scrolling past new videos
                             msg = clientProtocol.build_req_video(settings.FEED_ID)
                             self.frame.comm.send_msg(msg)
@@ -913,7 +974,8 @@ class FeedPanel(wx.Panel):
                     # reset videos so the user could watch them again
                     if self.feed_id == settings.FEED_ID:
                         print("Watched all videos, resetting watched history, videos_ids: before:", self.videos_ids)
-                        self.videos_ids = self.videos_ids[self.video_index+2:] # delete all ids until now (including the 0)
+                        self.videos_ids = self.videos_ids[
+                            self.video_index + 2:]  # delete all ids until now (including the 0)
                         print("Watched all videos, resetting watched history, videos_ids: after:", self.videos_ids)
                         self.status_label.SetLabel("Watched all videos, resetting watched history")
                         self.video_index = 0
@@ -971,7 +1033,7 @@ class FeedPanel(wx.Panel):
         self.video_ctrl.SetVolume(FeedPanel.volume)
         if self.video_ctrl.IsFrozen():
             self.video_ctrl.Thaw()  # unfreeze the video once it loads
-        if self.current_video_id>0:
+        if self.current_video_id > 0:
             self.status_label.SetLabel("")
         else:
             self.video_ctrl.Pause()
@@ -1020,11 +1082,9 @@ class FeedPanel(wx.Panel):
 
             self.frame.videos_details[video_id] = video
 
-
-
             if video_id not in self.videos_ids:
                 self.videos_ids.append(video_id)
-            else: # if there already is this video in videos_ids, add it again only if it there is settings.END_OF_LIST_ID after it's last occurrence
+            else:  # if there already is this video in videos_ids, add it again only if it there is settings.END_OF_LIST_ID after it's last occurrence
                 index_of_last_id_in_videos_ids = len(self.videos_ids) - 1 - self.videos_ids[::-1].index(video_id)
 
                 # check if there is a settings.END_OF_LIST_ID after the last occurrence of this id
@@ -1051,10 +1111,11 @@ class FeedPanel(wx.Panel):
             if self.videos_ids:
                 self.videos_ids.append(
                     video_id)  # add 0 to indicate the end of the videos
-                print("resseting history:",self.videos_ids)
+                print("resseting history:", self.videos_ids)
 
         elif video_id == settings.DELETED_ID:
-            self.frame.videos_details[video_id] = video # so when updating the comments on the video using frame. it wont break
+            self.frame.videos_details[
+                video_id] = video  # so when updating the comments on the video using frame. it wont break
             self.videos_ids.append(
                 video_id)  # -2 to indicate the video has been deleted
 
@@ -1062,7 +1123,8 @@ class FeedPanel(wx.Panel):
             if self.frame.user.is_system_manager():
                 filter_str_rep = "video" if self.comments_or_videos_reports_filter == settings.VIDEO_DIGIT_REPR else "comment"
                 alternative_filter_str_rep = "video" if self.comments_or_videos_reports_filter == settings.COMMENT_DIGIT_REPR else "comment"
-                self.status_label.SetLabel(f"No {filter_str_rep} reports in the system, switch to {alternative_filter_str_rep} reports")
+                self.status_label.SetLabel(
+                    f"No {filter_str_rep} reports in the system, switch to {alternative_filter_str_rep} reports")
 
                 no_videos_video = Video(settings.NO_VIDEOS_ID)
                 self.frame.videos_details[settings.NO_VIDEOS_ID] = no_videos_video
@@ -1082,7 +1144,7 @@ class FeedPanel(wx.Panel):
         video_id = video.video_id
         if video_id:
             self.current_video_id = video_id
-            if video_id>0:
+            if video_id > 0:
                 self.status_label.SetLabel("Loading video")
             test_btn_color = wx.WHITE if video.test_link else settings.UNACTIVE_BUTTON
             self.test_btn.set_background_color(test_btn_color)
