@@ -416,7 +416,7 @@ class FeedPanel(wx.Panel):
         if self.frame.user.is_system_manager() and self.current_video_id > 0:
             answer = wx.MessageBox(
                 "Would you like to delete this video?\nThis action is not reversable\nClick Yes to delete\nClick No to keep\nClick cancel to avoid moderating this video",
-                "Moderate Video", wx.ICON_INFORMATION | wx.YES_NO | wx.CANCEL, )
+                "Moderate Video", wx.ICON_INFORMATION | wx.YES_NO | wx.CANCEL)
 
             if answer != wx.CANCEL:
                 status = settings.REPORT_ACCEPTED if answer == wx.YES else settings.REPORT_DENIED
@@ -608,7 +608,7 @@ class FeedPanel(wx.Panel):
             answer = wx.MessageBox(
                 "Are you sure you want to delete this video?\nThis action is not reverseable\n",
                 f'Delete Video "{self.frame.videos_details[self.current_video_id].video_name}"?',
-                wx.YES | wx.CANCEL | wx.ICON_INFORMATION,
+                wx.YES_NO | wx.ICON_INFORMATION,
             )
 
             if answer == wx.YES:

@@ -467,6 +467,15 @@ class UserProfilePanel(wx.ScrolledWindow):
 
                 break
 
+        if os.path.isfile(f"media\\{video_id}.png"):
+            try:
+                os.remove(f"media\\{video_id}.png")
+            except Exception as e:
+                print("error deleting image:", e)
+
+        self.Layout()
+
+
     #todo bug:
     # when deleting the only video in userprofilefeed it just stays on it (or maybe not, need to check)
 

@@ -55,7 +55,7 @@ class ServerComm:
                         # Start a new thread to exchange keys with the new client
                         threading.Thread(target=self._change_key, args=(client, client)).start()
                         #todo return it to ip instead of socket
-                        # threading.Thread(target=self._change_key, args=(client, addr[0])).start()
+                        threading.Thread(target=self._change_key, args=(client, addr[0])).start()
 
 
                 else:
