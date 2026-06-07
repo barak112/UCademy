@@ -5,8 +5,12 @@ import re
 import secrets
 import smtplib
 import string
+import tempfile
 import time
 from email.message import EmailMessage
+
+import cv2
+from PIL import Image
 
 import database
 import serverComm
@@ -919,6 +923,7 @@ class ServerLogic:
         :param data: A tuple of (file_content, extension, video_details), where video_details
                      contains the video name, description, test link, and topics.
         """
+        #todo
         file_content, extension, video_details = data
         video_name, video_desc, test_link, topics = video_details
         print("video_name", video_name, "video_desc", video_desc, "test_link", test_link, "topics", topics)
@@ -926,7 +931,7 @@ class ServerLogic:
         username = self.clients[client_ip][0]
 
         video_hash = self.hash_video(file_content)
-        if not self.db.hash_exists(video_hash):
+        if not self.db.hash_exists(video_hash) and self.is_video_valid_from_bytes(file_content):
             video_id = self.db.add_video(username, video_name, video_desc, test_link)
             self.db.add_video_topics(video_id, topics)
 
@@ -939,7 +944,6 @@ class ServerLogic:
 
             msg = serverProtocol.build_video_upload_confirmation(video_id, username)
 
-            # video_id = int(video_id)
             clients_to_send = [ip for ip in self.clients.keys() if
                                username in self.creator_videos_sent[ip]]
             print("clients_to_send in video_upload:",clients_to_send)
@@ -948,11 +952,65 @@ class ServerLogic:
                 self.comm.send_msg(client, msg)
 
         else:
-            # 0 indicates that the video already exists, so to not save the thumbnail
+            status = settings.VIDEO_ALREADY_EXISTS if self.db.hash_exists(video_hash) else settings.INVALID_VIDEO
+            # 0 indicates that the video already exists or invalid, so to not save the thumbnail
             self.clients[client_ip][1].idsQ.put(0)
-            msg = serverProtocol.build_video_upload_confirmation(0, username)
+            msg = serverProtocol.build_video_upload_confirmation(status, username)
             self.comm.send_msg(client_ip, msg)
             print("video already exists")
+
+
+
+    @staticmethod
+    def is_img_valid(path):
+        """
+            Checks whether a file at the given path is a valid image.
+            Attempts to open and verify the file's integrity using PIL.
+        :param path: The file path of the image to validate.
+        :return: True if the file is a valid image, False otherwise.
+        """
+        try:
+            with Image.open(path) as img:
+                img.verify()  # checks file integrity
+            ret_val = True
+        except Exception:
+            ret_val = False
+
+        return ret_val
+
+    @staticmethod
+    def is_video_valid_from_bytes(data: bytes):
+        """
+            Checks whether a file at the given path is a valid video.
+            Attempts to open and read the first frame using OpenCV.
+        :param data: The file's data in bytes.
+        :return: True if the file is a valid and readable video, False otherwise.
+        """
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as f:
+            f.write(data)
+            f.flush()
+
+            cap = cv2.VideoCapture(f.name)
+
+            if not cap.isOpened():
+                return False
+
+            ret, _ = cap.read()
+            cap.release()
+            return ret
+
+    # @staticmethod
+    # def is_video_valid(path):
+    #
+    #     cap = cv2.VideoCapture(path)
+    #
+    #     if not cap.isOpened():
+    #         ret = False
+    #     else:
+    #         ret, frame = cap.read()
+    #         cap.release()
+    #
+    #     return ret
 
     def get_video_details(self, client_ip, video_id):  # helper function
         """

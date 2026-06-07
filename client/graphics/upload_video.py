@@ -5,11 +5,11 @@ import cv2
 import requests
 import wx
 import wx.media
-from pubsub import pub
 import clientProtocol
 import rounded_button
 import rounded_input_field
 import settings
+from PIL import Image
 
 
 class UploadVideoPanel(wx.ScrolledWindow):
@@ -346,6 +346,41 @@ class UploadVideoPanel(wx.ScrolledWindow):
         cap.release()
         return duration
 
+    @staticmethod
+    def is_img_valid(path):
+        """
+            Checks whether a file at the given path is a valid image.
+            Attempts to open and verify the file's integrity using PIL.
+        :param path: The file path of the image to validate.
+        :return: True if the file is a valid image, False otherwise.
+        """
+        try:
+            with Image.open(path) as img:
+                img.verify()  # checks file integrity
+            ret_val = True
+        except Exception:
+            ret_val = False
+
+        return ret_val
+
+    @staticmethod
+    def is_video_valid(path):
+        """
+            Checks whether a file at the given path is a valid video.
+            Attempts to open and read the first frame using OpenCV.
+        :param path: The file path of the video to validate.
+        :return: True if the file is a valid and readable video, False otherwise.
+        """
+        cap = cv2.VideoCapture(path)
+
+        if not cap.isOpened():
+            ret = False
+        else:
+            ret, frame = cap.read()
+            cap.release()
+
+        return ret
+
     def on_upload_video(self, event):
         """
         Handles the upload button click, validates all fields and file paths, checks video length,
@@ -364,11 +399,11 @@ class UploadVideoPanel(wx.ScrolledWindow):
                     self.test_link_status_label.SetLabel("google forms test link is not valid")
                     test_link_valid = False
 
-            if not os.path.isfile(self.thumbnail_path):
+            if not os.path.isfile(self.thumbnail_path) or not self.is_img_valid(self.thumbnail_path):
                 self.thumbnail_path = ""
                 self.pick_thumbnail_btn.label_or_path = "Error loading thumbnail, pick another one"
 
-            if not os.path.isfile(self.video_path):
+            if not os.path.isfile(self.video_path) or not self.is_video_valid(self.video_path):
                 self.video_path = ""
                 self.pick_video_btn.label_or_path = "Error loading video, pick another one"
             else:
@@ -379,6 +414,7 @@ class UploadVideoPanel(wx.ScrolledWindow):
                     self.upload_video_btn.label_or_path = f"Video length is too long, pick another one under {settings.MAX_VIDEO_LENGTH} minutes"
 
             if self.thumbnail_path and self.video_path and test_link_valid:
+
                 self.upload_video_btn.label_or_path = "Uploading"
                 self.dots_animation_timer.Start(500)  # every half a minute
 
