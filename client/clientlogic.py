@@ -159,8 +159,10 @@ class ClientLogic:
 
         :param data: The response data containing the active filter value.
         """
-        filter = data[0]
-        filter = [int(filter) for filter in filter]
+        filter = []
+        if data:
+            filter = data[0]
+            filter = [int(topic) for topic in filter]
         print("setting filter:", filter)
         wx.CallAfter(pub.sendMessage, "set_filter_ans", filter=filter)
 

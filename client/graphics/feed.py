@@ -389,6 +389,7 @@ class FeedPanel(wx.Panel):
 
         if self.feed_id == settings.FEED_ID:
             pub.subscribe(self.on_comments_or_videos_reports_ans, "comments_or_videos_reports_ans")
+            pub.subscribe(self.filter_ans, "set_filter_ans")
 
         pub.subscribe(self.on_moderate_ans, "moderate_ans")
 
@@ -552,7 +553,9 @@ class FeedPanel(wx.Panel):
             Opens the topic filter selection panel so the user can update their feed filter.
         :param event: The mouse click event that triggered this handler.
         """
-        self.frame.pick_video_topics_panel.set_selected_topics(self.filter)
+        filter_topic_names = [settings.TOPICS[topic_id] for topic_id in self.filter]
+
+        self.frame.pick_video_topics_panel.set_selected_topics(filter_topic_names)
         self.frame.switch_panel(self.frame.pick_filter_panel, self)
         event.Skip()
         #todo fix bug: filter doesnt work!!
@@ -564,17 +567,19 @@ class FeedPanel(wx.Panel):
             Sends the selected filter topics to the server to update the feed filter.
         :param topics: A list of topic identifiers to filter the feed by.
         """
-        msg = clientProtocol.build_set_filter(topics)
-        self.frame.comm.send_msg(msg)
-        self.status_label.SetLabel("Sent filter req to server")
+        if not self.filter == topics:
+            msg = clientProtocol.build_set_filter(topics)
+            self.frame.comm.send_msg(msg)
+            self.status_label.SetLabel("Sent filter req to server")
+        self.frame.switch_panel(self, self.frame.pick_filter_panel)
 
-    def filter_ans(self, topics):
+    def filter_ans(self, filter):
         """
             Handles the server's confirmation that the filter has been applied,
             storing the active topics and updating the status label.
         :param topics: The list of topic identifiers that are now active as the feed filter.
         """
-        self.filter = topics
+        self.filter = filter
         self.status_label.SetLabel("Filter has been set")
 
     def on_report_video(self, event):
@@ -999,6 +1004,7 @@ class FeedPanel(wx.Panel):
                         if not self.videos_ids:
                             self.waiting_for_video = True
                         else:
+                            #todo check if user has filter, if no videos with neither of the filter topics, send settings.NO_VIDEOS
                             self.load_video(self.frame.videos_details[self.videos_ids[0]])
 
                         # req a new one instead of the one that returned index = settings.END_OF_LIST_ID

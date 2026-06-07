@@ -59,11 +59,11 @@ class MainFrame(wx.Frame):
         self.email_verification_panel = EmailVerificationPanel(self, self.container)
         self.pick_topics_panel = PickTopicsPanel(self, self.container)
         self.feed_panel = FeedPanel(self, self.container)
-        self.pick_filter_panel = PickTopicsPanel(self, self.container, self.feed_panel)
+        self.pick_filter_panel = PickTopicsPanel(self, self.container, settings.PICK_FILTER_ID, self.feed_panel)
         self.user_profile_panel = UserProfilePanel(self, self.container)
         self.user_profile_feed_panel = FeedPanel(self, self.container, settings.USER_PROFILE_FEED_ID)
         self.upload_video_panel = UploadVideoPanel(self, self.container)
-        self.pick_video_topics_panel = PickTopicsPanel(self, self.container, self.upload_video_panel)
+        self.pick_video_topics_panel = PickTopicsPanel(self, self.container, settings.PICK_VIDEO_TOPICS_ID, self.upload_video_panel)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 

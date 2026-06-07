@@ -925,16 +925,28 @@ class DataBase:
         """
         # returns the best video for the user that he has not seen
 
-        res = None
+        #todo once did that the server sends a settings.NO_VIDEOS if there are on videos with any of the filter topics, enable this code back
+
+        # res = None
+        # print(filter, bool(filter))
+        # if filter:
+        #     res = self.get_video_for_user_filter(username, filter)
+        #
+        # if not res: # if not filter or no videos matching filter
+        #     res = self.get_video_for_user_topics(username)
+        #
+        # if not res:  # if no video matches filter or topics
+        #     res = self.get_best_like_views_ratio_video_for_user(username)
+
         print(filter, bool(filter))
         if filter:
             res = self.get_video_for_user_filter(username, filter)
 
-        if not res: # if not filter or no videos matching filter
+        else:  # if no filter
             res = self.get_video_for_user_topics(username)
 
-        if not res:  # if no video matches filter or topics
-            res = self.get_best_like_views_ratio_video_for_user(username)
+            if not res:  # if no video matches filter or topics
+                res = self.get_best_like_views_ratio_video_for_user(username)
 
         return res
 

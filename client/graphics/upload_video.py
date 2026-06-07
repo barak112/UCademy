@@ -424,7 +424,6 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
         self.Layout()
         event.Skip()
-        # todo make sure the file is actually openable before sending it both in client and server
         # todo make sure the video is under 2 minutes also in server!
 
 

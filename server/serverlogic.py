@@ -731,7 +731,6 @@ class ServerLogic:
         else:
             msg = serverProtocol.build_del_video_confirmation(0)
             self.comm.send_msg(client_ip, msg)
-            #todo handle this in client
 
     def handle_del_comment(self, client_ip, data):  # command 12
         """
@@ -755,7 +754,6 @@ class ServerLogic:
         else:
             msg = serverProtocol.build_del_comment_confirmation(0)
             self.comm.send_msg(client_ip, msg)
-            #todo handle also this in client
 
     def handle_creator_videos_req(self, client_ip, data):  # command 13
         """

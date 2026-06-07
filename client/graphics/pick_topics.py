@@ -21,7 +21,7 @@ class PickTopicsPanel(wx.ScrolledWindow):
     FILTER_TITLE = "By which topics do you want to filter your videos?"
     FILTER_SUBTITLE = "Choose topics to filter your videos by"
 
-    def __init__(self, frame, parent, panel_set_topics_handler=None):
+    def __init__(self, frame, parent, pick_topics_id = settings.PICK_TOPICS_ID, panel_set_topics_handler = None):
         """
         Initializes the PickTopicsPanel, setting up UI elements, topic widgets, and event bindings.
         :param frame: The main application frame.
@@ -32,13 +32,17 @@ class PickTopicsPanel(wx.ScrolledWindow):
         self.frame = frame
         self.parent = parent
 
-        if panel_set_topics_handler is None:
-            panel_set_topics_handler = self
+        self.pick_topics_id = pick_topics_id
 
         self.meets_max_and_min = True
 
+        if not panel_set_topics_handler:
+            panel_set_topics_handler = self
+
+        self.panel_set_topics_handler = panel_set_topics_handler
+
         # set title and subtitle according to panel handler
-        if isinstance(panel_set_topics_handler, PickTopicsPanel):
+        if pick_topics_id == settings.PICK_TOPICS_ID:
             self.title = self.USER_TOPICS_TITLE
             self.subtitle = self.USER_TOPICS_SUBTITLE
 
@@ -49,14 +53,14 @@ class PickTopicsPanel(wx.ScrolledWindow):
             # if user topics, also subscribe to set topics ans
             pub.subscribe(self.on_set_topics_ans, "set_topics_ans")
 
-        elif isinstance(panel_set_topics_handler, feed.FeedPanel):
+        elif pick_topics_id == settings.PICK_FILTER_ID:
             self.title = self.FILTER_TITLE
             self.subtitle = self.FILTER_SUBTITLE
 
             self.min_topics = 0
             self.max_topics = len(settings.TOPICS)
 
-        elif isinstance(panel_set_topics_handler, upload_video.UploadVideoPanel):
+        elif pick_topics_id == settings.PICK_VIDEO_TOPICS_ID:
             self.title = self.VIDEO_TOPICS_TITLE
             self.subtitle = self.VIDEO_TOPICS_SUBTITLE
             self.min_topics = 0
@@ -66,8 +70,6 @@ class PickTopicsPanel(wx.ScrolledWindow):
         # scroll attributes
         self.SetScrollRate(0, 7)
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
-
-        self.panel_set_topics_handler = panel_set_topics_handler
 
         self.background_bitmap = wx.Bitmap("assets\\topic_pick_background.png")
         self.grid_start_pos = 0
