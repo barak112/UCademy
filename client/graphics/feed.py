@@ -552,6 +552,9 @@ class FeedPanel(wx.Panel):
         self.frame.pick_video_topics_panel.set_selected_topics(self.filter)
         self.frame.switch_panel(self.frame.pick_filter_panel, self)
         event.Skip()
+        #todo fix bug: filter doesnt work!!
+        #todo make sure that filter btn doesnt exist in user profile
+        #todo dont go to set_topics screen when signing up a system manager
 
     def handle_set_topics(self, topics):
         """
@@ -968,6 +971,8 @@ class FeedPanel(wx.Panel):
                         print("no videos")
                         msg = clientProtocol.build_req_video(self.feed_id)
                         self.frame.comm.send_msg(msg)
+                        #todo load the no videos video
+                        #todo update a client that doesnt have video when a user uploads a video
 
             if load_a_new_video:
                 video_id = self.videos_ids[new_index]

@@ -287,6 +287,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.videos_grid.Clear(True)
         self.videos_ids.clear()
         self.videos_grid.SetRows(1)
+        self.status_label.SetLabel("")
 
         self.current_username = username
 
@@ -385,6 +386,9 @@ class UserProfilePanel(wx.ScrolledWindow):
 
             self.frame.user_profile_feed_panel.videos_ids.insert(0, video_id)
 
+            self.profile_info.videos_numeric_amount_label.SetLabel(
+                str(self.frame.users[username].get_video_amount()))
+
     def on_a_user_deleted_comment(self, video_id):
         """
             Handles the event where a user deletes a comment on a video.
@@ -422,6 +426,8 @@ class UserProfilePanel(wx.ScrolledWindow):
 
                 break
 
+    #todo bug:
+    # when deleting the only video in userprofilefeed it just stays on it (or maybe not, need to check)
 
 if __name__ == "__main__":
     app = wx.App()

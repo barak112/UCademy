@@ -100,6 +100,7 @@ class ClientLogic:
         user_obj = None
         if status == settings.EMAIL_VERIFICATION_SUCCESSFUL:
             username, email, video_port, system_manager = data[1:]
+            system_manager = int(system_manager)
             video_port = int(video_port)
             video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
             video_comm.connect()
@@ -126,6 +127,14 @@ class ClientLogic:
             followings_amount = int(followings_amount)
             system_manager = bool(int(system_manager))
 
+
+            videos_ids = [int(video_id) for video_id in videos_ids]
+
+            topics = [int(topic) for topic in topics]
+
+            if not followings_names:
+                followings_names = []
+
             user_obj = user.User(username, followers_amount, followings_amount, videos_ids, email, topics,
                                  followings_names, system_manager)
 
@@ -150,6 +159,7 @@ class ClientLogic:
         :param data: The response data containing the active filter value.
         """
         filter = data[0]
+        filter = [int(filter) for filter in filter]
         print("setting filter:", filter)
         wx.CallAfter(pub.sendMessage, "set_filter_ans", filter=filter)
 

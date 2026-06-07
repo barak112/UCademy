@@ -100,6 +100,7 @@ class ClientLogic:
         user_obj = None
         if status == settings.EMAIL_VERIFICATION_SUCCESSFUL:
             username, email, video_port, system_manager = data[1:]
+            system_manager = int(system_manager)
             video_port = int(video_port)
             video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
             video_comm.connect()
@@ -126,6 +127,14 @@ class ClientLogic:
             followings_amount = int(followings_amount)
             system_manager = bool(int(system_manager))
 
+
+            videos_ids = [int(video_id) for video_id in videos_ids]
+
+            topics = [int(topic) for topic in topics]
+
+            if not followings_names:
+                followings_names = []
+
             user_obj = user.User(username, followers_amount, followings_amount, videos_ids, email, topics,
                                  followings_names, system_manager)
 
@@ -150,6 +159,7 @@ class ClientLogic:
         :param data: The response data containing the active filter value.
         """
         filter = data[0]
+        filter = [int(filter) for filter in filter]
         print("setting filter:", filter)
         wx.CallAfter(pub.sendMessage, "set_filter_ans", filter=filter)
 
@@ -234,8 +244,7 @@ class ClientLogic:
         type = int(type)
         # id will be future used to view the reported content if it is decided to not be removed
 
-        wx.CallAfter(pub.sendMessage, "report_ans", status=status, id=id, type=type, content=content,
-                     content_publisher=content_publisher, created_at=created_at)
+        wx.CallAfter(pub.sendMessage, "report_ans", status=status, id=id, type=type, content=content, content_publisher=content_publisher, created_at=created_at)
 
     def handle_comments(self, data):  # command 10
         """Handles a batch of comments received from the server and notifies the UI to load them.
@@ -254,7 +263,7 @@ class ClientLogic:
             comments.append(comment.Comment(comment_id, comment_content, commenter, created_at))
 
         print("video id in handle comments:", video_id, "comments:", comments)
-        wx.CallAfter(pub.sendMessage, "load_new_comments", feed_id=feed_id, video_id=video_id, comments=comments)
+        wx.CallAfter(pub.sendMessage, "load_new_comments", feed_id = feed_id, video_id=video_id, comments=comments)
 
     def handle_vid_del_confirmation(self, data):  # command 11
         """Handles the server's confirmation of a video deletion and notifies the UI.
@@ -308,8 +317,8 @@ class ClientLogic:
         feed_id = data[0]
         feed_id = int(feed_id)
         video_obj = self.get_video_obj(data[1:])
-        print(video_obj.video_id, "new video's test link:", video_obj.test_link)
-        wx.CallAfter(pub.sendMessage, "load_new_video", feed_id=feed_id, video=video_obj)
+        print(video_obj.video_id,"new video's test link:", video_obj.test_link)
+        wx.CallAfter(pub.sendMessage, "load_new_video", feed_id = feed_id, video=video_obj)
 
     def handle_video_upload_confirmation(self, data):  # command 16
         """Handles the server's confirmation of a video upload and notifies the UI with the assigned video ID.
@@ -318,7 +327,7 @@ class ClientLogic:
         """
         video_id, username = data
         video_id = int(video_id)
-        wx.CallAfter(pub.sendMessage, "video_upload_ans", video_id=video_id, username=username)
+        wx.CallAfter(pub.sendMessage, "video_upload_ans", video_id=video_id, username = username)
 
     def handle_follow_status(self, data):  # command 17
         """Handles the server's response to a follow request and notifies the UI.
@@ -344,7 +353,7 @@ class ClientLogic:
         status = int(status)
         video_id = int(video_id)
 
-        wx.CallAfter(pub.sendMessage, "video_like_ans", status=status, video_id=video_id, username=username)
+        wx.CallAfter(pub.sendMessage, "video_like_ans", status=status, video_id=video_id, username = username)
 
     def handle_update_pfp(self, data):  # command 19
         """Handles the server's confirmation of a profile picture update and notifies the UI.
@@ -353,7 +362,7 @@ class ClientLogic:
         """
         wx.CallAfter(pub.sendMessage, "update_pfp_ans")
 
-    def comm_disconnected(self, data):  # command 20
+    def comm_disconnected(self, data): # command 20
         """
         Handles the communication disconnection event and sends a notification message
         using the publish-subscribe (pubsub) mechanism.
@@ -365,18 +374,29 @@ class ClientLogic:
 
     # system manager
     def handle_filter_comments_or_videos_reports_confirmation(self, data):  # command 97
+        """
+    	    Handles the server's response to a filter reports request (command 97).
+    	    Extracts the report type from the response and broadcasts it via a PubSub message.
+        :param data: A list where the first element is the report type (cast to int).
+        """
         type = data[0]
         type = int(type)
         wx.CallAfter(pub.sendMessage, "comments_or_videos_reports_ans", type=type)
 
     def handle_comment_or_video_status_confirmation(self, data):  # command 98
+        """
+    	Handles the server's confirmation of a moderation action on a comment or video (command 98).
+    	Extracts the item ID, type, and new status from the response and broadcasts them via a PubSub message.
+        :param data: A list of three elements: the item ID, the item type (cast to int), and the moderation status (cast to int).
+        """
         id, type, status = data
         id, type, status = id, int(type), int(status)
         print("comment or video status:", id, type, status)
         wx.CallAfter(pub.sendMessage, "moderate_ans", id=id, type=type, status=status)
 
-    def handle_kick_user_confirmation(self, username):  # command 99
+    def handle_kick_user_confirmation(self, username): # command 99
         pass
+
 
 
 if __name__ == "__main__":
