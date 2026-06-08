@@ -1421,7 +1421,6 @@ if __name__ == "__main__":
     # db.cur.execute("DROP TABLE IF EXISTS system_managers")
     # db._create_system_managers_table()
     # db.add_system_manager("Barak")
-
     # print(db.get_system_managers())
 
 

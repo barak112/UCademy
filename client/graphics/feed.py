@@ -557,9 +557,6 @@ class FeedPanel(wx.Panel):
         self.frame.pick_video_topics_panel.set_selected_topics(filter_topic_names)
         self.frame.switch_panel(self.frame.pick_filter_panel, self)
         event.Skip()
-        #todo fix bug: filter doesnt work!!
-        #todo make sure that filter btn doesnt exist in user profile
-        #todo dont go to set_topics screen when signing up a system manager
 
     def handle_set_topics(self, topics):
         """
@@ -623,7 +620,6 @@ class FeedPanel(wx.Panel):
         :param event: The mouse click event that triggered this handler.
         """
         # todo make the message boxes a dialog message
-        # todo understand if the video deletion affects scrolling points, and if it does then make it okay
         if self.frame.videos_details[self.current_video_id].creator == self.frame.user.username:
             answer = wx.MessageBox(
                 "Are you sure you want to delete this video?\nThis action is not reverseable\n",
@@ -663,10 +659,13 @@ class FeedPanel(wx.Panel):
                 settings.DELETED_ID] = deleted_video  # so when updating the comments on the video using frame. it wont break
 
             if not self.videos_ids:  # if videos_ids is now empty
-                self.status_label.SetLabel(
-                    "The video you were watching has been deleted, waiting for video from the server")
-                self.load_video(deleted_video)
-                self.waiting_for_video = True
+                if self.feed_id == settings.USER_PROFILE_FEED_ID:
+                    self.frame.switch_panel(self.frame.user_profile_feed_panel, self)
+                else:
+                    self.status_label.SetLabel(
+                        "The video you were watching has been deleted, waiting for video from the server")
+                    self.load_video(deleted_video)
+                    self.waiting_for_video = True
             else:
                 self.status_label.SetLabel("The video you were watching has been deleted, returning to last video")
                 self.video_index = max(0, self.video_index - 1)
@@ -1138,7 +1137,7 @@ class FeedPanel(wx.Panel):
 
 
         elif video_id == settings.END_OF_LIST_ID:
-            # if self.videos_ids is empty then the fact the videos watch record has been deleted, and it also breaks if you scroll up to the id = 0
+            # if self.videos_ids is empty then the fact the videos watch record has been deleted is not relevant, and it also breaks if you scroll up to the id = 0
             if self.videos_ids:
                 self.videos_ids.append(
                     video_id)  # add 0 to indicate the end of the videos
