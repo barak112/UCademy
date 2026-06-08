@@ -250,7 +250,16 @@ class EmailVerificationPanel(wx.Panel):
             print("moving to next screen")
             self.frame.video_comm = video_comm
             self.frame.user = user
-            self.frame.switch_panel(self.frame.pick_topics_panel, self)
+            if not user.is_system_manager(): # if a normal user, go to pick topics panel
+                self.frame.switch_panel(self.frame.pick_topics_panel, self)
+            else: # if a system manager, go straight to feed panel
+
+                msg = clientProtocol.build_req_video(settings.FEED_ID)
+                for req in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
+                    self.frame.comm.send_msg(msg)
+
+                self.frame.switch_panel(self.frame.feed_panel, self)
+
         else:
             self.status_label.SetLabel(settings.EMAIL_VERIFICATION_ERRORS[status])
             if status in [settings.EMAIL_VERIFICATION_CODE_EXPIRED, settings.EMAIL_VERIFICATION_CREDENTIALS_TAKEN]:

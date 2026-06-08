@@ -622,7 +622,6 @@ class FeedPanel(wx.Panel):
             creator, and sends the delete request to the server if confirmed.
         :param event: The mouse click event that triggered this handler.
         """
-        self.status_label.SetLabel("sending delete req to server")
         # todo make the message boxes a dialog message
         # todo understand if the video deletion affects scrolling points, and if it does then make it okay
         if self.frame.videos_details[self.current_video_id].creator == self.frame.user.username:
@@ -997,7 +996,6 @@ class FeedPanel(wx.Panel):
                         print("no videos")
                         msg = clientProtocol.build_req_video(self.feed_id)
                         self.frame.comm.send_msg(msg)
-                        #todo load the no videos video
                         #todo update a client that doesnt have video when a user uploads a video
 
             if load_a_new_video:

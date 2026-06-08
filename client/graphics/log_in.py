@@ -277,8 +277,6 @@ class LoginPanel(wx.Panel):
 
             self.frame.switch_panel(self.frame.feed_panel, self)
 
-            print("in login resp,", self.frame.user)
-
         elif status == settings.LOG_IN_FAILED:
             self.status_label.SetLabel("username or password incorrect")
             self.Layout()
