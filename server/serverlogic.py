@@ -400,9 +400,12 @@ class ServerLogic:
         :param data: A list of topic integers to use as the active filter.
         """
         topic_filter = [int(t) for t in data]
-        self.clients[client_ip][2] = topic_filter
-        msg = serverProtocol.build_set_filter_confirmation(topic_filter)
-        self.comm.send_msg(client_ip, msg)
+        if topic_filter != self.clients[client_ip][2]: # if the filter is different from the current one
+            self.clients[client_ip][2] = topic_filter
+            msg = serverProtocol.build_set_filter_confirmation(topic_filter)
+
+            # using videocomm to make sure this arrives before next video and after previously sended videos
+            self.clients[client_ip][1].send_msg(client_ip, msg)
 
         print("set filter:", topic_filter)
 
@@ -677,7 +680,6 @@ class ServerLogic:
         comments = comments[start_index:]  # make the comments start from the start_index
 
         deleted_comments_ids = self.db.get_deleted_command_ids(video_id)
-        print("deleted comments ids:", deleted_comments_ids)
 
         # recreate comments without any deleted comments
         comments = [i for i in comments if i[0] not in deleted_comments_ids]
@@ -693,7 +695,6 @@ class ServerLogic:
 
             comments = [i for i in comments if i[0] in reported_comments]
 
-        print("comments:", repr(comments), "commentslen", len(comments))
         comments_to_send = comments[:settings.AMOUNT_OF_COMMENTS_TO_SEND]
         print(f"comments_to_send for video {video_id}:", comments_to_send)
 
@@ -701,10 +702,8 @@ class ServerLogic:
         # send pfps
         for commenter_name in commenters:
             self.send_pfp(client_ip, commenter_name)
-            print("sending pfp of user in comments:", commenter_name)
 
         msg = serverProtocol.build_send_comments(feed_id, video_id, comments_to_send)
-        print("msg of comments:", msg)
         self.clients[client_ip][1].send_msg(client_ip, msg)
 
     def handle_video_del(self, client_ip, data):  # command 11
@@ -882,6 +881,10 @@ class ServerLogic:
             elif self.db.is_system_manager(username):
                 if self.db.no_reports(filter_type):
                     video_id = settings.NO_VIDEOS_ID
+
+            # if user has filter and there are no videos with that filter
+            elif self.clients[client_ip][2] and self.db.no_videos_with_filter(self.clients[client_ip][2]):
+                video_id = settings.NO_VIDEOS_ID
 
             if video_id == settings.END_OF_LIST_ID:
                 if self.db.is_system_manager(username) and filter_type == settings.COMMENT_DIGIT_REPR:
@@ -1113,7 +1116,7 @@ class ServerLogic:
 
         print("changed filter for ", self.clients[client_ip][0],"to",type)
 
-        # using videocomm to make sure this arrives before next video and after previously sended video
+        # using videocomm to make sure this arrives before next video and after previously sended videos
         self.clients[client_ip][1].send_msg(client_ip, msg)
 
     def handle_comment_or_video_status(self, client_ip, data):  # command 98

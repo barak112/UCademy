@@ -44,7 +44,8 @@ class MainFrame(wx.Frame):
                                     "Loading Content From Server", "waiting for videos from server",
                                     "Disconnected from server, Closing application in 5 seconds",
                                     "Creator uploaded a new video, loading it now from server",
-                                    "The video you were watching has been deleted, waiting for video from the server"]
+                                    "The video you were watching has been deleted, waiting for video from the server",
+                                    "Filter has been set, waiting for video from the server"]
 
         self.dots_animation_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.status_label_dots_animation, self.dots_animation_timer)

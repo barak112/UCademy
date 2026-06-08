@@ -508,7 +508,6 @@ class FeedPanel(wx.Panel):
         else:
             self.videos_reports_btn.set_active(False)
             self.comments_reports_btn.set_active(True)
-        self.status_label.SetLabel("")
 
         self.videos_ids.clear()
 
@@ -580,7 +579,21 @@ class FeedPanel(wx.Panel):
         :param topics: The list of topic identifiers that are now active as the feed filter.
         """
         self.filter = filter
-        self.status_label.SetLabel("Filter has been set")
+
+        self.videos_ids.clear()
+
+        switching_filter_mode_video = video.Video(settings.SWITCHING_FILTER_MODE_ID)
+        self.frame.videos_details[settings.SWITCHING_FILTER_MODE_ID] = switching_filter_mode_video
+        self.load_video(switching_filter_mode_video)
+
+        self.waiting_for_video = True
+
+        msg = clientProtocol.build_req_video(settings.FEED_ID)
+        for req in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
+            self.frame.comm.send_msg(msg)
+
+
+        self.status_label.SetLabel("Filter has been set, waiting for video from the server")
 
     def on_report_video(self, event):
         """
@@ -834,10 +847,10 @@ class FeedPanel(wx.Panel):
         if self.current_video_id in self.frame.videos_details:
             # todo return the video id in the video name label for testings
             self.video_desc_label.SetLabel(self.frame.videos_details[self.current_video_id].video_desc)
-            self.video_name_label.SetLabel(self.frame.videos_details[self.current_video_id].video_name)
+            # self.video_name_label.SetLabel(self.frame.videos_details[self.current_video_id].video_name)
 
-            # self.video_name_label.SetLabel(
-            #     str(self.current_video_id) + " " + self.frame.videos_details[self.current_video_id].video_name)
+            self.video_name_label.SetLabel(
+                str(self.current_video_id) + " " + self.frame.videos_details[self.current_video_id].video_name)
 
             self.video_name_label.Wrap(self.desc_and_name_panel.GetSize()[0])
             self.video_desc_label.Wrap(self.desc_and_name_panel.GetSize()[0])
@@ -1004,7 +1017,6 @@ class FeedPanel(wx.Panel):
                         if not self.videos_ids:
                             self.waiting_for_video = True
                         else:
-                            #todo check if user has filter, if no videos with neither of the filter topics, send settings.NO_VIDEOS
                             self.load_video(self.frame.videos_details[self.videos_ids[0]])
 
                         # req a new one instead of the one that returned index = settings.END_OF_LIST_ID
@@ -1147,12 +1159,16 @@ class FeedPanel(wx.Panel):
                 self.status_label.SetLabel(
                     f"No {filter_str_rep} reports in the system, switch to {alternative_filter_str_rep} reports")
 
-                no_videos_video = Video(settings.NO_VIDEOS_ID)
-                self.frame.videos_details[settings.NO_VIDEOS_ID] = no_videos_video
-                self.load_video(no_videos_video)
-
+            elif self.filter:
+                self.status_label.SetLabel(
+                    f"No videos corresponding to your video's filter, change your filter!")
             else:
                 self.status_label.SetLabel("No videos in the system, go to your profile to upload a video")
+
+            no_videos_video = Video(settings.NO_VIDEOS_ID)
+            self.frame.videos_details[settings.NO_VIDEOS_ID] = no_videos_video
+            self.load_video(no_videos_video)
+
             self.no_videos = True
             self.Layout()
 

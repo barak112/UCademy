@@ -795,7 +795,27 @@ class DataBase:
         self.cur.execute("SELECT COUNT(*) FROM following WHERE follower = ?", (username,))
         return self.cur.fetchone()[0]
 
-    # ===== video topics =====
+    # ===== video_topics =====
+
+    def no_videos_with_filter(self, filter):
+        """
+        Determines whether there are no videos associated with the given filter
+        of topics in the video_topics table.
+
+        :param filter: A list of topics to filter videos by. Each topic is matched
+            against entries in the video_topics table.
+        :return: A boolean value where True indicates no videos match the filter and False otherwise.
+        """
+        res = False
+        if filter:
+            placeholders = ",".join("?" * len(filter))
+            self.cur.execute(f"""
+                             SELECT 1 FROM video_topics vt
+                             WHERE vt.topic IN ({placeholders})
+                             AND NOT EXISTS(SELECT 1 FROM videos v WHERE v.video_id == vt.video_id and deleted = 1)""", (*filter,))
+            res = self.cur.fetchone() is None
+
+        return res
 
     def add_video_topics(self, video_id, topics):
         """
@@ -924,19 +944,6 @@ class DataBase:
         :return: Video ID of the recommended video
         """
         # returns the best video for the user that he has not seen
-
-        #todo once did that the server sends a settings.NO_VIDEOS if there are on videos with any of the filter topics, enable this code back
-
-        # res = None
-        # print(filter, bool(filter))
-        # if filter:
-        #     res = self.get_video_for_user_filter(username, filter)
-        #
-        # if not res: # if not filter or no videos matching filter
-        #     res = self.get_video_for_user_topics(username)
-        #
-        # if not res:  # if no video matches filter or topics
-        #     res = self.get_best_like_views_ratio_video_for_user(username)
 
         print(filter, bool(filter))
         if filter:
@@ -1276,6 +1283,8 @@ if __name__ == "__main__":
     print("\n\n")
 
     # --- testing ---
+
+    # print(db.no_videos_with_filter([11]))
 
     # print(db.no_reports(0))
     #
