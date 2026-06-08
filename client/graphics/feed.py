@@ -642,6 +642,8 @@ class FeedPanel(wx.Panel):
         :param video_id: The ID of the video that was deleted.
         """
 
+        print(f"{self.feed_id} a user deleted video {video_id}, current videos_ids:",self.videos_ids)
+
         if not video_id: # video deletion failed
             self.status_label.SetLabel("Video deletion failed")
 
@@ -650,22 +652,26 @@ class FeedPanel(wx.Panel):
             self.videos_ids = [v for v in self.videos_ids if
                                v != video_id]  # removes any occurrence of video_id in videos_ids
 
-            # deleted a video, so req another one instead of it
-            msg = clientProtocol.build_req_video(self.feed_id)
-            self.frame.comm.send_msg(msg)
+            print(f"{self.feed_id} a user deleted video {video_id}, new videos_ids:", self.videos_ids)
+
+            # deleted a video, so req another one instead of it (if in feed)
+            if self.feed_id == settings.FEED_ID:
+                msg = clientProtocol.build_req_video(self.feed_id)
+                self.frame.comm.send_msg(msg)
 
             deleted_video = Video(settings.DELETED_ID)
             self.frame.videos_details[
                 settings.DELETED_ID] = deleted_video  # so when updating the comments on the video using frame. it wont break
 
             if not self.videos_ids:  # if videos_ids is now empty
-                if self.feed_id == settings.USER_PROFILE_FEED_ID:
-                    self.frame.switch_panel(self.frame.user_profile_feed_panel, self)
-                else:
-                    self.status_label.SetLabel(
-                        "The video you were watching has been deleted, waiting for video from the server")
-                    self.load_video(deleted_video)
-                    self.waiting_for_video = True
+                self.status_label.SetLabel(
+                    "The video you were watching has been deleted, waiting for video from the server")
+                self.load_video(deleted_video)
+                self.waiting_for_video = True
+
+            # if in user profile feed and the only value in self.videos_ids is the end of the list
+            elif self.feed_id == settings.USER_PROFILE_FEED_ID and self.IsShown() and self.videos_ids == [0]:
+                self.frame.switch_panel(self.frame.user_profile_panel, self)
             else:
                 self.status_label.SetLabel("The video you were watching has been deleted, returning to last video")
                 self.video_index = max(0, self.video_index - 1)

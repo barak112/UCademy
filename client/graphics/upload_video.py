@@ -424,8 +424,6 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
         self.Layout()
         event.Skip()
-        # todo make sure the video is under 2 minutes also in server!
-
 
     @staticmethod
     def gform_valid_form(url):
@@ -483,18 +481,29 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
         elif video_id == settings.VIDEO_ALREADY_EXISTS:
             self.upload_video_btn.label_or_path = "Video file already exists, upload a different one"
+            self.pick_video_btn.label_or_path = "Click to upload video"
+            self.video_path = None
+            self.upload_video_btn.set_active(False)
+            self.filled_fields["video"] = False
+
+        elif video_id == settings.VIDEO_TOO_LONG:
+            self.upload_video_btn.label_or_path = f"Video length is too long, pick another one under {settings.MAX_VIDEO_LENGTH} minutes"
+            self.pick_video_btn.label_or_path = "Click to upload video"
             self.video_path = None
             self.upload_video_btn.set_active(False)
             self.filled_fields["video"] = False
 
         elif video_id == settings.INVALID_VIDEO:
             self.upload_video_btn.label_or_path = "Video file is not a valid video, upload a different one"
+            self.pick_video_btn.label_or_path = "Error loading video, pick another one"
             self.video_path = None
             self.upload_video_btn.set_active(False)
             self.filled_fields["video"] = False
 
+
         elif video_id == settings.INVALID_IMAGE:
             self.upload_video_btn.label_or_path = "Thumbnail file is not a valid image, upload a different one"
+            self.pick_thumbnail_btn.label_or_path = "Error loading thumbnail, pick another one"
             self.thumbnail_path = None
             self.upload_video_btn.set_active(False)
             self.filled_fields["thumbnail"] = False

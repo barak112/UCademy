@@ -943,6 +943,9 @@ class ServerLogic:
         elif not self.is_image_valid_from_bytes(thumbnail_content):
             video_id = settings.INVALID_IMAGE
 
+        elif self.get_duration_from_bytes(video_content) / 60 > settings.MAX_VIDEO_LENGTH:
+            video_id = settings.VIDEO_TOO_LONG
+
         else: # no problem with the video
             video_id = self.db.add_video(username, video_name, video_desc, test_link)
             self.db.add_video_topics(video_id, topics)
@@ -969,7 +972,41 @@ class ServerLogic:
         if video_id <= 0: # if there was a problem with the video
             msg = serverProtocol.build_video_upload_confirmation(video_id, username)
             self.comm.send_msg(client_ip, msg)
-            print("video already exists")
+
+    def get_duration_from_bytes(self, data: bytes):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as f:
+            f.write(data)
+            tmp_path = f.name
+        try:
+            return self.get_duration(tmp_path)
+        finally:
+            os.unlink(tmp_path)
+
+    @staticmethod
+    def get_duration(file_path):
+        """
+        Calculates the duration of a video file in seconds using OpenCV.
+        :param file_path: The file system path to the video file.
+        :return: The duration of the video in seconds, or 0 if it cannot be determined.
+        """
+        cap = cv2.VideoCapture(file_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        duration = 0
+        if frame_count > 0:
+            duration = frame_count / fps
+        cap.release()
+        return duration
+
+    @staticmethod
+    def is_video_too_long_from_bytes(data: bytes) -> float:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as f:
+            f.write(data)
+            tmp_path = f.name
+        try:
+            return get_duration(tmp_path)  # use any method above
+        finally:
+            os.unlink(tmp_path)
 
     @staticmethod
     def is_image_valid_from_bytes(data: bytes):
