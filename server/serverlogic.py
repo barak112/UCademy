@@ -1106,13 +1106,14 @@ class ServerLogic:
         else:
             followed = ""  # indicates user doesnt exist
 
-        if followed:
-            clients_to_send = [client for client, usernames in self.creator_videos_sent.items() if follower in usernames or followed in usernames]
-
-            print("clients_to_send:", clients_to_send)
-            #todo update each client that there is a new follow
-            msg = serverProtocol.build_follow_user_status(status, followed)
-            self.comm.send_msg(client_ip, msg)
+        #todo continue here
+        # if followed:
+        #     clients_to_send = [client for client, usernames in self.creator_videos_sent.items() if follower in usernames or followed in usernames]
+        #
+        #     print("clients_to_send:", clients_to_send)
+        #     #todo update each client that there is a new follow
+        msg = serverProtocol.build_follow_user_status(status, followed)
+        self.comm.send_msg(client_ip, msg)
 
     def handle_like_video(self, client_ip, data):  # command 18
         """
