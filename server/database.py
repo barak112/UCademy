@@ -1305,6 +1305,8 @@ if __name__ == "__main__":
     # db.remove_watched_videos_for_user("admin")
     # print(db.get_video_for_system_manager("admin"))
 
+    # db.add_system_manager("admin")
+
     # db.cur.execute("DELETE FROM video_hashes")
     # db.conn.commit()
     # db.cur.execute("UPDATE videos SET deleted = 1 WHERE video_id = 17")
