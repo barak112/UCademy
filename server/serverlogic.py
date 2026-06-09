@@ -546,7 +546,8 @@ class ServerLogic:
         video_id, comment = data
         commenter_name = self.clients[client_ip][0]
 
-        if self.db.video_exists(video_id):
+
+        if self.db.video_exists(video_id) and len(comment) <= settings.MAX_COMMENT_LENGTH:
             comment_id, created_at = self.db.add_comment(video_id, commenter_name, comment)
             print("id, created:", comment_id, created_at)
             msg = serverProtocol.build_comment_status(comment_id, video_id, commenter_name, comment, created_at)
@@ -556,6 +557,9 @@ class ServerLogic:
             clients_to_send = [ip for ip in self.clients.keys() if video_id in (self.videos_sent[ip] + self.thumbnails_sent[ip])]
             for client in clients_to_send:
                 self.comm.send_msg(client, msg)
+        else:
+            msg = serverProtocol.build_comment_status(0, 0, "", "", "")
+            self.comm.send_msg(client_ip, msg)
 
 
     def handle_user_details_req(self, client_ip, data):  # command 8
@@ -950,6 +954,12 @@ class ServerLogic:
 
         elif self.get_duration_from_bytes(video_content) / 60 > settings.MAX_VIDEO_LENGTH:
             video_id = settings.VIDEO_TOO_LONG
+
+        elif len(video_name) > settings.MAX_VIDEO_NAME_LENGTH:
+            video_id = settings.VIDEO_NAME_TOO_LONG
+
+        elif len(video_desc) > settings.MAX_VIDEO_DESC_LENGTH:
+            video_id = settings.VIDEO_DESC_TOO_LONG
 
         else: # no problem with the video
             video_id = self.db.add_video(username, video_name, video_desc, test_link)

@@ -805,8 +805,6 @@ class FeedPanel(wx.Panel):
         """
         super().Show()
         self.video_ctrl.Play()
-        # self.update_pfp()
-        # self.comments_panel.update_pfp_bitmap()
         self.video_ctrl.SetVolume(FeedPanel.volume)
         self.update_sound_button_and_label(FeedPanel.volume)
 

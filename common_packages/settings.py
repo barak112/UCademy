@@ -25,8 +25,8 @@ MAX_VIDEO_LENGTH = 2 # minutes
 MAX_VIDEO_NAME_LENGTH = 100
 MAX_VIDEO_DESC_LENGTH = 1000
 MAX_COMMENT_LENGTH = 50
-#todo check all of these also in the server
-#todo reset the upload button's text when going into video_upload screen after aploading
+
+#todo reset the upload button's text when going into video_upload screen after uploading
 
 COMMENT_DIGIT_REPR = 0
 VIDEO_DIGIT_REPR = 1
@@ -151,8 +151,10 @@ PICK_VIDEO_TOPICS_ID = 3
 SUCCESSFUL = 1
 VIDEO_ALREADY_EXISTS = 0
 VIDEO_TOO_LONG = -1
-INVALID_VIDEO = -2
-INVALID_IMAGE = -3
+VIDEO_NAME_TOO_LONG = -2
+VIDEO_DESC_TOO_LONG = -3
+INVALID_VIDEO = -4
+INVALID_IMAGE = -5
 
 FOLLOWING = 1
 NOT_FOLLOWING = 0

@@ -227,7 +227,10 @@ class Comments(wx.Panel):
         :param comment: The comment object returned by the server.
         :param index: The position in the comments list where the comment should be inserted.
         """
-        if self.video and self.video.video_id == video_id and comment.comment_id not in self.comments_ids:
+        if not comment.comment_id:
+            self.parent.status_label.SetLabel("Comment too long, couldn't add comment")
+
+        elif self.video and self.video.video_id == video_id and comment.comment_id not in self.comments_ids:
             # add comment visually
             comment_panel = comment_widget.CommentWidget(self.comments_panel, self.frame, comment)
 
