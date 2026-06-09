@@ -789,12 +789,13 @@ class FeedPanel(wx.Panel):
             Updates the personal account button bitmap with the user's current profile picture.
         """
         user = self.frame.user
-        if user and os.path.isfile(f"media\\{user.username}.png"):
+        if user:
             pfp_path = f"media\\{user.username}.png"
             if os.path.isfile(pfp_path):
                 pfp = wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE))
                 self.personal_account_btn.SetBitmap(pfp)
-        print("updated pfp in feed")
+                self.comments_panel.update_pfp_bitmap(pfp)
+
 
     def Show(self, show=True):
         """
@@ -804,8 +805,8 @@ class FeedPanel(wx.Panel):
         """
         super().Show()
         self.video_ctrl.Play()
-        self.update_pfp()
-        self.comments_panel.update_pfp_bitmap()
+        # self.update_pfp()
+        # self.comments_panel.update_pfp_bitmap()
         self.video_ctrl.SetVolume(FeedPanel.volume)
         self.update_sound_button_and_label(FeedPanel.volume)
 
@@ -851,10 +852,10 @@ class FeedPanel(wx.Panel):
         if self.current_video_id in self.frame.videos_details:
             # todo return the video id in the video name label for testings
             self.video_desc_label.SetLabel(self.frame.videos_details[self.current_video_id].video_desc)
-            self.video_name_label.SetLabel(self.frame.videos_details[self.current_video_id].video_name)
+            # self.video_name_label.SetLabel(self.frame.videos_details[self.current_video_id].video_name)
 
-            # self.video_name_label.SetLabel(
-            #     str(self.current_video_id) + " " + self.frame.videos_details[self.current_video_id].video_name)
+            self.video_name_label.SetLabel(
+                str(self.current_video_id) + " " + self.frame.videos_details[self.current_video_id].video_name)
 
             self.video_name_label.Wrap(self.desc_and_name_panel.GetSize()[0])
             self.video_desc_label.Wrap(self.desc_and_name_panel.GetSize()[0])

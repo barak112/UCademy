@@ -156,17 +156,12 @@ class Comments(wx.Panel):
             self.Layout()
             self.Refresh()
 
-    def update_pfp_bitmap(self):
+    def update_pfp_bitmap(self, pfp_bitmap):
         """
         Reloads and updates the current user's profile picture bitmap in the add-comment area.
         """
-        user = self.frame.user
-        if user:
-            pfp_path = f"media\\{user.username}.png"
-            if os.path.isfile(pfp_path):
-                pfp = wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE))
-                self.pfp.SetBitmap(pfp)
-        print("updated pfp")
+        self.pfp.SetBitmap(pfp_bitmap)
+
 
     def call_date_to_ago(self, event):
         """
