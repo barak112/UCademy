@@ -350,7 +350,7 @@ class DataBase:
         query = """
                 SELECT video_id, created_at
                 from videos
-                WHERE videos.creator = ? 
+                WHERE videos.creator = ?
                 """
 
         if matter_deleted:
@@ -930,13 +930,12 @@ class DataBase:
                 
                     
                 FROM video_topics
-                  LEFT JOIN watched_videos ON video_topics.video_id = watched_videos.video_id
-                  LEFT JOIN likes ON video_topics.video_id = likes.video_id
-                                
-                WHERE EXISTS(
-                    SELECT 1 FROM videos
-                    WHERE videos.video_id = video_topics.video_id AND deleted = 0
-                )
+                    LEFT JOIN watched_videos ON video_topics.video_id = watched_videos.video_id
+                    LEFT JOIN likes ON video_topics.video_id = likes.video_id
+                    LEFT JOIN videos ON video_topics.video_id = videos.video_id AND videos.deleted = 0
+                             
+                WHERE videos.video_id IS NOT NULL                  
+
                 AND video_topics.topic IN ({placeholders})
                 AND NOT EXISTS (
                     SELECT 1 FROM watched_videos 
@@ -1300,6 +1299,8 @@ if __name__ == "__main__":
     print("\n\n")
 
     # --- testing ---
+
+    print(db.get_videos_by_creator("Alon"))
 
     # print(db.no_videos_with_filter([11]))
 

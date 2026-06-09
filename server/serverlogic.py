@@ -11,6 +11,7 @@ from email.message import EmailMessage
 
 import cv2
 import numpy as np
+import requests
 
 import database
 import serverComm
@@ -577,7 +578,10 @@ class ServerLogic:
         self.send_pfp(client_ip, username)
 
         # sends the user's details
+        print("user_details in serverlogic user details:", user_details)
+        print("distributed:", *user_details)
         msg = serverProtocol.build_user_details_in_profile(*user_details)
+        print("msg in serverlogic user details:", msg)
         self.clients[client_ip][1].send_msg(client_ip, msg)
 
     def get_user_details(self, client_ip, username):
@@ -589,7 +593,7 @@ class ServerLogic:
         """
         followers_amount = 0
         followings_amount = 0
-        videos_ids = 0
+        videos_ids = []
         is_followed_by_user = 0
 
         if self.db.user_exists(username):
@@ -961,6 +965,9 @@ class ServerLogic:
         elif len(video_desc) > settings.MAX_VIDEO_DESC_LENGTH:
             video_id = settings.VIDEO_DESC_TOO_LONG
 
+        elif not self.gform_exists(test_link):
+            video_id = settings.TEST_LINK_NOT_VALID
+
         else: # no problem with the video
             video_id = self.db.add_video(username, video_name, video_desc, test_link)
             self.db.add_video_topics(video_id, topics)
@@ -987,6 +994,25 @@ class ServerLogic:
         if video_id <= 0: # if there was a problem with the video
             msg = serverProtocol.build_video_upload_confirmation(video_id, username)
             self.comm.send_msg(client_ip, msg)
+
+    @staticmethod
+    def gform_exists(url):
+        """
+        Determines whether a given URL corresponds to an existing Google Form.
+
+        :param url: The URL to verify as a valid and existing Google Form.
+        :return: True if the URL corresponds to an existing Google Form, False otherwise.
+        """
+        pattern = r'(https?://)?docs\.google\.com/forms/d/[a-zA-Z0-9_-]+(/.*)?'
+        ret_val = False
+        if bool(re.match(pattern, url)):  # makes sure the url is a google form
+            try:  # makes sure the google form is reachable
+                response = requests.head(url, timeout=5, allow_redirects=True)
+                ret_val = response.status_code == 200
+            except requests.RequestException:
+                pass
+
+        return ret_val
 
     def get_duration_from_bytes(self, data: bytes):
         ret_val = 0

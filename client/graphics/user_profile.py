@@ -106,7 +106,6 @@ class UserProfilePanel(wx.ScrolledWindow):
         pub.subscribe(self.on_follow_user_ans, "follow_user_ans")
 
         self.Hide()
-        # todo be able to change topics
 
     def on_scroll(self, event):
         """
@@ -270,7 +269,6 @@ class UserProfilePanel(wx.ScrolledWindow):
         """
         self.frame.switch_panel(self.frame.feed_panel, self)
         event.Skip()
-        # todo check which feed panel was last active and switch to it
 
     def on_move_to_upload_video(self, event):
         """

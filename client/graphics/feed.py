@@ -1217,7 +1217,10 @@ class FeedPanel(wx.Panel):
                 video_path = "assets\\this_video_has_been_deleted.mp4"
 
             elif video_id == settings.SWITCHING_FILTER_MODE_ID:
-                video_path = "assets\\switching_filtering.mp4"
+                if self.frame.user.is_system_manager():
+                    video_path = "assets\\switching_filtering_mode.mp4"
+                else:
+                    video_path = "assets\\switching_filter.mp4"
 
             elif video_id == settings.KEPT_VIDEO_ID:
                 video_path = "assets\\kept_video.mp4"

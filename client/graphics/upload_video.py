@@ -216,6 +216,12 @@ class UploadVideoPanel(wx.ScrolledWindow):
 
         self.Hide()
 
+    def Show(self, show = True):
+        super().Show()
+        if self.upload_video_btn.label_or_path == "Video uploaded":
+            self.upload_video_btn.label_or_path = "Upload Video"
+
+
     def on_back_arrow(self, event):
         """
         Handles the back arrow button click, switching back to the user profile panel.
@@ -507,6 +513,21 @@ class UploadVideoPanel(wx.ScrolledWindow):
             self.thumbnail_path = None
             self.upload_video_btn.set_active(False)
             self.filled_fields["thumbnail"] = False
+
+        elif video_id == settings.VIDEO_NAME_TOO_LONG:
+            self.upload_video_btn.label_or_path = "Video name is too long"
+            self.upload_video_btn.set_active(False)
+            self.filled_fields["video_name"] = False
+
+        elif video_id == settings.VIDEO_NAME_TOO_LONG:
+            self.upload_video_btn.label_or_path = "Description is too long"
+            self.upload_video_btn.set_active(False)
+            self.filled_fields["video_description"] = False
+
+        elif video_id == settings.TEST_LINK_NOT_VALID:
+            self.upload_video_btn.label_or_path = "Test link is not valid"
+            self.test_link_field.set_value("")
+            self.upload_video_btn.set_active(True)
 
         self.Refresh()
 

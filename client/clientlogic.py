@@ -129,9 +129,16 @@ class ClientLogic:
             system_manager = bool(int(system_manager))
 
 
-            videos_ids = [int(video_id) for video_id in videos_ids]
+            if videos_ids and isinstance(videos_ids, str):
+                videos_ids = [int(videos_ids)]
+            else:
+                videos_ids = [int(i) for i in videos_ids]
 
-            topics = [int(topic) for topic in topics]
+            if topics and isinstance(topics, str):
+                topics = [int(topics)]
+            else:
+                topics = [int(i) for i in topics]
+
 
             user_obj = user.User(username, followers_amount, followings_amount,
                                  videos_ids, False,email, topics, system_manager)
@@ -148,7 +155,10 @@ class ClientLogic:
         :param data: The response data containing a list of topic integers.
         """
         topics = data[0]
-        topics = [int(topic) for topic in topics]
+        if topics and isinstance(topics, str):
+            topics = [int(topics)]
+        else:
+            topics = [int(topic) for topic in topics]
         wx.CallAfter(pub.sendMessage, "set_topics_ans", topics=topics)
 
     def handle_filter_confirmation(self, data):  # command 4
@@ -156,6 +166,7 @@ class ClientLogic:
 
         :param data: The response data containing the active filter value.
         """
+
         filter = []
         if data:
             filter = data[0]
@@ -181,7 +192,16 @@ class ClientLogic:
         username, followers_amount, followings_amount, videos_ids, is_followed_by_user = data
         followers_amount = int(followers_amount)
         followings_amount = int(followings_amount)
-        videos_ids = [int(i) for i in videos_ids]
+
+
+
+        if videos_ids and isinstance(videos_ids, str):
+            videos_ids = [int(videos_ids)]
+        else:
+            videos_ids = [int(i) for i in videos_ids]
+
+        print("videos_ids in user_obj:",videos_ids)
+
         is_followed_by_user = bool(int(is_followed_by_user))
         user_details = user.User(username, followers_amount, followings_amount, videos_ids, is_followed_by_user)
         return user_details
