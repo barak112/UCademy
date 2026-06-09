@@ -11,7 +11,6 @@ from email.message import EmailMessage
 
 import cv2
 import numpy as np
-from PIL import Image
 
 import database
 import serverComm
@@ -975,13 +974,16 @@ class ServerLogic:
             self.comm.send_msg(client_ip, msg)
 
     def get_duration_from_bytes(self, data: bytes):
+        ret_val = 0
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as f:
             f.write(data)
             tmp_path = f.name
         try:
-            return self.get_duration(tmp_path)
+            ret_val = self.get_duration(tmp_path)
         finally:
             os.unlink(tmp_path)
+
+        return ret_val
 
     @staticmethod
     def get_duration(file_path):
@@ -1000,21 +1002,11 @@ class ServerLogic:
         return duration
 
     @staticmethod
-    def is_video_too_long_from_bytes(data: bytes) -> float:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as f:
-            f.write(data)
-            tmp_path = f.name
-        try:
-            return get_duration(tmp_path)  # use any method above
-        finally:
-            os.unlink(tmp_path)
-
-    @staticmethod
     def is_image_valid_from_bytes(data: bytes):
         """
             Checks whether a file at the given path is a valid image.
             Attempts to open and verify the file's integrity using PIL.
-        :param path: The file path of the image to validate.
+        :param data: content of the image needed to be validated
         :return: True if the file is a valid image, False otherwise.
         """
         nparr = np.frombuffer(data, np.uint8)
@@ -1145,7 +1137,7 @@ class ServerLogic:
         and sends a confirmation message.
 
         :param client_ip: The IP address of the client for whom the filter type is being updated.
-        :param type: The filter type to be applied for comment or video reports.
+        :param data: contains The filter type to be applied for comment or video reports.
         """
         type = data[0]
         type = int(type)

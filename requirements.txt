@@ -4,3 +4,5 @@ opencv-python~=4.13.0.92
 typing_extensions~=4.15.0
 pycryptodomex~=3.23.0
 requests~=2.33.1
+pillow~=12.2.0
+numpy~=2.2.6
