@@ -861,6 +861,11 @@ class DataBase:
                          SELECT video_topics.video_id,
                                 COUNT(DISTINCT video_topics.topic)      AS shared_topics,
                                 
+                                CASE 
+                                    WHEN EXISTS(SELECT 1 FROM following WHERE follower = ? AND followed = videos.creator) THEN 1
+                                    ELSE 0
+                                END AS is_creator_followed_by_user,
+                                
                                CASE 
                                    WHEN COUNT(DISTINCT watched_videos.username) < 10 THEN 0.5
                                    ELSE CAST(COUNT(DISTINCT likes.username) AS FLOAT) /
@@ -871,21 +876,48 @@ class DataBase:
                                   LEFT JOIN video_topics ON user_topics.topic = video_topics.topic
                                   LEFT JOIN watched_videos ON video_topics.video_id = watched_videos.video_id
                                   LEFT JOIN likes ON video_topics.video_id = likes.video_id
-                                
-                         WHERE EXISTS(SELECT 1 
-                                      FROM videos
-                                      WHERE videos.video_id = video_topics.video_id
-                                        AND deleted = 0)
-                           AND user_topics.username = ?
-                           AND NOT EXISTS (SELECT 1
-                                           FROM watched_videos
-                                           WHERE watched_videos.video_id = video_topics.video_id
-                                             AND watched_videos.username = ?)
-
+                                  LEFT JOIN videos ON video_topics.video_id = videos.video_id AND videos.deleted = 0
+                             
+                         WHERE videos.video_id IS NOT NULL 
+                             
+                         AND user_topics.username = ?
+                         AND NOT EXISTS (SELECT 1
+                                        FROM watched_videos
+                                        WHERE watched_videos.video_id = video_topics.video_id
+                                        AND watched_videos.username = ?)
+                                        
                          GROUP BY video_topics.video_id
-                         ORDER BY shared_topics + likes_views_ratio*5 DESC
-                         """, (username, username))
+                         ORDER BY shared_topics + likes_views_ratio*5 + is_creator_followed_by_user*20 DESC
+                         """, (username, username, username))
 
+        # self.cur.execute("""
+        #                  SELECT video_topics.video_id,
+        #                         COUNT(DISTINCT video_topics.topic) AS shared_topics,
+        #
+        #                         CASE
+        #                             WHEN COUNT(DISTINCT watched_videos.username) < 10 THEN 0.5
+        #                             ELSE CAST(COUNT(DISTINCT likes.username) AS FLOAT) /
+        #                                  NULLIF(COUNT(DISTINCT watched_videos.username), 0)
+        #                             END                            AS likes_views_ratio
+        #
+        #                  FROM user_topics
+        #                           LEFT JOIN video_topics ON user_topics.topic = video_topics.topic
+        #                           LEFT JOIN watched_videos ON video_topics.video_id = watched_videos.video_id
+        #                           LEFT JOIN likes ON video_topics.video_id = likes.video_id
+        #
+        #                  WHERE EXISTS(SELECT 1
+        #                               FROM videos
+        #                               WHERE videos.video_id = video_topics.video_id
+        #                                 AND deleted = 0)
+        #                    AND user_topics.username = ?
+        #                    AND NOT EXISTS (SELECT 1
+        #                                    FROM watched_videos
+        #                                    WHERE watched_videos.video_id = video_topics.video_id
+        #                                      AND watched_videos.username = ?)
+        #
+        #                  GROUP BY video_topics.video_id
+        #                  ORDER BY shared_topics + likes_views_ratio * 5 DESC
+        #                  """, (username, username))
 
         res = self.cur.fetchone()
         if res:

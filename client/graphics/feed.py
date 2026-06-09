@@ -1148,7 +1148,6 @@ class FeedPanel(wx.Panel):
             if self.videos_ids:
                 self.videos_ids.append(
                     video_id)  # add 0 to indicate the end of the videos
-                print("resseting history:", self.videos_ids)
 
         elif video_id == settings.DELETED_ID:
             self.frame.videos_details[
