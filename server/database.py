@@ -508,13 +508,19 @@ class DataBase:
         """
         self.cur.execute("""
                          SELECT videos.video_id,
+
+                        CASE
+                            WHEN EXISTS(SELECT 1 FROM following WHERE follower = ? AND followed = videos.creator)
+                                THEN 1
+                            ELSE 0
+                        END AS is_creator_followed_by_user,
                          
                          CASE 
                             WHEN COUNT(DISTINCT watched_videos.username) < 10 THEN 0.5
                             ELSE CAST(COUNT(DISTINCT likes.username) AS FLOAT) /
                             NULLIF(COUNT(DISTINCT watched_videos.username), 0)
                          END AS likes_views_ratio
-                   
+                        
                          FROM videos
                                   LEFT JOIN watched_videos ON videos.video_id = watched_videos.video_id
                                   LEFT JOIN likes ON videos.video_id = likes.video_id
@@ -526,9 +532,9 @@ class DataBase:
                                              AND watched_videos.username = ?)
 
                          GROUP BY videos.video_id
-                         ORDER BY likes_views_ratio DESC
+                         ORDER BY likes_views_ratio*5 + is_creator_followed_by_user*4 DESC
 
-                         """, (username,))
+                         """, (username, username))
 
         res = self.cur.fetchone()
         if res:
@@ -854,6 +860,7 @@ class DataBase:
     def get_video_for_user_topics(self, username):
         """
         Retrieves a recommended video for a user based on shared topics and likes to views ratio
+        Should note that only returns a video if it has a shared topic with the user.
         :param username: Username of the user
         :return: Video ID if found, otherwise None
         """
@@ -887,37 +894,8 @@ class DataBase:
                                         AND watched_videos.username = ?)
                                         
                          GROUP BY video_topics.video_id
-                         ORDER BY shared_topics + likes_views_ratio*5 + is_creator_followed_by_user*20 DESC
+                         ORDER BY shared_topics + likes_views_ratio*5 + is_creator_followed_by_user*4 DESC
                          """, (username, username, username))
-
-        # self.cur.execute("""
-        #                  SELECT video_topics.video_id,
-        #                         COUNT(DISTINCT video_topics.topic) AS shared_topics,
-        #
-        #                         CASE
-        #                             WHEN COUNT(DISTINCT watched_videos.username) < 10 THEN 0.5
-        #                             ELSE CAST(COUNT(DISTINCT likes.username) AS FLOAT) /
-        #                                  NULLIF(COUNT(DISTINCT watched_videos.username), 0)
-        #                             END                            AS likes_views_ratio
-        #
-        #                  FROM user_topics
-        #                           LEFT JOIN video_topics ON user_topics.topic = video_topics.topic
-        #                           LEFT JOIN watched_videos ON video_topics.video_id = watched_videos.video_id
-        #                           LEFT JOIN likes ON video_topics.video_id = likes.video_id
-        #
-        #                  WHERE EXISTS(SELECT 1
-        #                               FROM videos
-        #                               WHERE videos.video_id = video_topics.video_id
-        #                                 AND deleted = 0)
-        #                    AND user_topics.username = ?
-        #                    AND NOT EXISTS (SELECT 1
-        #                                    FROM watched_videos
-        #                                    WHERE watched_videos.video_id = video_topics.video_id
-        #                                      AND watched_videos.username = ?)
-        #
-        #                  GROUP BY video_topics.video_id
-        #                  ORDER BY shared_topics + likes_views_ratio * 5 DESC
-        #                  """, (username, username))
 
         res = self.cur.fetchone()
         if res:
@@ -940,6 +918,11 @@ class DataBase:
                    COUNT(video_topics.topic) AS shared_topics,
                    
                    CASE 
+                        WHEN EXISTS(SELECT 1 FROM following WHERE follower = ? AND followed = videos.creator) THEN 1
+                        ELSE 0
+                    END AS is_creator_followed_by_user,
+                   
+                   CASE 
                        WHEN COUNT(DISTINCT watched_videos.username) < 10 THEN 0.5
                        ELSE CAST(COUNT(DISTINCT likes.username) AS FLOAT) /
                             NULLIF(COUNT(DISTINCT watched_videos.username), 0)
@@ -960,8 +943,8 @@ class DataBase:
                     WHERE watched_videos.video_id = video_topics.video_id AND watched_videos.username = ?
                 )
                 GROUP BY video_topics.video_id
-                ORDER BY shared_topics + likes_views_ratio*5 DESC
-            """, (*filter, username))
+                ORDER BY shared_topics + likes_views_ratio*5 + is_creator_followed_by_user*4 DESC
+            """, (username, *filter, username))
 
             res = self.cur.fetchone()
             if res:
@@ -971,6 +954,8 @@ class DataBase:
     def get_video_for_user(self, username, filter=None):
         """
         Retrieves video_id of a recommended video for a user based on filters, topics, or popularity
+        Firsly takes a video based of filter, if their isnt a filter, then takes based on topics
+        if there isnt any video sharing a topic, will go to popularity
         :param username: Username of the user
         :param filter: optional list of topics to filter videos
         :return: Video ID of the recommended video
