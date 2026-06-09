@@ -764,7 +764,7 @@ class DataBase:
         :param following: Username of the follower
         :param followed: Username of the user being unfollowed
         """
-        self.cur.execute("DELETE FROM follower WHERE following = ? and followed = ?", (following, followed))
+        self.cur.execute("DELETE FROM following WHERE follower = ? and followed = ?", (following, followed))
         self.conn.commit()
 
     def is_following(self, following, followed):

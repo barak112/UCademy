@@ -105,7 +105,7 @@ class ClientLogic:
             video_port = int(video_port)
             video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, video_port, self.recvQ)
             video_comm.connect()
-            user_obj = user.User(username, 0, 0, [], email, [], [], system_manager)
+            user_obj = user.User(username, 0, 0, [], False, email, [], system_manager)
 
         wx.CallAfter(pub.sendMessage, "email_verification_ans", status=status, video_comm=video_comm, user=user_obj)
 
@@ -118,7 +118,7 @@ class ClientLogic:
 
         print("sign in status:", status)
         if status == settings.LOG_IN_SUCCESSFUL:
-            video_port, username, followers_amount, followings_amount, videos_ids, email, topics, followings_names, system_manager = data[
+            video_port, username, followers_amount, followings_amount, videos_ids, email, topics, system_manager = data[
                 1:]
 
             video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, int(video_port), self.recvQ)
@@ -133,11 +133,8 @@ class ClientLogic:
 
             topics = [int(topic) for topic in topics]
 
-            if not followings_names:
-                followings_names = []
-
-            user_obj = user.User(username, followers_amount, followings_amount, videos_ids, email, topics,
-                                 followings_names, system_manager)
+            user_obj = user.User(username, followers_amount, followings_amount,
+                                 videos_ids, False,email, topics, system_manager)
 
             print(f"signed in as {username}")
             wx.CallAfter(pub.sendMessage, "login_ans", status=status, video_comm=video_comm, user=user_obj)
@@ -181,11 +178,12 @@ class ClientLogic:
         :param data: A list containing username, followers amount, followings amount, and video IDs.
         :return: A User object populated with the provided data.
         """
-        username, followers_amount, followings_amount, videos_ids = data
+        username, followers_amount, followings_amount, videos_ids, is_followed_by_user = data
         followers_amount = int(followers_amount)
         followings_amount = int(followings_amount)
         videos_ids = [int(i) for i in videos_ids]
-        user_details = user.User(username, followers_amount, followings_amount, videos_ids)
+        is_followed_by_user = bool(int(is_followed_by_user))
+        user_details = user.User(username, followers_amount, followings_amount, videos_ids, is_followed_by_user)
         return user_details
 
     def handle_video_details_in_search(self, data):  # command 6
@@ -334,14 +332,8 @@ class ClientLogic:
         :param data: The response data containing the follow status and the username being followed.
         """
         status, following = data
-
-        if following:
-            # self.user.followings.append(following)
-            pass
-        else:
-            print("user trying to follow doesnt exists")
-
-        wx.CallAfter(pub.sendMessage, "follow_ans", status=status, following=following)
+        status = int(status)
+        wx.CallAfter(pub.sendMessage, "follow_user_ans", status=status, following=following)
 
     def handle_like_video_confirmation(self, data):  # command 18
         """Handles the server's response to a video like action and notifies the UI.

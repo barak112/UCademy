@@ -101,8 +101,9 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.FitInside()  # calculates virtual size
         pub.subscribe(self.user_info_ans, "user_details_in_profile_ans")
         pub.subscribe(self.video_details_ans, "video_details_in_profile_ans")
-        pub.subscribe(self.update_pfp, "update_pfp_ans")
+        pub.subscribe(self.update_pfp_ans, "update_pfp_ans")
         pub.subscribe(self.uploaded_pfp_ans, "uploaded_pfp_ans")
+        pub.subscribe(self.on_follow_user_ans, "follow_user_ans")
 
         self.Hide()
         # todo be able to change topics
@@ -147,7 +148,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         elif status == settings.INVALID_IMAGE:
             wx.MessageBox("The image you uploaded is not valid, please try another one!", "Error uploading new profile picture", wx.OK | wx.ICON_ERROR)
 
-    def update_pfp(self):
+    def update_pfp_ans(self):
         """
         Refreshes the profile picture across the profile panel and both feed panels.
         """
@@ -155,7 +156,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.frame.feed_panel.update_pfp()
         self.frame.user_profile_feed_panel.update_pfp()
 
-    def set_pfp(self):
+    def on_set_pfp(self):
         """
             Opens a file dialog for the user to select a new profile picture and sends it to the server.
         """
@@ -165,14 +166,69 @@ class UserProfilePanel(wx.ScrolledWindow):
             img_path = dlg.GetPath()
 
         dlg.Destroy()
+        if img_path:
+            if self.is_img_valid(img_path):
+                self.frame.video_comm.send_file(f"{self.frame.user.username}.png", img_path)
+                wx.MessageBox("Profile picture change req sent to server",
+                              "Profile Picture Upload", wx.OK | wx.ICON_INFORMATION)
+            else:
+                wx.MessageBox("The image you uploaded is not valid, please try another one!",
+                              "Error uploading new profile picture", wx.OK | wx.ICON_ERROR)
 
-        if self.is_img_valid(img_path):
-            self.frame.video_comm.send_file(f"{self.frame.user.username}.png", img_path)
-            wx.MessageBox("Profile picture change req sent to server",
-                          "Profile Picture Upload", wx.OK | wx.ICON_INFORMATION)
-        else:
-            wx.MessageBox("The image you uploaded is not valid, please try another one!",
-                          "Error uploading new profile picture", wx.OK | wx.ICON_ERROR)
+    def on_follow_user(self):
+        """
+        Handles the action when the user attempts to follow another user.
+
+        """
+        if not self.frame.user.username == self.current_username:
+            msg = clientProtocol.build_follow_req(self.current_username)
+            self.frame.comm.send_msg(msg)
+
+    def on_follow_user_ans(self, status, following):
+        """
+        Updates the following status of a user and updates the profile information
+        accordingly.
+
+        :param status: The new following status of the user. Should be a boolean value
+            where True indicates the user is now followed, and False indicates the user
+            is no longer followed.
+        :param following: The identifier of the user whose following status is being
+            updated.
+        """
+        self.frame.users[following].is_followed_by_user = bool(status)
+        self.profile_info.update_following(status, following)
+
+    def on_change_topics(self):
+        """
+        Handles the event triggered when topic selection changes.
+
+        This method updates the topics in the pick topics panel and switches
+        the current panel to the pick topics panel.
+        """
+        topic_names = [settings.TOPICS[topic_id] for topic_id in self.frame.user.topics]
+        self.frame.pick_topics_panel.set_selected_topics(topic_names)
+        self.frame.pick_topics_panel.panel_set_topics_handler = self
+        self.frame.switch_panel(self.frame.pick_topics_panel, self)
+
+    def on_set_topics_ans(self, topics):
+        """
+        Handles the process of setting topics and updating corresponding UI components.
+
+        This method processes the provided topics, assigns them to the user's data, and
+        then transitions the application to a different panel for further user interaction.
+
+        :param topics: The topics selected by the user.
+        """
+        self.frame.user.topics = topics
+        self.frame.switch_panel(self, self.frame.pick_topics_panel)
+
+    def handle_set_topics(self, topics):
+        """
+        Builds and sends a set-topics message to the server.
+        :param topics: A list of topic indices to send to the server.
+        """
+        msg = clientProtocol.build_set_topics(topics)
+        self.frame.comm.send_msg(msg)
 
     @staticmethod
     def is_img_valid(path):
@@ -287,7 +343,6 @@ class UserProfilePanel(wx.ScrolledWindow):
         """
         self.videos_details[user.username] = []
         self.frame.users[user.username] = user
-
         self.set_user_details(user)
 
     def req_user_info_and_videos(self, username):

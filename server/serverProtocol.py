@@ -42,7 +42,7 @@ def build_email_verification_confirmation(status, username=None, email=None, por
 
 
 def build_sign_in_status(status, port=None, username=None, followers_amount=None,
-                         followings_amount=None, videos_ids=None, email=None, topics=None, followings_names=None,
+                         followings_amount=None, videos_ids=None, email=None, topics=None,
                          system_manager = None):
     """
         Builds a response command indicating the result of a sign-in attempt.
@@ -54,12 +54,11 @@ def build_sign_in_status(status, port=None, username=None, followers_amount=None
     :param videos_ids: List of video IDs uploaded by the user.
     :param email: The email address of the signed-in user.
     :param topics: List of topic preferences associated with the user.
-    :param followings_names: List of usernames the user is following.
     :param system_manager: whether the user is a system manager or not
     :return: Formatted sign-in status command string.
     """
     return build_command(2, [status, port, username, followers_amount, followings_amount, videos_ids, email, topics,
-                             followings_names, system_manager])
+                            system_manager])
 
 
 def build_set_topics_confirmation(topics):
@@ -130,16 +129,17 @@ def build_comment_status(comment_id, video_id, commenter, comment, created_at):
     return build_command(7, [comment_id, video_id, commenter, comment, created_at])
 
 
-def build_user_details_in_profile(username, followers_amount, followings_amount, videos_ids):
+def build_user_details_in_profile(username, followers_amount, followings_amount, videos_ids, is_followed_by_user):
     """
         Builds a response command containing a user's details for display on their profile page.
     :param username: The username of the user.
     :param followers_amount: The number of followers the user has.
     :param followings_amount: The number of users the user is following.
     :param videos_ids: List of video IDs uploaded by the user.
+    :param is_followed_by_user: is followed by the user that made the request
     :return: Formatted user-details-in-profile command string.
     """
-    return build_command(8, [username, followers_amount, followings_amount, videos_ids])
+    return build_command(8, [username, followers_amount, followings_amount, videos_ids, is_followed_by_user])
 
 
 def build_report_status(status, id, type, content, content_publisher, created_at=""):

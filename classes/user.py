@@ -2,7 +2,7 @@
 
 class User:
 
-    def __init__(self, username, followers_amount, followings_amount, videos_ids, email = None, topics=None, followings=None, system_manager=None):
+    def __init__(self, username, followers_amount, followings_amount, videos_ids, is_followed_by_user, email = None, topics=None, system_manager=None):
         """
         Represents a user's profile with relevant social metrics and optional additional details.
 
@@ -17,10 +17,7 @@ class User:
         :param videos_ids: The ids of the videos this user has uploaded.
         :param email: (Optional) The email associated with the current user.
         :param topics: (Optional) A list of topics the current user is interested in.
-        :param followings: (Optional) A list of other users that the current user is following.
         """
-        if followings is None:
-            followings = []
 
         if topics is None:
             topics = []
@@ -30,11 +27,11 @@ class User:
         self.followings_amount = followings_amount
         self.videos_ids = videos_ids
         self.system_manager = system_manager
+        self.is_followed_by_user = is_followed_by_user
 
         # saved for current user only
         self.email = email
         self.topics = topics
-        self.followings = followings
 
     def get_video_amount(self):
         """

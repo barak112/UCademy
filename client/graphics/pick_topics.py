@@ -160,14 +160,17 @@ class PickTopicsPanel(wx.ScrolledWindow):
         Handles the server response after topics are set, requests the first video, and switches to the feed panel.
         :param topics: The list of topics confirmed by the server.
         """
-        self.frame.user.topics = topics
-        # req videos from server for feed panel
-        msg = clientProtocol.build_req_video(settings.FEED_ID)
-        for req in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
-            self.frame.comm.send_msg(msg)
+        if self.panel_set_topics_handler == self:
+            self.frame.user.topics = topics
+            # req videos from server for feed panel
+            msg = clientProtocol.build_req_video(settings.FEED_ID)
+            for req in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
+                self.frame.comm.send_msg(msg)
 
-        self.frame.switch_panel(self.frame.feed_panel, self)
-        print("switching to feed panel")
+            self.frame.switch_panel(self.frame.feed_panel, self)
+            print("switching to feed panel")
+        else:
+            self.panel_set_topics_handler.on_set_topics_ans(topics)
 
     def topic_selected(self, topic_name):
         """
@@ -196,7 +199,6 @@ class PickTopicsPanel(wx.ScrolledWindow):
                 self.Layout()
 
         self.meets_max_and_min = self.max_topics >= len(self.selected_topics) >= self.min_topics
-        print(self.max_topics, len(self.selected_topics), self.min_topics, self.meets_max_and_min)
         self.continue_btn.set_active(self.meets_max_and_min)
         self.Refresh()
 

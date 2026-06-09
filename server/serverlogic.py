@@ -326,10 +326,9 @@ class ServerLogic:
 
                 topics = self.db.get_user_topics(username)
                 email = self.db.get_user_email(username)
-                followings_names = self.db.get_followings(username)
                 system_manager = int(self.db.is_system_manager(username))
                 msg = serverProtocol.build_sign_in_status(status, self.current_video_port, username, followers_amount,
-                                                          followings_amount, videos_ids, email, topics, followings_names,
+                                                          followings_amount, videos_ids, email, topics,
                                                           system_manager)
                 self.clients[client_ip] = [username, serverCommVideos.ServerCommVideos(self.current_video_port, self.recvQ,
                                                                                        client_ip), []]
@@ -568,7 +567,7 @@ class ServerLogic:
         """
         username = data[0]
 
-        user_details = self.get_user_details(username)
+        user_details = self.get_user_details(client_ip, username)
 
         # sends the user's pfp if the client doesnt already have it
         self.send_pfp(client_ip, username)
@@ -577,22 +576,25 @@ class ServerLogic:
         msg = serverProtocol.build_user_details_in_profile(*user_details)
         self.clients[client_ip][1].send_msg(client_ip, msg)
 
-    def get_user_details(self, username):
+    def get_user_details(self, client_ip, username):
         """
             Retrieves follower count, following count, and video IDs for a given user.
         :param username: The username of the user to retrieve details for.
+        :param client_ip: Client of the user that made the req
         :return: A tuple of (username, followers_amount, followings_amount, videos_ids).
         """
         followers_amount = 0
         followings_amount = 0
         videos_ids = 0
+        is_followed_by_user = 0
 
         if self.db.user_exists(username):
             followers_amount = self.db.get_followers_amount(username)
             followings_amount = self.db.get_following_amount(username)
             videos_ids = self.db.get_videos_by_creator(username)
+            is_followed_by_user = int(self.db.is_following(self.clients[client_ip][0], username))
 
-        return username, followers_amount, followings_amount, videos_ids
+        return username, followers_amount, followings_amount, videos_ids, is_followed_by_user
 
     def handle_report(self, client_ip, data):  # command 9
         """
@@ -1058,13 +1060,13 @@ class ServerLogic:
         """
         followed = data[0]
         follower = self.clients[client_ip][0]
-        status = 0
+        status = settings.NOT_FOLLOWING
         if self.db.user_exists(followed):
             if self.db.is_following(follower, followed):
                 self.db.remove_following(follower, followed)
             else:
                 self.db.add_following(follower, followed)
-                status = 1
+                status = settings.FOLLOWING
         else:
             followed = ""  # indicates user doesnt exist
         msg = serverProtocol.build_follow_user_status(status, followed)

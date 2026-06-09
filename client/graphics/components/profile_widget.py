@@ -72,6 +72,16 @@ class ProfileWidget(wx.Panel):
         following_amount_sizer.Add(self.following_numeric_amount_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
         following_amount_sizer.Add(self.following_amount_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
+        # follow button
+        self.follow_button = rounded_button.RoundedButton(self, "Follow", settings.UNACTIVE_BUTTON, self.BG_COLOR)
+        self.follow_button.SetMinSize((0, 30))
+        self.follow_button.Hide()
+
+        # change topics button
+        self.change_topics_button = rounded_button.RoundedButton(self, "Change Topics", settings.THEME_COLOR, self.BG_COLOR)
+        self.change_topics_button.SetMinSize((0, 30))
+        self.change_topics_button.Hide()
+
         # add to info sizer
         info_sizer.Add(videos_amount_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 20)
         info_sizer.Add(followers_amount_sizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 20)
@@ -79,7 +89,9 @@ class ProfileWidget(wx.Panel):
 
         # add to username_and_info sizer
         username_and_info_sizer.Add(self.username_label, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 20)
-        username_and_info_sizer.Add(info_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        username_and_info_sizer.Add(info_sizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.BOTTOM, 20)
+        username_and_info_sizer.Add(self.follow_button, 0, wx.EXPAND)
+        username_and_info_sizer.Add(self.change_topics_button, 0, wx.EXPAND)
 
         profile_info_sizer.Add(self.pfp, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 20)
         profile_info_sizer.Add(username_and_info_sizer, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -89,6 +101,8 @@ class ProfileWidget(wx.Panel):
         main_sizer.Add(profile_info_sizer, 0, wx.EXPAND)
         main_sizer.AddSpacer(10)
 
+        self.follow_button.Bind(wx.EVT_LEFT_UP, self.on_follow_user)
+        self.change_topics_button.Bind(wx.EVT_LEFT_UP, self.on_change_topics)
         self.Bind(wx.EVT_SIZE, self.on_resize)
 
     def update_pfp(self):
@@ -119,24 +133,52 @@ class ProfileWidget(wx.Panel):
         self.videos_numeric_amount_label.SetLabel(str(user.get_video_amount()))
         self.followers_numeric_amount_label.SetLabel(str(user.followers_amount))
         self.following_numeric_amount_label.SetLabel(str(user.followings_amount))
+        self.update_following(user.is_followed_by_user, user.username)
         self.update_pfp()
 
         self.pfp.Unbind(wx.EVT_LEFT_DOWN)
-        print("should it bind", self.current_user.username == self.frame.user.username)
 
         if self.current_user.username == self.frame.user.username:
             self.pfp.Bind(wx.EVT_LEFT_DOWN, self.on_set_pfp)
             self.pfp.SetCursor(wx.Cursor(wx.CURSOR_HAND))
-            print("binding")
+            self.follow_button.Hide()
+            self.change_topics_button.Show()
         else:
             self.pfp.SetCursor(wx.Cursor(wx.CURSOR_DEFAULT))
+            self.follow_button.Show()
+            self.change_topics_button.Hide()
 
     def on_set_pfp(self, event):
         """
-        Handles a click on the profile picture by delegating to the parent's set_pfp method.
+        Handles a click on the profile picture by delegating to the parent's on_set_pfp method.
         :param event: The wx mouse event triggered by clicking the profile picture.
         """
-        self.parent.set_pfp()
+        self.parent.on_set_pfp()
+
+    def on_follow_user(self, event):
+        """
+        Handles a click on the follow button by delegating to the parent's on_follow_user method.
+        :param event: The wx mouse event triggered by clicking the follow button
+        """
+        self.parent.on_follow_user()
+
+    def update_following(self, status, following):
+        print("updating following in profile widget")
+        if following == self.current_user.username:
+            if status == settings.FOLLOWING:
+                self.follow_button.label_or_path = "following"
+                self.follow_button.set_active(True)
+            else:
+                self.follow_button.label_or_path = "follow"
+                self.follow_button.set_active(False)
+
+
+    def on_change_topics(self, event):
+        """
+        Handles a click on the follow button by delegating to the parent's on_change_topics method.
+        :param event: The wx mouse event triggered by clicking the change topics button
+        """
+        self.parent.on_change_topics()
 
     def on_resize(self, event):
         """
@@ -146,6 +188,7 @@ class ProfileWidget(wx.Panel):
         self.Layout()
         self.Refresh()
         event.Skip()
+
 
 
 if __name__ == "__main__":
