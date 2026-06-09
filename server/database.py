@@ -1322,9 +1322,9 @@ if __name__ == "__main__":
     # print(db.get_specific_video(1))
 
     # url = "https://docs.google.com/forms/d/e/1FAIpQLSeeLKW194zHPY5cGo2Z07guNfkpsVPajbKYhgeQF7o4aot7ww/viewform?usp=dialog"
-    # # url = ""
-    # # db.cur.execute("UPDATE videos SET test_link = ?", (url,))
-    # db.cur.execute("UPDATE videos SET test_link = ? WHERE video_id = 3", (url,))
+    # url = "https://docs.google.com/forms/d/e/1FAIpQLSenIUfNHjMTSNRoOi2NhObvS1CjqTB0v-rriT00vNiR1BjS1A/viewform?usp=dialog"
+    # db.cur.execute("UPDATE videos SET test_link = ?", (url,))
+    # db.cur.execute("UPDATE videos SET test_link = ? WHERE video_id = 4", (url,))
     # db.conn.commit()
 
     # # --- users ---

@@ -219,6 +219,9 @@ class ServerLogic:
                     del self.clients_awaiting_email_verification[client_ip]
                     system_manager = int(self.db.is_system_manager(username))
 
+                    if system_manager:
+                        self.system_managers_type_filter[client_ip] = settings.VIDEO_DIGIT_REPR
+
                 else:  # credentials are taken
                     status = settings.EMAIL_VERIFICATION_CREDENTIALS_TAKEN
         msg = serverProtocol.build_email_verification_confirmation(status, username, email, port, system_manager)
