@@ -81,15 +81,15 @@ class FeedPanel(wx.Panel):
         personal_account_sizer.Add(self.personal_account_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
         # search
-        search_sizer = wx.BoxSizer(wx.VERTICAL)
-        img_path = "assets\\search.png"
-        self.search_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
-                                                       self.BG_COLOR, circle=True, use_image=True)
-        self.search_btn.SetMinSize((50, 50))
-        self.search_label = wx.StaticText(self, label="search")
-
-        search_sizer.Add(self.search_btn)
-        search_sizer.Add(self.search_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        # search_sizer = wx.BoxSizer(wx.VERTICAL)
+        # img_path = "assets\\search.png"
+        # self.search_btn = rounded_button.RoundedButton(self, img_path, wx.WHITE,
+        #                                                self.BG_COLOR, circle=True, use_image=True)
+        # self.search_btn.SetMinSize((50, 50))
+        # self.search_label = wx.StaticText(self, label="search")
+        #
+        # search_sizer.Add(self.search_btn)
+        # search_sizer.Add(self.search_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
         # filter
         filter_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -244,7 +244,8 @@ class FeedPanel(wx.Panel):
 
         # add to actions sizer
         actions_sizer.Add(personal_account_sizer)
-        actions_sizer.Add(search_sizer, 0, wx.TOP, 10)
+        # actions_sizer.Add(search_sizer, 0, wx.TOP, 10)
+        actions_sizer.Add(filter_sizer, 0, wx.TOP, 10)
 
         actions_sizer.AddStretchSpacer()
 
@@ -253,8 +254,7 @@ class FeedPanel(wx.Panel):
 
         actions_sizer.AddStretchSpacer()
 
-        actions_sizer.Add(filter_sizer)
-        actions_sizer.Add(delete_video_sizer, 0, wx.TOP, 10)
+        actions_sizer.Add(delete_video_sizer)
         actions_sizer.Add(moderate_sizer, 0, wx.TOP, 10)
         actions_sizer.Add(play_sizer, 0, wx.TOP, 10)
         actions_sizer.Add(sound_sizer, 0, wx.TOP, 10)
@@ -851,10 +851,10 @@ class FeedPanel(wx.Panel):
         if self.current_video_id in self.frame.videos_details:
             # todo return the video id in the video name label for testings
             self.video_desc_label.SetLabel(self.frame.videos_details[self.current_video_id].video_desc)
-            # self.video_name_label.SetLabel(self.frame.videos_details[self.current_video_id].video_name)
+            self.video_name_label.SetLabel(self.frame.videos_details[self.current_video_id].video_name)
 
-            self.video_name_label.SetLabel(
-                str(self.current_video_id) + " " + self.frame.videos_details[self.current_video_id].video_name)
+            # self.video_name_label.SetLabel(
+            #     str(self.current_video_id) + " " + self.frame.videos_details[self.current_video_id].video_name)
 
             self.video_name_label.Wrap(self.desc_and_name_panel.GetSize()[0])
             self.video_desc_label.Wrap(self.desc_and_name_panel.GetSize()[0])

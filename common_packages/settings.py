@@ -22,9 +22,11 @@ AMOUNT_OF_VIDEOS_TO_REQ = 4 # amount of videos to request from server when first
 AMOUNT_OF_COMMENTS_TO_SEND = 20
 
 MAX_VIDEO_LENGTH = 2 # minutes
-MAX_VIDEO_NAME_LENGTH = 80
-MAX_VIDEO_DESC_LENGTH = 500
+MAX_VIDEO_NAME_LENGTH = 100
+MAX_VIDEO_DESC_LENGTH = 1000
 MAX_COMMENT_LENGTH = 50
+#todo check all of these also in the server
+#todo reset the upload button's text when going into video_upload screen after aploading
 
 COMMENT_DIGIT_REPR = 0
 VIDEO_DIGIT_REPR = 1

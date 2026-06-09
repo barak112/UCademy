@@ -285,6 +285,7 @@ class ServerLogic:
 
         elif self.db.email_exists(email) or self.db.user_exists(email):
             status[2] = settings.EMAIL_ALREADY_EXISTS  # email already used as email or username
+
         return status
 
     @staticmethod

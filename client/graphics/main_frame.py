@@ -81,21 +81,21 @@ class MainFrame(wx.Frame):
 
         self.container.SetSizer(self.sizer)
 
-        # self.signup_panel.Show()
+        self.signup_panel.Show()
         # self.email_verification_panel.Show()
         # self.pick_topics_panel.Show()
         # self.user_profile_panel.Show()
 
         # self.login_panel.Show()
 
-        import __main__
-
-        if __main__.__file__ == "D:\\UCademy\client\clientlogic.py":
-            msg = clientProtocol.build_sign_in("bbmalt9@gmail.com", "password")
-            self.comm.send_msg(msg)
-        else:
-            msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
-            self.comm.send_msg(msg)
+        # import __main__
+        #
+        # if __main__.__file__ == "D:\\UCademy\client\clientlogic.py":
+        #     msg = clientProtocol.build_sign_in("bbmalt9@gmail.com", "password")
+        #     self.comm.send_msg(msg)
+        # else:
+        #     msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
+        #     self.comm.send_msg(msg)
 
         # self.upload_video_panel.Show()
         # self.feed_panel.Hide()
