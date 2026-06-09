@@ -45,6 +45,7 @@ class TopicWidget(wx.Panel):
             # todo add these topics: magic tricks, riddles,\
             # todo add videos with different topics that really contrast so when showing filter could show how it actually affects
             #  like fasion and sport
+            # todo also have a test link ready for the video i upload with the tester
 
         self.Bind(wx.EVT_SIZE, self.on_resize)
         self.Bind(wx.EVT_PAINT, self.on_paint)
