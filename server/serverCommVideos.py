@@ -143,6 +143,23 @@ class ServerCommVideos (serverComm.ServerComm):
             self._close_client(self.client_socket)
 
     def _recv_file_content(self, file_size):
+        """
+        Receives the content of a file from an established client socket connection.
+
+        This method continuously reads data in chunks of up to 1024 bytes from the
+        socket until the desired file size has been reached or the connection is
+        closed. The received data is accumulated into a `bytearray` object, which
+        is returned when the process is complete.
+
+        Error handling ensures that any exceptions during the data reception process
+        are caught, with the error message printed, and an empty data block is appended
+        in such cases.
+
+        :param file_size: The expected size of the file in bytes.
+        :return: A `bytearray` containing the received file content. If the process
+            is interrupted or no more data is available, the method may return
+            partial or empty data.
+        """
         file_content = bytearray()
         while len(file_content) < file_size:
             slice = min(1024, (file_size - len(file_content)))

@@ -41,4 +41,10 @@ class User:
         return len(self.videos_ids)
 
     def is_system_manager(self):
+        """
+        Determines whether the current instance has the role of a system manager.
+
+        :return: A boolean value indicating whether the instance is a
+            system manager.
+        """
         return self.system_manager

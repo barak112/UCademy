@@ -997,6 +997,17 @@ class ServerLogic:
         return ret_val
 
     def get_duration_from_bytes(self, data: bytes):
+        """
+        Extracts and returns the duration of a media file from a given byte stream.
+
+        The method writes the provided byte stream into a temporary file on disk, then
+        analyzes the file to determine its duration. The temporary file is deleted
+        after processing.
+
+        :param data: A byte stream representing the media file for which the duration
+            needs to be determined.
+        :return: The duration of the media file in seconds.
+        """
         ret_val = 0
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as f:
             f.write(data)

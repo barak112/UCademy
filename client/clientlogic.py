@@ -64,7 +64,11 @@ class ClientLogic:
         return self.comm
 
     def quit(self):
-        """Quit the game.
+        """
+        Closes the communication client and ends the connection.
+
+        This method is responsible for properly shutting down the
+        communication client to ensure that resources are released.
 
         """
         self.comm.close_client()

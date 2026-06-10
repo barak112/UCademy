@@ -138,7 +138,13 @@ class MainFrame(wx.Frame):
         self.user_profile_feed_panel.update_pfp()
 
     def on_a_user_uploaded_pfp_ans(self, username):
-        print("on_a_user_uploaded_pfp_ans")
+        """
+        Handles the event when a user uploads a new profile picture and triggers the
+        necessary updates across relevant panels.
+
+        :param username: The username of the user who uploaded the profile picture.
+                         Must be a non-empty string.
+        """
         if username:
 
             self.user_profile_panel.on_a_user_uploaded_pfp_ans(username)
