@@ -828,6 +828,7 @@ class DataBase:
         :param video_id: ID of the video
         :param topics: iterable of topics to associate with the video
         """
+        print("topics:",topics)
         for topic in topics:
             self.cur.execute("INSERT INTO video_topics VALUES (?,?)", (video_id, topic))
         self.conn.commit()
@@ -1298,7 +1299,9 @@ if __name__ == "__main__":
 
     # --- testing ---
 
-    db.add_user("camman", "blahblah8@gmail.com", "5f4dcc3b5aa765d61d8327deb882cf99")
+    # db.delete_video(19)
+
+    # db.add_user("camman", "blahblah8@gmail.com", "5f4dcc3b5aa765d61d8327deb882cf99")
 
     # db.cur.execute("DELETE FROM reports")
     # db.conn.commit()

@@ -388,7 +388,11 @@ class ServerLogic:
         :param client_ip: The IP address of the client sending the request.
         :param data: A list of topic integers to set as the user's preferences.
         """
+
         topics = [int(t) for t in data]
+
+        print("topics in set_user_topics:", topics)
+
         self.db.set_user_topics(self.clients[client_ip][0], topics)
         msg = serverProtocol.build_set_topics_confirmation(topics)
         self.comm.send_msg(client_ip, msg)
@@ -402,6 +406,7 @@ class ServerLogic:
         :param data: A list of topic integers to use as the active filter.
         """
         topic_filter = [int(t) for t in data]
+
         if topic_filter != self.clients[client_ip][2]: # if the filter is different from the current one
             self.clients[client_ip][2] = topic_filter
             msg = serverProtocol.build_set_filter_confirmation(topic_filter)
@@ -917,6 +922,11 @@ class ServerLogic:
         """
         video_content, thumbnail_content, extension, video_details = data
         video_name, video_desc, test_link, topics = video_details
+
+        if topics and isinstance(topics, str):
+            topics = [int(topics)]
+        else:
+            topics = [int(topic) for topic in topics]
 
         username = self.clients[client_ip][0]
 

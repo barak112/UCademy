@@ -181,16 +181,7 @@ def build_req_video(feed_id, video_id=0):
     return build_command(15, [feed_id, video_id])
 
 
-def build_video_details(video_name, video_desc, test_link, topics):
-    """
-        Builds a command to submit details for a video.
-    :param video_name: The name/title of the video.
-    :param video_desc: The description of the video.
-    :param test_link: A test link associated with the video.
-    :param topics: List of topics associated with the video.
-    :return: Formatted video-details command string.
-    """
-    return build_command(16, [video_name, video_desc, test_link, topics])
+#command 16 is video upload and is triggered by file details through the videos comm
 
 
 def build_follow_req(username):
