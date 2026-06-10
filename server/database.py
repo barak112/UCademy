@@ -428,7 +428,6 @@ class DataBase:
         self.cur.execute(query, (video_id,))
 
         ret_val = self.cur.fetchone()
-        print("video id in get specific video: ", video_id, "likes amount: ", ret_val[4], "comments amount: ", ret_val[5])
         return ret_val
 
 
@@ -961,7 +960,6 @@ class DataBase:
         """
         # returns the best video for the user that he has not seen
 
-        print(filter, bool(filter))
         if filter:
             res = self.get_video_for_user_filter(username, filter)
 
@@ -1300,6 +1298,10 @@ if __name__ == "__main__":
 
     # --- testing ---
 
+    db.add_user("camman", "blahblah8@gmail.com", "5f4dcc3b5aa765d61d8327deb882cf99")
+
+    # db.cur.execute("DELETE FROM reports")
+    # db.conn.commit()
 
     # print(db.get_videos_by_creator("Alon"))
 

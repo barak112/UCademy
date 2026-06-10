@@ -130,7 +130,6 @@ class UserProfilePanel(wx.ScrolledWindow):
                             self.waiting_for_videos = True
                             self.status_label.SetLabel("waiting for videos from server")
                             self.Layout()
-                            print("req more videos: last id:", self.videos_ids[-1], "videos ids:", self.videos_ids)
                 elif current >= max_pos: # if this user doesnt have more videos and trying to scroll past the end of the videos list
                     self.status_label.SetLabel("this user does not have more videos")
                     self.Layout()
@@ -207,8 +206,6 @@ class UserProfilePanel(wx.ScrolledWindow):
             updated.
         """
 
-        print("user following user:", follower, followed, status)
-
         if followed in self.frame.users:
             self.frame.users[followed].followers_amount += 1 if status else -1
 
@@ -216,7 +213,6 @@ class UserProfilePanel(wx.ScrolledWindow):
             self.frame.users[follower].followings_amount += 1 if status else -1
 
         if followed == self.current_username: # if currently watching the user that was followed
-            print("followers amount:", self.frame.users[followed].followers_amount)
             self.profile_info.update_followers_label()
 
         elif follower == self.current_username:  # if currently watching the user that is following
@@ -289,7 +285,6 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.frame.comm.send_msg(msg)
 
 
-        print("ids list:", self.frame.user_profile_feed_panel.videos_ids)
         # switch to feed associated with user profile
         self.frame.user_profile_feed_panel.video_ctrl.Hide()
         self.frame.switch_panel(self.frame.user_profile_feed_panel, self)
@@ -315,7 +310,6 @@ class UserProfilePanel(wx.ScrolledWindow):
         Handles an incoming video detail response and adds the video thumbnail to the grid if it is new.
         :param video: The video object received from the server.
         """
-        print("got new video in profile:", video.video_id)
         self.status_label.SetLabel("Loading Content")
         self.add_video_details(video)
 
@@ -325,8 +319,6 @@ class UserProfilePanel(wx.ScrolledWindow):
             grid if it belongs to the currently displayed user and is not already shown.
         :param video: The video object to add and display.
         """
-        print("video in add_video_details:", video.video_id, video.creator)
-
         index = 0
         if video.video_id > 0:
             index = self.frame.users[video.creator].videos_ids.index(
@@ -492,7 +484,6 @@ class UserProfilePanel(wx.ScrolledWindow):
         :param username: The username of the user who uploaded the video.
         :param video_id: The ID of the newly uploaded video.
         """
-        print("creator has uploaded new video:", username)
         msg = clientProtocol.build_req_creator_videos(username)
         self.frame.comm.send_msg(msg)
 
@@ -508,8 +499,6 @@ class UserProfilePanel(wx.ScrolledWindow):
             self.Layout()
 
             self.frame.user_profile_feed_panel.videos_ids.insert(0, video_id)
-
-            print("inserted video id:",video_id, "new videos_ids:", self.frame.user_profile_feed_panel.videos_ids )
 
             self.profile_info.videos_numeric_amount_label.SetLabel(
                 str(self.frame.users[username].get_video_amount()))
