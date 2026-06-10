@@ -555,6 +555,7 @@ class ServerLogic:
             video_id = int(video_id)
             clients_to_send = [ip for ip in self.clients.keys() if video_id in (self.videos_sent[ip] + self.thumbnails_sent[ip])]
             for client in clients_to_send:
+                self.send_pfp(client, commenter_name)
                 self.comm.send_msg(client, msg)
         else:
             msg = serverProtocol.build_comment_status(0, 0, "", "", "")

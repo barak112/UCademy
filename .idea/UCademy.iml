@@ -9,6 +9,7 @@
       <sourceFolder url="file://$MODULE_DIR$/client/graphics" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/client/graphics/components" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/common_packages" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/client2" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/.venv2" />
       <excludeFolder url="file://$MODULE_DIR$/.venv3" />
