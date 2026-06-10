@@ -18,6 +18,8 @@ class UserProfilePanel(wx.ScrolledWindow):
     BG_COLOR = (232, 239, 255)
     COLUMN_WIDTH = 280
 
+    GRID_WIDTH = COLUMN_WIDTH * 4 + 20*3
+
     RATIO = 4 / 3
 
     def __init__(self, frame, parent):
@@ -46,7 +48,7 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         # profile info
         self.profile_info = profile_widget.ProfileWidget(self.frame, self)
-        self.profile_info.SetMinSize((800, -1))
+        self.profile_info.SetMinSize((self.GRID_WIDTH, -1))
 
         # videos grid
         videos_label_and_add_video_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -393,7 +395,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         Clears the current profile view and loads the profile for the given username.
         :param username: The username of the user to display.
         """
-        # todo: delete all info until new info arrives. update instantly when user info arrives
+        self.profile_info.set_empty_user()
 
         self.waiting_for_videos = False
         self.videos_grid.Clear(True)

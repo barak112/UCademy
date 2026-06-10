@@ -619,7 +619,6 @@ class FeedPanel(wx.Panel):
             creator, and sends the delete request to the server if confirmed.
         :param event: The mouse click event that triggered this handler.
         """
-        # todo make the message boxes a dialog message
         if self.frame.videos_details[self.current_video_id].creator == self.frame.user.username:
             answer = wx.MessageBox(
                 "Are you sure you want to delete this video?\nThis action is not reverseable\n",
@@ -848,12 +847,8 @@ class FeedPanel(wx.Panel):
             Updates the video name and description labels with the current video's details.
         """
         if self.current_video_id in self.frame.videos_details:
-            # todo return the video id in the video name label for testings
             self.video_desc_label.SetLabel(self.frame.videos_details[self.current_video_id].video_desc)
-            # self.video_name_label.SetLabel(self.frame.videos_details[self.current_video_id].video_name)
-
-            self.video_name_label.SetLabel(
-                str(self.current_video_id) + " " + self.frame.videos_details[self.current_video_id].video_name)
+            self.video_name_label.SetLabel(self.frame.videos_details[self.current_video_id].video_name)
 
             self.video_name_label.Wrap(self.desc_and_name_panel.GetSize()[0])
             self.video_desc_label.Wrap(self.desc_and_name_panel.GetSize()[0])
@@ -1000,7 +995,6 @@ class FeedPanel(wx.Panel):
                         print("no videos")
                         msg = clientProtocol.build_req_video(self.feed_id)
                         self.frame.comm.send_msg(msg)
-                        #todo update a client that doesnt have video when a user uploads a video
 
             if load_a_new_video:
                 video_id = self.videos_ids[new_index]

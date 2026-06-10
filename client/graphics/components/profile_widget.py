@@ -8,6 +8,7 @@ import clientProtocol
 import rounded_button
 import settings
 import comments
+import user
 
 
 class ProfileWidget(wx.Panel):
@@ -34,7 +35,7 @@ class ProfileWidget(wx.Panel):
         # profile info
         profile_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        pfp = wx.Bitmap(wx.Image("assets\\null_pfp_high_quality.png").Scale(128, 128, wx.IMAGE_QUALITY_HIGH))
+        pfp = wx.Bitmap(wx.Image("assets\\null_pfp_high_quality.png"))
         self.pfp = wx.StaticBitmap(self, bitmap=pfp)
 
         username_and_info_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -122,6 +123,14 @@ class ProfileWidget(wx.Panel):
 
         print("updated pfp in profile widget")
 
+    def set_empty_user(self):
+        self.set_user(user.User("", 0, 0, [], False))
+
+        self.follow_button.Hide()
+        self.change_topics_button.Hide()
+
+
+
     def set_user(self, user):
         """
         Populates the widget with data from the given user, updates the profile picture,
@@ -130,13 +139,9 @@ class ProfileWidget(wx.Panel):
         """
         self.current_user = user
         self.username_label.SetLabel(user.username)
-        self.videos_numeric_amount_label.SetLabel(str(user.get_video_amount())) # todo make func
-
+        self.videos_numeric_amount_label.SetLabel(str(user.get_video_amount()))
         self.update_followings_label()
         self.update_followers_label()
-
-        # self.following_numeric_amount_label.SetLabel(str(user.followings_amount))
-        # self.followers_numeric_amount_label.SetLabel(str(user.followers_amount))
         self.update_following(user.is_followed_by_user, user.username)
         self.update_pfp()
 
