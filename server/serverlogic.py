@@ -965,7 +965,7 @@ class ServerLogic:
         elif len(video_desc) > settings.MAX_VIDEO_DESC_LENGTH:
             video_id = settings.VIDEO_DESC_TOO_LONG
 
-        elif not self.gform_exists(test_link):
+        elif test_link and not self.gform_exists(test_link):
             video_id = settings.TEST_LINK_NOT_VALID
 
         else: # no problem with the video

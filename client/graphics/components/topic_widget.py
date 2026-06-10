@@ -40,9 +40,6 @@ class TopicWidget(wx.Panel):
         if os.path.isfile(f"assets\\topics_icons\\{topic_name}.png"):
             self.icon = wx.Image(f"assets\\topics_icons\\{topic_name}.png").Scale(48, 48)
             self.icon = wx.Bitmap(self.icon)
-            # todo get emojies from https://github.com/microsoft/fluentui-emoji/blob/main/assets using the 3d png version
-            # todo change all of the videos to actually educational videos
-            # todo add these topics: magic tricks, riddles,\
             # todo add videos with different topics that really contrast so when showing filter could show how it actually affects
             #  like fasion and sport
             # todo also have a test link ready for the video i upload with the tester

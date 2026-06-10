@@ -1300,6 +1300,7 @@ if __name__ == "__main__":
 
     # --- testing ---
 
+
     print(db.get_videos_by_creator("Alon"))
 
     # print(db.no_videos_with_filter([11]))
@@ -1339,11 +1340,10 @@ if __name__ == "__main__":
 
     # print(db.get_specific_video(1))
 
-    # url = "https://docs.google.com/forms/d/e/1FAIpQLSeeLKW194zHPY5cGo2Z07guNfkpsVPajbKYhgeQF7o4aot7ww/viewform?usp=dialog"
-    # url = "https://docs.google.com/forms/d/e/1FAIpQLSenIUfNHjMTSNRoOi2NhObvS1CjqTB0v-rriT00vNiR1BjS1A/viewform?usp=dialog"
-    # db.cur.execute("UPDATE videos SET test_link = ?", (url,))
-    # db.cur.execute("UPDATE videos SET test_link = ? WHERE video_id = 4", (url,))
-    # db.conn.commit()
+    url = "https://docs.google.com/forms/d/e/1FAIpQLScEWu4Q1ZUy_PXCG2eowqH0iWk7siXiCmIxh_0C9-upaToRcQ/viewform?usp=publish-editor"
+    video_id = 1
+    db.cur.execute("UPDATE videos SET test_link = ? WHERE video_id = ?", (url, video_id))
+    db.conn.commit()
 
     # # --- users ---
     # db.cur.execute("DROP TABLE IF EXISTS users")

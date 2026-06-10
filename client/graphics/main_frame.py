@@ -86,16 +86,16 @@ class MainFrame(wx.Frame):
         # self.pick_topics_panel.Show()
         # self.user_profile_panel.Show()
 
-        # self.login_panel.Show()
+        self.login_panel.Show()
 
-        import __main__
+        # import __main__
 
-        if __main__.__file__ == "D:\\UCademy\client\clientlogic.py":
-            msg = clientProtocol.build_sign_in("bbmalt9@gmail.com", "password")
-            self.comm.send_msg(msg)
-        else:
-            msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
-            self.comm.send_msg(msg)
+        # if __main__.__file__ == "D:\\UCademy\client\clientlogic.py":
+        #     msg = clientProtocol.build_sign_in("bbmalt9@gmail.com", "password")
+        #     self.comm.send_msg(msg)
+        # else:
+        #     msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
+        #     self.comm.send_msg(msg)
 
         # self.upload_video_panel.Show()
         # self.feed_panel.Hide()

@@ -26,8 +26,6 @@ MAX_VIDEO_NAME_LENGTH = 100
 MAX_VIDEO_DESC_LENGTH = 1000
 MAX_COMMENT_LENGTH = 50
 
-#todo reset the upload button's text when going into video_upload screen after uploading
-
 COMMENT_DIGIT_REPR = 0
 VIDEO_DIGIT_REPR = 1
 

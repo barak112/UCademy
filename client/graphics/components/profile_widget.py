@@ -124,6 +124,14 @@ class ProfileWidget(wx.Panel):
         print("updated pfp in profile widget")
 
     def set_empty_user(self):
+        """
+        Sets the user to an empty state and hides relevant UI elements.
+
+        This method modifies the current user by replacing it with an empty user
+        object. Additionally, it hides the `follow_button` and
+        `change_topics_button` UI elements to reflect the state change.
+
+        """
         self.set_user(user.User("", 0, 0, [], False))
 
         self.follow_button.Hide()
@@ -172,7 +180,13 @@ class ProfileWidget(wx.Panel):
         self.parent.on_follow_user()
 
     def update_following(self, status, followed):
-        print("updating following in profile widget")
+        """
+        Updates the follow button state in the profile widget based on the
+        current user's following status and the target user.
+
+        :param status: The current follow status, e.g., following or not following.
+        :param followed: The username of the user to check follow state against.
+        """
         if followed == self.current_user.username:
             if status == settings.FOLLOWING:
                 self.follow_button.label_or_path = "following"
@@ -182,9 +196,22 @@ class ProfileWidget(wx.Panel):
                 self.follow_button.set_active(False)
 
     def update_followings_label(self):
+        """
+        Updates the label displaying the number of followings for the current user.
+
+        This method retrieves the current user's `followings_amount` and updates the
+        associated label component to reflect the most recent value.
+
+        """
         self.following_numeric_amount_label.SetLabel(str(self.current_user.followings_amount))
 
     def update_followers_label(self):
+        """
+        Updates the label displaying the total number of followers for the current user's profile
+        widget. This method retrieves the current user's follower count and sets it to the
+        corresponding label widget.
+
+        """
         print("followers amount in profile widget:", str(self.current_user.followers_amount))
         self.followers_numeric_amount_label.SetLabel(str(self.current_user.followers_amount))
 

@@ -848,7 +848,8 @@ class FeedPanel(wx.Panel):
         """
         if self.current_video_id in self.frame.videos_details:
             self.video_desc_label.SetLabel(self.frame.videos_details[self.current_video_id].video_desc)
-            self.video_name_label.SetLabel(self.frame.videos_details[self.current_video_id].video_name)
+            self.video_name_label.SetLabel(f"{self.current_video_id }"+self.frame.videos_details[self.current_video_id].video_name)
+            # self.video_name_label.SetLabel(self.frame.videos_details[self.current_video_id].video_name)
 
             self.video_name_label.Wrap(self.desc_and_name_panel.GetSize()[0])
             self.video_desc_label.Wrap(self.desc_and_name_panel.GetSize()[0])

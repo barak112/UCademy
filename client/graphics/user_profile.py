@@ -1,6 +1,4 @@
-import math
 import os.path
-import shutil
 
 import wx
 import wx.media
@@ -142,6 +140,17 @@ class UserProfilePanel(wx.ScrolledWindow):
         event.Skip()
 
     def uploaded_pfp_ans(self, status):
+        """
+        Displays a message box indicating the result of a profile picture upload.
+
+        Depending on the status provided, this function shows either a success
+        or error message to the user. The message is displayed in a GUI dialog
+        box created using wxPython.
+
+        :param status: The result of the profile picture upload process. It can
+                       be one of the predefined constants in the settings module,
+                       such as SUCCESSFUL or INVALID_IMAGE.
+        """
         if status == settings.SUCCESSFUL:
             wx.MessageBox("Profile picture has been change",
                           "Profile Picture Upload Successful", wx.OK | wx.ICON_INFORMATION)
