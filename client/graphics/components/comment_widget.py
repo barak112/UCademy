@@ -160,12 +160,18 @@ class CommentWidget(wx.Panel):
         event.Skip()
 
     def update_pfp(self):
+        """
+        Updates the profile picture displayed in the UI element associated with the user. It checks if a
+        custom profile picture exists for the commenter and uses it if available. Otherwise, it falls back
+        to a default placeholder image.
+
+        :param self: Reference to the instance of the class where the method is defined.
+        """
         pfp_path = f"media\\{self.comment.commenter}.png"
         if not os.path.isfile(pfp_path):
             pfp_path = "assets\\null_pfp.png"
 
         self.pfp.SetBitmap(wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE)))
-        print("updated pfp in comment widget:",self.comment.commenter)
 
     def move_to_commenter_profile(self, event):
         """

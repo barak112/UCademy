@@ -166,15 +166,12 @@ class Comments(wx.Panel):
         :param username: The username of the user whose profile picture needs to
             be updated.
         """
-        print("updating pfp in comments:", username)
 
         for comment_widget_obj in self.comments_sizer.GetChildren():
             comment_widget_obj = comment_widget_obj.GetWindow()
 
             if comment_widget_obj.comment.commenter == username:
                 comment_widget_obj.update_pfp()
-                print("updated a comment")
-
 
     def call_date_to_ago(self, event):
         """
