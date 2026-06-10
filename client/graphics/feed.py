@@ -665,7 +665,8 @@ class FeedPanel(wx.Panel):
             # if in user profile feed and the only value in self.videos_ids is the end of the list
             elif self.feed_id == settings.USER_PROFILE_FEED_ID and self.IsShown() and self.videos_ids == [0]:
                 self.frame.switch_panel(self.frame.user_profile_panel, self)
-            else:
+            elif self.current_video_id == video_id:
+                self.current_video_id = 0
                 self.status_label.SetLabel("The video you were watching has been deleted, returning to last video")
                 self.video_index = max(0, self.video_index - 1)
                 if self.videos_ids[self.video_index] in self.frame.videos_details:
@@ -900,6 +901,27 @@ class FeedPanel(wx.Panel):
             msg = clientProtocol.build_like_video(self.current_video_id)
             self.frame.comm.send_msg(msg)
         event.Skip()
+
+    def on_a_user_uploaded_pfp_ans(self, username):
+        """
+        Handles the event when a user uploads a new profile picture (PFP) and updates relevant
+        UI components accordingly.
+
+        This method updates the user's profile picture in the comments panel and, if the
+        user is the creator of the currently displayed video, it updates the creator's account
+        profile picture and label.
+
+        :param username: The username of the user who uploaded a new profile picture.
+        :type username: str
+        :return: None
+        """
+        if self.current_video_id:
+            self.comments_panel.update_a_users_pfp(username)  # update pfp in comments
+
+            video = self.frame.videos_details[self.current_video_id]
+            if video.creator == username:
+                self.update_creator_account_pfp_and_label(video)
+
 
     def on_a_user_liked_video(self, status, video_id, username):
         """

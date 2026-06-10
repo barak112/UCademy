@@ -51,8 +51,6 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self.status_label_dots_animation, self.dots_animation_timer)
         self.dots_animation_timer.Start(500)  # every half a minute
 
-        self.CreateStatusBar()
-
         self.container = wx.Panel(self)
 
         self.login_panel = LoginPanel(self, self.container)
@@ -86,16 +84,16 @@ class MainFrame(wx.Frame):
         # self.pick_topics_panel.Show()
         # self.user_profile_panel.Show()
 
-        self.login_panel.Show()
+        # self.login_panel.Show()
 
-        # import __main__
+        import __main__
 
-        # if __main__.__file__ == "D:\\UCademy\client\clientlogic.py":
-        #     msg = clientProtocol.build_sign_in("bbmalt9@gmail.com", "password")
-        #     self.comm.send_msg(msg)
-        # else:
-        #     msg = clientProtocol.build_sign_in("barakbm9@gmail.com", "password")
-        #     self.comm.send_msg(msg)
+        if __main__.__file__ == "D:\\UCademy\client\clientlogic.py":
+            msg = clientProtocol.build_sign_in("ella", "password")
+            self.comm.send_msg(msg)
+        else:
+            msg = clientProtocol.build_sign_in("alon", "password")
+            self.comm.send_msg(msg)
 
         # self.upload_video_panel.Show()
         # self.feed_panel.Hide()
@@ -125,6 +123,37 @@ class MainFrame(wx.Frame):
         pub.subscribe(self.on_a_user_upload_video, "video_upload_ans")
 
         pub.subscribe(self.on_report_ans, "report_ans")
+
+        pub.subscribe(self.on_a_user_uploaded_pfp_ans, "uploaded_pfp_ans")
+
+        pub.subscribe(self.update_pfp_ans, "update_pfp_ans")
+
+    def update_pfp_ans(self):
+        """
+        Refreshes the profile picture across the profile panel and both feed panels.
+        """
+
+        self.user_profile_panel.update_pfp()
+        self.feed_panel.update_pfp()
+        self.user_profile_feed_panel.update_pfp()
+
+    def on_a_user_uploaded_pfp_ans(self, username):
+        print("on_a_user_uploaded_pfp_ans")
+        if username:
+            if username == self.user.username:
+                wx.MessageBox("Profile picture has been changed",
+                              "Profile Picture Upload Successful", wx.OK | wx.ICON_INFORMATION)
+                self.update_pfp_ans()  # updates everywhere only my pfp is shown
+
+            self.user_profile_panel.on_a_user_uploaded_pfp_ans(username)
+
+            self.user_profile_feed_panel.on_a_user_uploaded_pfp_ans(username)
+
+            self.feed_panel.on_a_user_uploaded_pfp_ans(username)
+
+        else:
+            wx.MessageBox("The image you uploaded is not valid, please try another one!",
+                          "Error uploading new profile picture", wx.OK | wx.ICON_ERROR)
 
     def on_report_ans(self, status, id, type, content, content_publisher, created_at):
         """
@@ -314,21 +343,17 @@ class MainFrame(wx.Frame):
         self.sizer.Layout()
         new_panel.Refresh()
 
-    def change_text_status(self, text):
-        """
-            Updates the status bar text at the bottom of the frame.
-        :param text: The string to display in the status bar.
-        """
-        self.SetStatusText(text, 0)
+    def _close_app(self):
+        if self:
+            self.Destroy()
+        exit()
 
     def comm_disconnected(self):
         """
             Handles a server disconnection by notifying the user, updating all status
             labels, and scheduling the application to close after 5 seconds.
         """
-        wx.CallLater(5000, self.Close)
-
-        self.change_text_status("Disconnected from server, Closing application in 5 seconds.")
+        wx.CallLater(5000, self._close_app)
 
         for status_label in self.status_labels:
             status_label.SetLabel("Disconnected from server, Closing application in 5 seconds.")

@@ -474,8 +474,8 @@ class ServerLogic:
         """
         if username not in self.pfps_sent[client_ip]:
             user_pfp_image_path = f"media\\pfps\\{username}.png"
+            self.pfps_sent[client_ip].append(username)
             if os.path.isfile(user_pfp_image_path):
-                self.pfps_sent[client_ip].append(username)
                 self.clients[client_ip][1].send_file(user_pfp_image_path)
                 print("sending pfp of user:", username)
 
@@ -1147,21 +1147,27 @@ class ServerLogic:
         :param client_ip: The IP address of the client uploading the profile picture.
         :param data: A list where the first element contains the raw file content of the pfp"""
         file_content = data[0]
-        status = settings.INVALID_IMAGE
-        # todo update every client that this users pfp was sent to him, update in comments and in user_profile
         if self.is_image_valid_from_bytes(file_content):
-            with open(f"media\\pfps\\{self.clients[client_ip][0]}.png", 'wb') as f:
+            file_path = f"media\\pfps\\{self.clients[client_ip][0]}.png"
+            with open(file_path, 'wb') as f:
                 f.write(file_content)
 
-            status = settings.SUCCESSFUL
-            self.send_user_his_pfp(client_ip, data)
+            # self.send_user_his_pfp(client_ip, data)
 
-            #todo delete this user from everyones pfp_sent list (or not, if sended new pfp it doesnt matter)
-            # need to delete from pfp_sent list so the func of send pfp will work
+            username = self.clients[client_ip][0]
+            clients = [client for client, usernames in self.pfps_sent.items() if username in usernames]
+            print("clients in user uploaded pfp:",clients)
 
+            msg = serverProtocol.pfp_upload_confirmation(username)
+            self.clients[client_ip][1].send_msg(client_ip, msg)
 
-        msg = serverProtocol.pfp_upload_confirmation(status)
-        self.clients[client_ip][1].send_msg(client_ip, msg)
+            for client in clients: # sending new pfps
+                self.clients[client][1].send_file(file_path)
+                self.clients[client][1].send_msg(client, msg) # videos comm so arrives after pfp
+
+        else:
+            msg = serverProtocol.pfp_upload_confirmation("")
+            self.comm.send_msg(client_ip, msg)
 
 
     # Called by System Manager

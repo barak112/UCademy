@@ -159,6 +159,14 @@ class CommentWidget(wx.Panel):
 
         event.Skip()
 
+    def update_pfp(self):
+        pfp_path = f"media\\{self.comment.commenter}.png"
+        if not os.path.isfile(pfp_path):
+            pfp_path = "assets\\null_pfp.png"
+
+        self.pfp.SetBitmap(wx.Bitmap(wx.Image(pfp_path).Scale(settings.PFP_SIZE, settings.PFP_SIZE)))
+        print("updated pfp in comment widget:",self.comment.commenter)
+
     def move_to_commenter_profile(self, event):
         """
             Navigates to the profile page of the comment's author.

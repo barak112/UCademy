@@ -381,8 +381,8 @@ class ClientLogic:
         :param data: A sequence where the first element is expected to be a status
             code indicating the outcome of the upload.
         """
-        status = int(data[0])
-        wx.CallAfter(pub.sendMessage, "uploaded_pfp_ans", status=status)
+        username = data[0]
+        wx.CallAfter(pub.sendMessage, "uploaded_pfp_ans", username=username)
 
     def comm_disconnected(self, data): # command 96
         """

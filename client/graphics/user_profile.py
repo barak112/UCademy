@@ -101,8 +101,6 @@ class UserProfilePanel(wx.ScrolledWindow):
         self.FitInside()  # calculates virtual size
         pub.subscribe(self.user_info_ans, "user_details_in_profile_ans")
         pub.subscribe(self.video_details_ans, "video_details_in_profile_ans")
-        pub.subscribe(self.update_pfp_ans, "update_pfp_ans")
-        pub.subscribe(self.uploaded_pfp_ans, "uploaded_pfp_ans")
         pub.subscribe(self.on_a_user_followed_user, "follow_user_ans")
 
         self.Hide()
@@ -138,32 +136,16 @@ class UserProfilePanel(wx.ScrolledWindow):
 
         event.Skip()
 
-    def uploaded_pfp_ans(self, status):
+    def on_a_user_uploaded_pfp_ans(self, username):
         """
         Displays a message box indicating the result of a profile picture upload.
-
-        Depending on the status provided, this function shows either a success
-        or error message to the user. The message is displayed in a GUI dialog
-        box created using wxPython.
-
-        :param status: The result of the profile picture upload process. It can
-                       be one of the predefined constants in the settings module,
-                       such as SUCCESSFUL or INVALID_IMAGE.
+        :param username: the username of the user that uploaded a new pfp
         """
-        if status == settings.SUCCESSFUL:
-            wx.MessageBox("Profile picture has been change",
-                          "Profile Picture Upload Successful", wx.OK | wx.ICON_INFORMATION)
+        if username == self.current_username: # if its the user currently viewing
+            self.update_pfp() # updates the pfp only in the user profile
 
-        elif status == settings.INVALID_IMAGE:
-            wx.MessageBox("The image you uploaded is not valid, please try another one!", "Error uploading new profile picture", wx.OK | wx.ICON_ERROR)
-
-    def update_pfp_ans(self):
-        """
-        Refreshes the profile picture across the profile panel and both feed panels.
-        """
+    def update_pfp(self):
         self.profile_info.update_pfp()
-        self.frame.feed_panel.update_pfp()
-        self.frame.user_profile_feed_panel.update_pfp()
 
     def on_set_pfp(self):
         """
@@ -397,6 +379,8 @@ class UserProfilePanel(wx.ScrolledWindow):
         :param username: The username of the user to display.
         """
         self.profile_info.set_empty_user()
+
+        #todo load pfp and username
 
         self.waiting_for_videos = False
         self.videos_grid.Clear(True)
