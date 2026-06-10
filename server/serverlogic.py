@@ -1159,7 +1159,6 @@ class ServerLogic:
             print("clients in user uploaded pfp:",clients)
 
             msg = serverProtocol.pfp_upload_confirmation(username)
-            self.clients[client_ip][1].send_msg(client_ip, msg)
 
             for client in clients: # sending new pfps
                 self.clients[client][1].send_file(file_path)

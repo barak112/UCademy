@@ -140,10 +140,6 @@ class MainFrame(wx.Frame):
     def on_a_user_uploaded_pfp_ans(self, username):
         print("on_a_user_uploaded_pfp_ans")
         if username:
-            if username == self.user.username:
-                wx.MessageBox("Profile picture has been changed",
-                              "Profile Picture Upload Successful", wx.OK | wx.ICON_INFORMATION)
-                self.update_pfp_ans()  # updates everywhere only my pfp is shown
 
             self.user_profile_panel.on_a_user_uploaded_pfp_ans(username)
 
@@ -151,6 +147,10 @@ class MainFrame(wx.Frame):
 
             self.feed_panel.on_a_user_uploaded_pfp_ans(username)
 
+            if username == self.user.username:
+                wx.MessageBox("Profile picture has been changed",
+                              "Profile Picture Upload Successful", wx.OK | wx.ICON_INFORMATION)
+                self.update_pfp_ans()  # updates everywhere only my pfp is shown
         else:
             wx.MessageBox("The image you uploaded is not valid, please try another one!",
                           "Error uploading new profile picture", wx.OK | wx.ICON_ERROR)
