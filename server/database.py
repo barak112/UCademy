@@ -296,7 +296,7 @@ class DataBase:
         """
         added = False
         if not self.user_exists(username):
-            self.cur.execute("INSERT INTO users (username, email, password_hash) (?,?,?)", (username, email, password_hash))
+            self.cur.execute("INSERT INTO users (username, email, password_hash) VALUES (?,?,?)", (username, email, password_hash))
             self.conn.commit()
             added = True
         return added

@@ -681,7 +681,7 @@ class ServerLogic:
         comments_ids = [i[0] for i in comments]
 
         start_index = 0
-        if last_id:
+        if last_id and last_id in comments_ids:
             start_index = comments_ids.index(last_id) + 1
 
         comments = comments[start_index:]  # make the comments start from the start_index

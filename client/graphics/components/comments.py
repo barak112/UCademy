@@ -129,9 +129,10 @@ class Comments(wx.Panel):
             used when a moderation decision removes a comment from view.
         :param comment_id: The ID of the comment to hide.
         """
-        comment_widget_obj = self.comments_sizer.GetChildren()[self.comments_ids.index(comment_id)].GetWindow()
-        comment_widget_obj.Hide()
-        self.Layout()
+        if comment_id in self.comments_ids:
+            comment_widget_obj = self.comments_sizer.GetChildren()[self.comments_ids.index(comment_id)].GetWindow()
+            comment_widget_obj.Hide()
+            self.Layout()
 
     def delete_comment(self, comment_id):
         """

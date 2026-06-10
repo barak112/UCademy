@@ -1116,6 +1116,7 @@ class FeedPanel(wx.Panel):
 
             if video_id not in self.videos_ids:
                 self.videos_ids.append(video_id)
+
             elif self.feed_id == settings.FEED_ID:  # if in feed and there already is this video in videos_ids, add it again only if it there is settings.END_OF_LIST_ID after it's last occurrence
                 index_of_last_id_in_videos_ids = len(self.videos_ids) - 1 - self.videos_ids[::-1].index(video_id)
 
