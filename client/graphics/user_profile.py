@@ -103,7 +103,7 @@ class UserProfilePanel(wx.ScrolledWindow):
         pub.subscribe(self.video_details_ans, "video_details_in_profile_ans")
         pub.subscribe(self.update_pfp_ans, "update_pfp_ans")
         pub.subscribe(self.uploaded_pfp_ans, "uploaded_pfp_ans")
-        pub.subscribe(self.on_follow_user_ans, "follow_user_ans")
+        pub.subscribe(self.on_a_user_followed_user, "follow_user_ans")
 
         self.Hide()
 
@@ -183,7 +183,7 @@ class UserProfilePanel(wx.ScrolledWindow):
             msg = clientProtocol.build_follow_req(self.current_username)
             self.frame.comm.send_msg(msg)
 
-    def on_follow_user_ans(self, status, following):
+    def on_a_user_followed_user(self, status, follower, followed):
         """
         Updates the following status of a user and updates the profile information
         accordingly.
@@ -191,11 +191,28 @@ class UserProfilePanel(wx.ScrolledWindow):
         :param status: The new following status of the user. Should be a boolean value
             where True indicates the user is now followed, and False indicates the user
             is no longer followed.
-        :param following: The identifier of the user whose following status is being
+        :param follower: The identifier of the user who initiated the following action.
+        :param followed: The identifier of the user whose following status is being
             updated.
         """
-        self.frame.users[following].is_followed_by_user = bool(status)
-        self.profile_info.update_following(status, following)
+
+        if followed in self.frame.users:
+            self.frame.users[followed].followers_amount += 1 if status else -1
+
+        if follower in self.frame.users:
+            self.frame.users[follower].followings_amount += 1 if status else -1
+
+        if followed == self.current_username: # if currently watching the user that was followed
+            self.profile_info.update_followers_label()
+            #todo if not updated, change the current user in profile_indo to current_username
+        #todo something here didnt work
+        elif follower == self.current_username:  # if currently watching the user that is following
+            self.profile_info.update_followings_label()
+
+        if follower == self.frame.user.username:
+            self.profile_info.update_following(status, followed)
+            self.frame.users[followed].is_followed_by_user = bool(status)
+
 
     def on_change_topics(self):
         """

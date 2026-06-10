@@ -130,9 +130,13 @@ class ProfileWidget(wx.Panel):
         """
         self.current_user = user
         self.username_label.SetLabel(user.username)
-        self.videos_numeric_amount_label.SetLabel(str(user.get_video_amount()))
-        self.followers_numeric_amount_label.SetLabel(str(user.followers_amount))
-        self.following_numeric_amount_label.SetLabel(str(user.followings_amount))
+        self.videos_numeric_amount_label.SetLabel(str(user.get_video_amount())) # todo make func
+
+        self.update_followings_label()
+        self.update_followers_label()
+
+        # self.following_numeric_amount_label.SetLabel(str(user.followings_amount))
+        # self.followers_numeric_amount_label.SetLabel(str(user.followers_amount))
         self.update_following(user.is_followed_by_user, user.username)
         self.update_pfp()
 
@@ -162,9 +166,9 @@ class ProfileWidget(wx.Panel):
         """
         self.parent.on_follow_user()
 
-    def update_following(self, status, following):
+    def update_following(self, status, followed):
         print("updating following in profile widget")
-        if following == self.current_user.username:
+        if followed == self.current_user.username:
             if status == settings.FOLLOWING:
                 self.follow_button.label_or_path = "following"
                 self.follow_button.set_active(True)
@@ -172,6 +176,11 @@ class ProfileWidget(wx.Panel):
                 self.follow_button.label_or_path = "follow"
                 self.follow_button.set_active(False)
 
+    def update_followings_label(self):
+        self.following_numeric_amount_label.SetLabel(str(self.current_user.followings_amount))
+
+    def update_followers_label(self):
+        self.followers_numeric_amount_label.SetLabel(str(self.current_user.followers_amount))
 
     def on_change_topics(self, event):
         """

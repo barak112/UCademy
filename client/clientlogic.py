@@ -351,9 +351,9 @@ class ClientLogic:
 
         :param data: The response data containing the follow status and the username being followed.
         """
-        status, following = data
+        status, follower, followed = data
         status = int(status)
-        wx.CallAfter(pub.sendMessage, "follow_user_ans", status=status, following=following)
+        wx.CallAfter(pub.sendMessage, "follow_user_ans", status=status, follower =follower, followed=followed)
 
     def handle_like_video_confirmation(self, data):  # command 18
         """Handles the server's response to a video like action and notifies the UI.

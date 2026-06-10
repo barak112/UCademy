@@ -33,6 +33,7 @@ class CommentWidget(wx.Panel):
         self.frame = frame
 
         pfp_path = f"media\\{comment.commenter}.png"
+        print(f"does file exists {pfp_path}:", os.path.isfile(pfp_path))
         if not os.path.isfile(pfp_path):
             pfp_path = "assets\\null_pfp.png"
 

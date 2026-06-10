@@ -259,14 +259,15 @@ def build_video_upload_confirmation(video_id, username):
     return build_command(16, [video_id, username])
 
 
-def build_follow_user_status(status, followed):
+def build_follow_user_status(status, follower, followed):
     """
         Builds a response command indicating the result of a follow or unfollow action.
     :param status: 1 if the user was followed, 0 if they were unfollowed.
+    :param: follower: THe username of the user that followed or unfollowed the followed user.
     :param followed: The username of the user that was followed or unfollowed.
     :return: Formatted follow-user status command string.
     """
-    return build_command(17, [status, followed])
+    return build_command(17, [status, follower, followed])
 
 
 def build_like_video_confirmation(status, video_id, username):
