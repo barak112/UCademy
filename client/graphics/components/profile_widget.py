@@ -180,6 +180,7 @@ class ProfileWidget(wx.Panel):
         self.following_numeric_amount_label.SetLabel(str(self.current_user.followings_amount))
 
     def update_followers_label(self):
+        print("followers amount in profile widget:", str(self.current_user.followers_amount))
         self.followers_numeric_amount_label.SetLabel(str(self.current_user.followers_amount))
 
     def on_change_topics(self, event):

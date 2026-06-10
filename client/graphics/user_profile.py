@@ -196,6 +196,8 @@ class UserProfilePanel(wx.ScrolledWindow):
             updated.
         """
 
+        print("user following user:", follower, followed, status)
+
         if followed in self.frame.users:
             self.frame.users[followed].followers_amount += 1 if status else -1
 
@@ -203,9 +205,9 @@ class UserProfilePanel(wx.ScrolledWindow):
             self.frame.users[follower].followings_amount += 1 if status else -1
 
         if followed == self.current_username: # if currently watching the user that was followed
+            print("followers amount:", self.frame.users[followed].followers_amount)
             self.profile_info.update_followers_label()
-            #todo if not updated, change the current user in profile_indo to current_username
-        #todo something here didnt work
+
         elif follower == self.current_username:  # if currently watching the user that is following
             self.profile_info.update_followings_label()
 
@@ -213,6 +215,8 @@ class UserProfilePanel(wx.ScrolledWindow):
             self.profile_info.update_following(status, followed)
             self.frame.users[followed].is_followed_by_user = bool(status)
 
+        if not follower or not followed:
+            wx.MessageBox("Error following user, user doesnt exists", "Error", wx.OK | wx.ICON_ERROR)
 
     def on_change_topics(self):
         """

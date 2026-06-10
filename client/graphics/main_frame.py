@@ -335,11 +335,11 @@ class MainFrame(wx.Frame):
 
         self.Layout()
 
-        wx.MessageBox(
-            "Disconnected from server, Closing application in 5 seconds.",
-            "Closing app in 5 seconds.",
-            wx.OK | wx.ICON_INFORMATION
-        )
+        # wx.MessageBox(
+        #     "Disconnected from server, Closing application in 5 seconds.",
+        #     "Closing app in 5 seconds.",
+        #     wx.OK | wx.ICON_INFORMATION
+        # )
 
     def status_label_dots_animation(self, event):
         """

@@ -1111,10 +1111,11 @@ class ServerLogic:
             print("clients_to_send:", clients_to_send)
 
             msg = serverProtocol.build_follow_user_status(status, follower, followed)
-            self.comm.send_msg(client_ip, msg)
+            for client in clients_to_send:
+                self.comm.send_msg(client, msg)
 
         else:
-            msg = serverProtocol.build_follow_user_status(0, "")
+            msg = serverProtocol.build_follow_user_status(0, "", "")
             self.comm.send_msg(client_ip, msg)
 
     def handle_like_video(self, client_ip, data):  # command 18
