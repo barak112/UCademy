@@ -28,8 +28,6 @@ class FeedPanel(wx.Panel):
 
         self.feed_id = feed_id
 
-        print("feed_id: ", self.feed_id)
-
         self.SetWindowStyle(self.GetWindowStyle() | wx.WANTS_CHARS)
         self.SetFocus()
 
@@ -641,8 +639,6 @@ class FeedPanel(wx.Panel):
         :param video_id: The ID of the video that was deleted.
         """
 
-        print(f"{self.feed_id} a user deleted video {video_id}, current videos_ids:",self.videos_ids)
-
         if not video_id: # video deletion failed
             self.status_label.SetLabel("Video deletion failed")
 
@@ -650,8 +646,6 @@ class FeedPanel(wx.Panel):
         elif video_id in self.videos_ids:
             self.videos_ids = [v for v in self.videos_ids if
                                v != video_id]  # removes any occurrence of video_id in videos_ids
-
-            print(f"{self.feed_id} a user deleted video {video_id}, new videos_ids:", self.videos_ids)
 
             # deleted a video, so req another one instead of it (if in feed)
             if self.feed_id == settings.FEED_ID:
@@ -674,8 +668,6 @@ class FeedPanel(wx.Panel):
             else:
                 self.status_label.SetLabel("The video you were watching has been deleted, returning to last video")
                 self.video_index = max(0, self.video_index - 1)
-                print("deleted video:", video_id, "new index:", self.video_index, "video ids:", self.videos_ids,
-                      "videos details:", self.frame.videos_details)
                 if self.videos_ids[self.video_index] in self.frame.videos_details:
                     self.load_video(self.frame.videos_details[self.videos_ids[self.video_index]])
                 else:
@@ -727,7 +719,6 @@ class FeedPanel(wx.Panel):
         :param event: The mouse click event that triggered this handler.
         """
         test_link = self.frame.videos_details[self.current_video_id].test_link
-        print("test link:", test_link)
         if test_link:
             if self.gform_exists(test_link):
                 self.status_label.SetLabel("Opening test link in broswer")
@@ -906,7 +897,6 @@ class FeedPanel(wx.Panel):
             Sends a like or unlike request to the server for the current video.
         :param event: The mouse click event that triggered this handler.
         """
-        print("liking video")
         if self.current_video_id > 0:
             msg = clientProtocol.build_like_video(self.current_video_id)
             self.frame.comm.send_msg(msg)
@@ -921,7 +911,6 @@ class FeedPanel(wx.Panel):
         :param username: username of the user that has liked or unliked the video.
         """
         video = self.frame.videos_details[video_id]
-        print("got like ans:", "status:", status, "new amount:", video.amount_of_likes)
 
         if video_id == self.current_video_id:
             self.update_likes_amount_label(video_id)
@@ -948,7 +937,6 @@ class FeedPanel(wx.Panel):
         :param video_id: The ID of the video whose like count should be displayed.
         """
         self.likes_amount_label.SetLabel(str(self.frame.videos_details[video_id].amount_of_likes))
-        print("set label to:", str(self.frame.videos_details[video_id].amount_of_likes))
 
     def on_scroll(self, event):
         """
@@ -968,7 +956,6 @@ class FeedPanel(wx.Panel):
             if rotation > 0:  # scroll up
                 # return to the previous video
                 if self.video_index > 0:
-                    print("current video index:", self.video_index, "ids:", self.videos_ids)
                     new_index -= 1  # last video
                     load_a_new_video = True
                     self.negative_scroll_pos += 1
@@ -984,7 +971,6 @@ class FeedPanel(wx.Panel):
                         if self.feed_id == settings.FEED_ID:  # if in the feed, then preload a video when a scrolling past new videos
                             msg = clientProtocol.build_req_video(settings.FEED_ID)
                             self.frame.comm.send_msg(msg)
-                            print("preloading video", self.videos_ids)
                     else:
                         self.negative_scroll_pos -= 1
                 else:
@@ -1003,10 +989,8 @@ class FeedPanel(wx.Panel):
                 if video_id == settings.END_OF_LIST_ID:  # no more videos, either watched them all or no more in search/profile
                     # reset videos so the user could watch them again
                     if self.feed_id == settings.FEED_ID:
-                        print("Watched all videos, resetting watched history, videos_ids: before:", self.videos_ids)
                         self.videos_ids = self.videos_ids[
                             self.video_index + 2:]  # delete all ids until now (including the 0)
-                        print("Watched all videos, resetting watched history, videos_ids: after:", self.videos_ids)
                         self.status_label.SetLabel("Watched all videos, resetting watched history")
                         self.video_index = 0
 
@@ -1020,10 +1004,6 @@ class FeedPanel(wx.Panel):
                         msg = clientProtocol.build_req_video(self.feed_id)
                         self.frame.comm.send_msg(msg)
 
-                        # for req in range(settings.AMOUNT_OF_VIDEOS_TO_REQ):
-                        #     self.frame.comm.send_msg(msg)
-                        #     self.frame.video_requests_by_feeds.append(self.frame.feed_panel)
-                        #     self.frame.comments_requests_by_feeds.append(self.frame.feed_panel)
                         print("watched all videos")
 
                     elif self.feed_id == settings.USER_PROFILE_FEED_ID:
@@ -1039,7 +1019,6 @@ class FeedPanel(wx.Panel):
 
                 elif video_id in self.frame.videos_details:
                     video_to_load = self.frame.videos_details[self.videos_ids[new_index]]
-                    print("loading video:", video_id, 'comments', video_to_load.get_comments())
                     self.load_video(video_to_load)
                     self.video_index = new_index
                 else:
@@ -1059,6 +1038,8 @@ class FeedPanel(wx.Panel):
         :param event: The media loaded event fired when a video finishes loading.
         """
         self.video_ctrl.Show()
+        self.Refresh()
+        self.Layout()
         self.video_ctrl.Play()
         self.video_ctrl.SetVolume(FeedPanel.volume)
         if self.video_ctrl.IsFrozen():
@@ -1125,14 +1106,12 @@ class FeedPanel(wx.Panel):
             if self.waiting_for_video and not self.IsFrozen():  # checks if waiting for a video to arrive from server, if so, load it immediately
                 self.load_video(video)
                 self.video_index = self.videos_ids.index(video_id)
-                print(video_id, "video loaded at index", self.video_index)
                 self.waiting_for_video = False
                 self.status_label.Layout()
 
                 if self.feed_id == settings.FEED_ID:  # if in the feed, then preload a video when a new video instantly loads
                     msg = clientProtocol.build_req_video(self.feed_id)
                     self.frame.comm.send_msg(msg)
-                    print("preloading video")
 
 
 
@@ -1263,6 +1242,7 @@ class FeedPanel(wx.Panel):
         :param video_id: The ID of the video the comments belong to.
         :param comments: A list of comment data to add.
         """
+        self.comments_panel.Refresh()
         print("loading new comments for video:", video_id, "comments:", comments)
         if video_id in self.frame.videos_details:
             if comments:
@@ -1273,6 +1253,7 @@ class FeedPanel(wx.Panel):
             elif len(self.frame.videos_details[video_id].get_comments()) > 0:
                 self.status_label.SetLabel(f"No more comments to load, video_id:{video_id}")
                 self.Layout()
+
 
     def update_comments_label(self, video_id):
         """

@@ -355,7 +355,6 @@ class ServerLogic:
         :param reports: A list of tuples in the format (target_id, target_type, reporter_username, client_ip).
         """
         # reports = [(id, type, username, client_id),(...)]
-        print("sending reports:", reports)
         for id, type, username, client_ip in reports:
 
             self.db.set_report_notified(username, id, type)
@@ -409,8 +408,6 @@ class ServerLogic:
 
             # using videocomm to make sure this arrives before next video and after previously sended videos
             self.clients[client_ip][1].send_msg(client_ip, msg)
-
-        print("set filter:", topic_filter)
 
     def handle_creators_search(self, client_ip, data):  # command 5
         """
@@ -490,8 +487,6 @@ class ServerLogic:
         """
         video_name_or_desc, topics, last_id = data
 
-        print("topics in videos_search: ", topics)
-
         last_id = int(last_id)
 
         videos_ids = self.db.search_videos(video_name_or_desc, topics)
@@ -506,7 +501,6 @@ class ServerLogic:
         videos_ids = [i for i in videos_ids if i not in deleted_videos_ids]
 
         videos_to_send = videos_ids[:settings.AMOUNT_OF_VIDEOS_TO_SEND]
-        print("videos_to_send in videos_search after last_id", videos_to_send)
 
         if videos_to_send:
             # send username details and pfps
@@ -550,7 +544,6 @@ class ServerLogic:
 
         if self.db.video_exists(video_id) and len(comment) <= settings.MAX_COMMENT_LENGTH:
             comment_id, created_at = self.db.add_comment(video_id, commenter_name, comment)
-            print("id, created:", comment_id, created_at)
             msg = serverProtocol.build_comment_status(comment_id, video_id, commenter_name, comment, created_at)
 
             # every client that has received this video in user_panel or in feed
@@ -578,10 +571,7 @@ class ServerLogic:
         self.send_pfp(client_ip, username)
 
         # sends the user's details
-        print("user_details in serverlogic user details:", user_details)
-        print("distributed:", *user_details)
         msg = serverProtocol.build_user_details_in_profile(*user_details)
-        print("msg in serverlogic user details:", msg)
         self.clients[client_ip][1].send_msg(client_ip, msg)
 
     def get_user_details(self, client_ip, username):
@@ -676,7 +666,6 @@ class ServerLogic:
             if last_comment_id = 0. it means that its the first time the client has requested comments.
         """
         feed_id, video_id, last_id = data
-        print("comments req arrived at handle", video_id)
 
         feed_id = int(feed_id)
         video_id = int(video_id)
@@ -699,9 +688,7 @@ class ServerLogic:
 
         # now that i have the entire comments of this video without deleted once and starting from the right index
         # i can filter the reported comments
-        print("is system manager revieweing comments",
-              self.db.is_system_manager(self.clients[client_ip][0]) and self.system_managers_type_filter[
-                  client_ip] == settings.COMMENT_DIGIT_REPR)
+
         if self.db.is_system_manager(self.clients[client_ip][0]) and self.system_managers_type_filter[
             client_ip] == settings.COMMENT_DIGIT_REPR:
             reported_comments = self.db.get_reported_comments(video_id)
@@ -709,7 +696,6 @@ class ServerLogic:
             comments = [i for i in comments if i[0] in reported_comments]
 
         comments_to_send = comments[:settings.AMOUNT_OF_COMMENTS_TO_SEND]
-        print(f"comments_to_send for video {video_id}:", comments_to_send)
 
         commenters = {i[1] for i in comments_to_send}
         # send pfps
@@ -727,7 +713,6 @@ class ServerLogic:
         """
         video_id = data[0]
         video_id = int(video_id)
-        print("trying to deleting video:", video_id)
 
         if client_ip in self.clients and (self.db.is_the_video_creator(video_id, self.clients[client_ip][0]) or self.db.is_system_manager(
                 self.clients[client_ip][0])):
@@ -756,7 +741,6 @@ class ServerLogic:
             self.db.delete_comment(comment_id)
             video_id = comment[1]
             msg = serverProtocol.build_del_comment_confirmation(video_id, comment_id)
-            print("deleting comment", comment_id, "on video:", video_id)
 
             clients_to_send = [ip for ip in self.clients.keys() if
                                video_id in (self.videos_sent[ip] + self.thumbnails_sent[ip])]
@@ -777,7 +761,6 @@ class ServerLogic:
         last_id = int(last_id)
 
         videos_ids = self.db.get_videos_by_creator(username, False)
-        print("videos_ids by creator in creator videos req:", videos_ids)
         start_index = 0
         if last_id:
             start_index = videos_ids.index(last_id) + 1
@@ -788,8 +771,6 @@ class ServerLogic:
         videos_ids = [i for i in videos_ids if i not in deleted_videos_ids]
 
         videos_to_send = videos_ids[:settings.AMOUNT_OF_VIDEOS_TO_SEND]
-
-        print(f"videos_to_send in creator video req: {videos_to_send}")
 
         if not username in self.creator_videos_sent:
             self.creator_videos_sent[client_ip].append(username)
@@ -832,7 +813,6 @@ class ServerLogic:
         users_to_send = [i for i in users_to_send if i not in deleted_usernames]
 
         users_to_send = users_to_send[:settings.AMOUNT_OF_USERS_TO_SEND]
-        print("users to send in follow list req", users_to_send)
 
         if users_to_send:
             self.send_users_details(client_ip, users_to_send)
@@ -862,9 +842,6 @@ class ServerLogic:
                     video_id = self.db.get_video_for_system_manager(username)
                 else:  # if going over comments
                     video_id = self.db.get_comment_video_for_system_manager(username)
-
-
-                print("system manager video id:", video_id)
 
             else:
                 video_id = self.db.get_video_for_user(username, self.clients[client_ip][2])
@@ -907,7 +884,6 @@ class ServerLogic:
 
             msg_to_send = serverProtocol.build_video_details(feed_id,video_id, "", "", "", "", 0, 0, 0, "")
             self.clients[client_ip][1].send_msg(client_ip, msg_to_send)
-            print("resettings video watched history for:",username, "video_id:",video_id)
 
         print("sending video to client: ", video_id)
     def send_video_and_details(self, client_ip, feed_id, video_id):  # helper function
@@ -941,7 +917,6 @@ class ServerLogic:
         """
         video_content, thumbnail_content, extension, video_details = data
         video_name, video_desc, test_link, topics = video_details
-        print("video_name", video_name, "video_desc", video_desc, "test_link", test_link, "topics", topics)
 
         username = self.clients[client_ip][0]
 
@@ -979,15 +954,12 @@ class ServerLogic:
                 f.write(thumbnail_content)
 
             self.db.add_video_hash(video_id, video_hash)
-            print("video uploaded")
 
             msg = serverProtocol.build_video_upload_confirmation(video_id, username)
 
             # the creator of this videos is present because to get to upload you need to go through the profile panel
             clients_to_send = [ip for ip in self.clients.keys() if
                                username in self.creator_videos_sent[ip]]
-            print("clients_to_send in video_upload:",clients_to_send)
-            print("self.creator_videos_send[ip] in video_upload:", self.creator_videos_sent, "username:", username)
             for client in clients_to_send:
                 self.comm.send_msg(client, msg)
 
@@ -1108,7 +1080,6 @@ class ServerLogic:
 
         if followed:
             clients_to_send = [client for client, usernames in self.creator_videos_sent.items() if follower in usernames or followed in usernames]
-            print("clients_to_send:", clients_to_send)
 
             msg = serverProtocol.build_follow_user_status(status, follower, followed)
             for client in clients_to_send:
@@ -1151,11 +1122,9 @@ class ServerLogic:
         if self.clients[client_ip][0] in self.pfps_sent[client_ip]:
             self.pfps_sent[client_ip].remove(self.clients[client_ip][0])
 
-        print(self.pfps_sent)
         self.send_pfp(client_ip, self.clients[client_ip][0])
         msg = serverProtocol.build_update_pfp()
         self.clients[client_ip][1].send_msg(client_ip, msg)
-        print("sending user pfp")
 
     def handle_user_uploaded_pfp(self, client_ip, data): # command 20
         """
@@ -1169,12 +1138,17 @@ class ServerLogic:
         :param data: A list where the first element contains the raw file content of the pfp"""
         file_content = data[0]
         status = settings.INVALID_IMAGE
+        # todo update every client that this users pfp was sent to him, update in comments and in user_profile
         if self.is_image_valid_from_bytes(file_content):
             with open(f"media\\pfps\\{self.clients[client_ip][0]}.png", 'wb') as f:
                 f.write(file_content)
 
             status = settings.SUCCESSFUL
             self.send_user_his_pfp(client_ip, data)
+
+            #todo delete this user from everyones pfp_sent list (or not, if sended new pfp it doesnt matter)
+            # need to delete from pfp_sent list so the func of send pfp will work
+
 
         msg = serverProtocol.pfp_upload_confirmation(status)
         self.clients[client_ip][1].send_msg(client_ip, msg)
@@ -1194,8 +1168,6 @@ class ServerLogic:
         type = int(type)
         self.system_managers_type_filter[client_ip] = type
         msg = serverProtocol.build_filter_comments_or_videos_reports_confirmation(type)
-
-        print("changed filter for ", self.clients[client_ip][0],"to",type)
 
         # using videocomm to make sure this arrives before next video and after previously sended videos
         self.clients[client_ip][1].send_msg(client_ip, msg)
