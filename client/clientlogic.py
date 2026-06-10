@@ -128,7 +128,7 @@ class ClientLogic:
             video_comm = clientCommVideos.ClientCommVideos(self, settings.SERVER_IP, int(video_port), self.recvQ)
             video_comm.connect()
 
-            followers_amount = int(followings_amount)
+            followers_amount = int(followers_amount)
             followings_amount = int(followings_amount)
             system_manager = bool(int(system_manager))
 

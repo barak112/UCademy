@@ -428,7 +428,7 @@ class ServerLogic:
 
         start_index = 0
 
-        if last_username:
+        if last_username and last_username in usernames:
             start_index = usernames.index(last_username) + 1
 
         usernames = usernames[start_index:]
@@ -497,7 +497,7 @@ class ServerLogic:
         videos_ids = self.db.search_videos(video_name_or_desc, topics)
 
         start_index = 0
-        if last_id:
+        if last_id and last_id in videos_ids:
             start_index = videos_ids.index(last_id) + 1
 
         videos_ids = videos_ids[start_index:]
@@ -767,7 +767,7 @@ class ServerLogic:
 
         videos_ids = self.db.get_videos_by_creator(username, False)
         start_index = 0
-        if last_id:
+        if last_id and last_id in videos_ids:
             start_index = videos_ids.index(last_id) + 1
 
         videos_ids = videos_ids[start_index:]
@@ -777,7 +777,7 @@ class ServerLogic:
 
         videos_to_send = videos_ids[:settings.AMOUNT_OF_VIDEOS_TO_SEND]
 
-        if not username in self.creator_videos_sent:
+        if username not in self.creator_videos_sent[client_ip]:
             self.creator_videos_sent[client_ip].append(username)
 
         if videos_to_send:
@@ -809,7 +809,7 @@ class ServerLogic:
 
         start_index = 0
 
-        if last_follow_name:
+        if last_follow_name and last_follow_name in users_to_send:
             start_index = users_to_send.index(last_follow_name) + 1
 
         users_to_send = users_to_send[start_index:]
@@ -1224,7 +1224,7 @@ class ServerLogic:
 
                         self.handle_del_comment(client_ip, [comment_id])
 
-                        self.send_email(comment_id,
+                        self.send_email(self.db.get_user_email(creator),
                                         self.EMAIL_COMMENT_REMOVE_MSG.format(comment, commenter, video_name, creator,
                                                                              created_at),
                                         self.EMAIL_COMMENT_REMOVE_SUBJECT)

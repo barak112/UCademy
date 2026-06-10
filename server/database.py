@@ -60,7 +60,7 @@ class DataBase:
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
             email TEXT,
-            password_hash TEXT
+            password_hash TEXT,
             deleted INTEGER DEFAULT 0
         ) """)
         self.conn.commit()
@@ -296,7 +296,7 @@ class DataBase:
         """
         added = False
         if not self.user_exists(username):
-            self.cur.execute("INSERT INTO users VALUES (?,?,?)", (username, email, password_hash))
+            self.cur.execute("INSERT INTO users (username, email, password_hash) (?,?,?)", (username, email, password_hash))
             self.conn.commit()
             added = True
         return added
@@ -759,7 +759,7 @@ class DataBase:
         :param username: Username of the user
         :return: List of follower usernames
         """
-        self.cur.execute("SELECT following FROM following WHERE followed = ?", (username,))
+        self.cur.execute("SELECT follower FROM following WHERE followed = ?", (username,))
         followers = [i[0] for i in self.cur.fetchall()]
         return followers
 
